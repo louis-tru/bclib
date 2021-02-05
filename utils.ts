@@ -4,10 +4,13 @@
  */
 
 import utils from 'somes';
+import {Options,Params} from 'somes/request';
+import storage from  './storage';
+import {SafeRequest} from './request';
+import cfg from './cfg';
 
-const ETH_RATIO = 18;
-
-export const prod = utils.config.env == 'prod';
+export const prod = cfg.env == 'prod';
+export const ETH_RATIO = 18;
 
 /**
  * 向左边移动小数点
@@ -42,12 +45,117 @@ export function moveDecimalForRight(num: string | number, count: number, ellipsi
 	}
 }
 
-export function toEthReduced(ethStr: string): number {
+export function toEth(ethStr: string): number {
 	return moveDecimalForLeft(ethStr, ETH_RATIO, 10);
 }
 
-export function toRawEth(ethNum: number): string {
+export function toWei(ethNum: number): string {
 	return moveDecimalForRight(ethNum, ETH_RATIO);
+}
+
+// const TOKEN_RATIO = 10;
+const create_cache_funcs: Dict = {};
+export const trustCloud: boolean = 'trustCloud' in utils.config ? !!utils.config.trustCloud : false;
+
+export enum CacheMode {
+	AUTO = 0,
+	NO_CACHE = 1,
+	CACHE = -1,
+}
+
+export interface CacheFunction<A extends any[], R> {
+	(no_cache?: CacheMode, ...args: A): Promise<R>;
+	noCache(...args: A): Promise<R>;
+	call(...args: A): Promise<R>;
+	cache(...args: A): Promise<R>;
+}
+
+export function createCache<A extends any[], R>(
+	fetch: (...args: A)=>Promise<R>, { cacheTime = 1e4, timeout = 0, id = '' }): CacheFunction<A, R> {
+
+	if (id && create_cache_funcs[id]) {
+		return create_cache_funcs[id];
+	}
+	var key = '__cache_' + utils.id;
+
+	async function noCache(...args: A): Promise<R> {
+		try {
+			var value: R;
+			if (timeout) {
+				value = await utils.timeout(fetch(...args), timeout);
+			} else {
+				value = await fetch(...args);
+			}
+			storage.set(key, { value, time: Date.now() + cacheTime });
+			return value;
+		} catch(error) {
+			var cache = storage.get(key);
+			if (cache) { // use cache
+				return { ...cache.value, error };
+			}
+			throw error;
+		}
+	}
+
+	async function call(...args: A): Promise<R> {
+		var value = storage.get(key) || { value: null, time: 0 };
+		if (value.time < Date.now()) {
+			return await noCache(...args);
+		}
+		return value.value;
+	}
+
+	async function cache(...args: A): Promise<R> {
+		var value = storage.get(key);
+		if (value) {
+			return Promise.resolve(value.value as R);
+		}
+		return call(...args);
+	}
+
+	function func(no_cache = CacheMode.AUTO, ...args: A): Promise<R> {
+		if (no_cache) {
+			return no_cache > 0 ? noCache(...args): cache(...args);
+		} else {
+			return call(...args);
+		}
+	}
+
+	func.call = call;
+	func.noCache = noCache;
+	func.cache = cache;
+
+	if (id) {
+		create_cache_funcs[id] = func;
+	}
+
+	return func as CacheFunction<A, R>;
+}
+
+export async function callApi(
+	api: SafeRequest,
+	name: string,
+	method: 'post' | 'get' = 'post',
+	params?: Params,
+	options?: Options
+): Promise<any> {
+	var data = null;
+	var key = '_callApi_' + name + method + Object.hashCode(params);
+	try {
+		if (method == 'get') {
+			var {data} = await api.get(name, params, options);
+		} else {
+			var {data} = await api.post(name, params, options);
+		}
+		storage.set(key, data);
+	} catch(err) {
+		// console.error(err);
+		data = storage.get(key);
+		if (!data) {
+			throw err;
+		}
+	}
+	return data;
 }
 
 export default utils;

@@ -5,7 +5,7 @@
 
 import * as fs from 'somes/fs';
 import * as path from 'path';
-import * as cfg from '../config';
+import cfg from './cfg';
 
 var variable = String(cfg.var) || path.resolve(__dirname, '../var');
 

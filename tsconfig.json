@@ -1,0 +1,36 @@
+{
+	"compileOnSave": true,
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "ES2018",
+		"moduleResolution": "node",
+		"sourceMap": false,
+		"outDir": "out/bclib",
+		"declarationDir": "out/types",
+		"rootDir": ".",
+		"baseUrl": ".",
+		"declaration": true,
+		"alwaysStrict": true,
+		"allowJs": true,
+		"checkJs": false,
+		"strict": true,
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"strictNullChecks": true,
+		"strictPropertyInitialization": true,
+		"emitDecoratorMetadata": false,
+		"experimentalDecorators": true,
+		"removeComments": true,
+		"resolveJsonModule": true,
+	},
+	"include": [
+		// "**/*",
+		// "../../**/*",
+	],
+	"exclude": [
+		"out",
+		"var",
+		".git",
+		"node_modules",
+	]
+}

@@ -7,7 +7,8 @@ import utils from './utils';
 import * as crypto from 'crypto';
 import { ViewController } from 'somes/ctr';
 import {RuleResult} from 'somes/router';
-import auth, {AuthorizationToken, NONE_TOKEN} from './auth';
+import authorization, {AuthorizationUser} from './authorization';
+import errno from './errno';
 import message, {Events} from './message';
 
 const cryptoTx = require('crypto-tx');
@@ -26,14 +27,20 @@ message.addEventListener(Events.DTTYD_PORT_FORWARD_END, (e)=>{
 	}
 });
 
+export var SHARE_AUTO_KEY = 'b4dd53f2fefde37c07ac4824cf7086439633e3a357daacc3aaa16418275a9e51';
+
+export function setShareAuthKey(key: string) {
+	SHARE_AUTO_KEY = key;
+}
+
 /**
  * @class APIController
  */
 export default class APIController extends ViewController {
 
-	private _token?: AuthorizationToken | null;
+	private _user?: AuthorizationUser | null;
 
-	auth(_: RuleResult): boolean {
+	private _auth(_: RuleResult): boolean {
 
 		if (!enableAccessAuth) {
 			return true;
@@ -44,7 +51,7 @@ export default class APIController extends ViewController {
 
 		var sign = this.headers.sign as string;
 		var st = Number(this.headers.st) || 0;
-		var key = 'b4dd53f2fefde37c07ac4824cf7086439633e3a357daacc3aaa16418275a9e51';
+		var key = SHARE_AUTO_KEY;
 		var hash = '';
 
 		if (!st)
@@ -63,8 +70,8 @@ export default class APIController extends ViewController {
 			hash = md5.digest('hex');
 		}
 
-		var user = this.token;
-		if (user !== NONE_TOKEN) {
+		var user = this.authUserWithoutErr();
+		if (user) {
 			if (user.type == 'rsa') {
 				sign = crypto.publicDecrypt(user.key, Buffer.from(sign, 'base64')) + '';
 			}
@@ -72,7 +79,7 @@ export default class APIController extends ViewController {
 				var pkey = Buffer.from(user.key.slice(2), 'hex');
 				var buf = Buffer.from(sign, 'base64');
 				var signature = Buffer.from(buf.buffer, buf.byteOffset, 64);
-				var ok = cryptoTx.verify(Buffer.from(hash), pkey, signature); // verify(message, publicKeyTo, signature)
+				var ok = cryptoTx.verify(Buffer.from(hash), signature, pkey);
 				return ok;
 			} else {
 				console.warn('Authentication mode is not supported', user.type);
@@ -84,18 +91,30 @@ export default class APIController extends ViewController {
 		return false;
 	}
 
-	get tokenName() {
-		return this.headers['token-name'] as string || 'default';
+	auth(_: RuleResult) {
+		var r = this._auth(_);
+
+		if (utils.debug) {
+			console.log(...(r ? []: ['ILLEGAL ACCESS']), this.pathname, this.headers, this.params, this.data);
+		}
+		return r;
 	}
 
-	get token() {
-		if (!this._token) {
-			this._token = auth.token(this.tokenName);
+	get authName() {
+		return this.headers['auth-name'] as string || 'default';
+	}
+
+	get authUser() {
+		var user = this.authUserWithoutErr() as AuthorizationUser;
+		utils.assert(user, errno.ERR_AUTH_USER_NON_EXIST);
+		return user;
+	}
+
+	authUserWithoutErr() {
+		if (this._user === undefined) {
+			this._user = authorization.user(this.authName);
 		}
-		if (!this._token) {
-			this._token = NONE_TOKEN;
-		}
-		return this._token;
+		return this._user;
 	}
 
 }

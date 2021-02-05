@@ -5,9 +5,10 @@
 
 import {getLocalNetworkHost} from 'somes/network_host';
 import {Monitor} from 'somes/monitor';
+import {NotificationCenter} from 'somes/mbus';
 
 const RUN_INTERVAL = 60 * 1000; // 60s
-const host = getLocalNetworkHost()[0];
+const [host] = getLocalNetworkHost();
 const pid = process.pid;
 
 export interface WatchCat {
@@ -18,11 +19,22 @@ export interface WatchCat {
 	cat(): Promise<boolean> | boolean;
 }
 
+var _defauleWatch: Watch | undefined;
+
 /**
  * @class Watch extends Monitor
  */
-class Watch extends Monitor {
-	private m_cat: Map<string, {watch: WatchCat, ok: boolean}> = new Map;
+export class Watch extends Monitor {
+	private _cat: Map<string, {watch: WatchCat, ok: boolean}> = new Map;
+	private _mbus?: NotificationCenter;
+
+	constructor(interval = RUN_INTERVAL, maxDuration = -1) {
+		super(interval, maxDuration);
+	}
+
+	seBus(bus: NotificationCenter) {
+		this._mbus = bus;
+	}
 
 	/**
 	 * @func cat()
@@ -30,7 +42,7 @@ class Watch extends Monitor {
 	cat() {
 		var now = Date.now();
 		// cats
-		for (var [name,o] of this.m_cat) {
+		for (var [name,o] of this._cat) {
 			var {watch:w,ok} = o;
 			if (now > (w.priv_cattime as number) + (w.cattime as number) * RUN_INTERVAL && !w.run_cating) {
 				(async ()=>{
@@ -47,13 +59,15 @@ class Watch extends Monitor {
 					}
 					if (_ok != ok) {
 						o.ok = _ok;
-						import('./message').then((msg)=>msg.default.send('WatchStatusChange', {
-							id: `${host}:${pid}:${name}`,
-							host: host,
-							pid: pid,
-							name: name,
-							status: ok,
-						}));
+						if (this._mbus) {
+							this._mbus.trigger('WatchStatusChange', {
+								id: `${host}:${pid}:${name}`,
+								host: host,
+								pid: pid,
+								name: name,
+								status: ok,
+							});
+						}
 					}
 				})();
 				// exec end
@@ -63,16 +77,16 @@ class Watch extends Monitor {
 
 	addWatch(cat: WatchCat) {
 		var name = cat.constructor.name;
-		if (!this.m_cat.has(name)) {
+		if (!this._cat.has(name)) {
 			cat.catcount = 0;
 			cat.cattime = cat.cattime || 1;
 			cat.priv_cattime = 0;
-			this.m_cat.set(name, {watch:cat, ok: true});
+			this._cat.set(name, {watch:cat, ok: true});
 		}
 	}
 
 	delWatch(cat: WatchCat) {
-		this.m_cat.delete(cat.constructor.name);
+		this._cat.delete(cat.constructor.name);
 	}
 
 	run() {
@@ -80,10 +94,29 @@ class Watch extends Monitor {
 			this.cat();
 		});
 	}
+
+	static get defauleWatch() {
+		if (!_defauleWatch) {
+			_defauleWatch = new Watch();
+		}
+		return _defauleWatch;
+	}
+
 }
 
-const watch = new Watch(RUN_INTERVAL, -1);
+export default {
 
-export default watch;
+	addWatch(cat: WatchCat) {
+		return Watch.defauleWatch.addWatch(cat);
+	},
 
-setTimeout(()=>watch.run(), 5e3); // 5s
+	delWatch(cat: WatchCat) {
+		return Watch.defauleWatch.delWatch(cat);
+	},
+
+	runDefault() {
+		if (!Watch.defauleWatch.running) {
+			setTimeout(()=>Watch.defauleWatch.run(), 5e3); // 5s
+		}
+	},
+}
