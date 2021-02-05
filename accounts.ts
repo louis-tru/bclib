@@ -8,7 +8,7 @@ import keys from 'somes/keys';
 import {Signature} from 'web3z';
 import buffer, {IBuffer} from 'somes/buffer';
 import * as fs from 'somes/fs';
-import * as cfg from '../config';
+import cfg from './cfg';
 import paths from './paths';
 
 const crypto_tx = require('crypto-tx');
@@ -20,7 +20,7 @@ class Accounts {
 	constructor() {
 		this._accounts = [];
 
-		var pravkeyPath = cfg.privateKey || `${paths.var}/privateKey`;
+		var pravkeyPath = cfg.private_key || `${paths.var}/privateKey`;
 		if (fs.existsSync(pravkeyPath)) {
 			var strs = keys.parseFile(pravkeyPath);
 			for (var priv of strs) {

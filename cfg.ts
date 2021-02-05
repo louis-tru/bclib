@@ -1,5 +1,5 @@
 
-module.exports = {
+export default {
 	name: 'bclib',
 	var: '/data/bclib/var',
 	server: { port: 8000 },

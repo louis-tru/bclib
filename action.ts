@@ -1,6 +1,6 @@
 /**
- * @copyright © 2020 Copyright ccl
- * @date 2020-11-28
+ * @copyright © 2018 Copyright dphone.com
+ * @date 2018-07-19
  */
 
 import utils from 'somes';
@@ -12,40 +12,40 @@ const DEFAULT_TIMEOUT: number = 30 * 1000; // 30秒
 
 export default class RequestAction {
 
-	private _name: string;
-	private _timeout: number;
-	private _timeid: any;
-	private _Promise_ok: any;
-	private _Promise_err: any;
+	private m_name: string;
+	private m_timeout: number;
+	private m_timeid: any;
+	private m_Promise_ok: any;
+	private m_Promise_err: any;
 
 	private constructor(name: string, timeout: number = DEFAULT_TIMEOUT) {
-		this._name = name;
-		this._timeout = timeout;
+		this.m_name = name;
+		this.m_timeout = timeout;
 	}
 
 	private _request(data: any): Promise<any> {
 		return new Promise((resolve, reject)=>{
-			var action = all_action[this._name];
+			var action = all_action[this.m_name];
 			if (action) {
 				return reject(Error.new(errno.ERR_LAST_ACTION_NOT_COMPLETED));
 			}
-			all_action[this._name] = this;
+			all_action[this.m_name] = this;
 
-			this._Promise_ok = resolve;
-			this._Promise_err = reject;
-			this._timeid = setTimeout(()=>this._agree(false), this._timeout); 
+			this.m_Promise_ok = resolve;
+			this.m_Promise_err = reject;
+			this.m_timeid = setTimeout(()=>this._agree(false), this.m_timeout); 
 			// 广播动作请求
-			message.send(this._name, data);
+			message.send(this.m_name, data);
 		});
 	}
 
 	private _agree(isAgree: boolean, args?: any) {
-		var action = all_action[this._name];
+		var action = all_action[this.m_name];
 		utils.assert(action === this);
-		delete all_action[this._name]
-		clearTimeout(this._timeid);
+		delete all_action[this.m_name]
+		clearTimeout(this.m_timeid);
 		
-		var { _Promise_ok: ok, _Promise_err: error } = this;
+		var { m_Promise_ok: ok, m_Promise_err: error } = this;
 
 		if (isAgree) {
 			ok(args);

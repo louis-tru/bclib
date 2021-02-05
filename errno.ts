@@ -12,12 +12,13 @@ class ErrnoList extends SysErrnoList {
 	ERR_BIND_AUTH_FAIL: ErrnoCode = [100245, '绑定授权失败']
 	ERR_BIND_AUTH_TIMEOUT: ErrnoCode = [100264, '绑定授权失败超时']
 	ERR_AUTHORIZATION_FAIL: ErrnoCode = [100267, '应用授权访问失败']
-	ERR_AUTH_TOKEN_NON_EXIST: ErrnoCode = [100271, '授权Token不存在']
+	ERR_AUTH_USER_NON_EXIST: ErrnoCode = [100271, '授权用户不存在']
 	ERR_HTTP_STATUS_NO_200: ErrnoCode = [100272, 'ERR_HTTP_STATUS_NO_200']
 	ERR_NOT_ACTION_CONTEXT: ErrnoCode = [100216, '请求已失效', '没有动作上下文']
 	ERR_INTRRNET_NOT_AVAILABLE: ErrnoCode = [100240, '网络连接不可用', 'Inetrnet连接不可用']
 	ERR_REQUEST_TIMEOUT: ErrnoCode = [100232, '请求操时', '请求操时']
 	ERR_METHOD_NOT_FOUND: ErrnoCode = [100233, 'ERR_METHOD_NOT_FOUND']
+	ERR_DATA_TABLE_NOT_FOUND: ErrnoCode = [100237, '找不到数据表']
 }
 
 export default new ErrnoList;

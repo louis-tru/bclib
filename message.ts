@@ -21,7 +21,7 @@ export enum Events {
 /**
  * @class MessageCenter
  */
-class MessageCenter extends mbus.NotificationCenter implements WatchCat {
+export class MessageCenter extends mbus.NotificationCenter implements WatchCat {
 
 	constructor(url?: string, topic?: string) {
 		super(url, topic);
@@ -46,7 +46,6 @@ class MessageCenter extends mbus.NotificationCenter implements WatchCat {
 	}
 
 	async cat() {
-		// TODO ...
 		return true;
 	}
 

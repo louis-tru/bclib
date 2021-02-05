@@ -6,7 +6,7 @@
 import utils from 'somes';
 import {Console as ConsoleBase} from 'somes/log';
 import paths from './paths';
-import * as cfg from '../config';
+import cfg from './cfg';
 
 class Console extends ConsoleBase {
 

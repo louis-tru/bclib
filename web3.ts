@@ -4,14 +4,12 @@
  */
 
 import {WatchCat} from './watch';
-import * as cfg from '../config';
+import cfg from './cfg';
 import accounts from './accounts';
 import {IBuffer} from 'somes/buffer';
 import {Signature} from 'web3z';
-import {
-	Web3Z, EnqueueExecArg,
-	EnqueueOptions, TransactionQueue,
-} from 'web3z';
+import {Web3Z} from 'web3z';
+import { Options, DeOptions, TransactionQueue } from 'web3z/queue';
 
 class Web3IMPL extends Web3Z implements WatchCat {
 
@@ -19,8 +17,12 @@ class Web3IMPL extends Web3Z implements WatchCat {
 
 	private _txQueue: TransactionQueue;
 
-	constructor(url: string) {
-		super(url, accounts.address);
+	getProvider() {
+		return cfg.web3;
+	}
+
+	constructor() {
+		super();
 		this._txQueue = new TransactionQueue(this);
 		this.gasLimit = 1e6;
 	}
@@ -29,8 +31,8 @@ class Web3IMPL extends Web3Z implements WatchCat {
 		return accounts.sign(message, from);
 	}
 
-	enqueue<R>(exec: (arg: EnqueueExecArg)=>Promise<R>, options?: EnqueueOptions): Promise<R> {
-		return this._txQueue.enqueue(exec, options);
+	enqueue<R>(exec: (arg: DeOptions)=>Promise<R>, options?: Options): Promise<R> {
+		return this._txQueue.push(exec, options);
 	}
 
 	cat() {
@@ -38,4 +40,4 @@ class Web3IMPL extends Web3Z implements WatchCat {
 	}
 }
 
-export default new Web3IMPL(cfg.ethereum);
+export default new Web3IMPL();
