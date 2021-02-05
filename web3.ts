@@ -9,30 +9,24 @@ import accounts from './accounts';
 import {IBuffer} from 'somes/buffer';
 import {Signature} from 'web3z';
 import {Web3Z} from 'web3z';
-import { Options, DeOptions, TransactionQueue } from 'web3z/queue';
+import { TransactionQueue } from 'web3z/queue';
 
 class Web3IMPL extends Web3Z implements WatchCat {
 
 	TRANSACTION_CHECK_TIME = 5e3;
-
-	private _txQueue: TransactionQueue;
-
-	getProvider() {
-		return cfg.web3;
-	}
-
-	constructor() {
-		super();
-		this._txQueue = new TransactionQueue(this);
-		this.gasLimit = 1e6;
-	}
+	private _txQueue: TransactionQueue = new TransactionQueue(this);
 
 	sign(message: IBuffer, from?: string): Promise<Signature> {
 		return accounts.sign(message, from);
 	}
 
-	enqueue<R>(exec: (arg: DeOptions)=>Promise<R>, options?: Options): Promise<R> {
-		return this._txQueue.push(exec, options);
+	get txQueue() {
+		return this._txQueue;
+	}
+
+	getProvider() {
+		this.gasLimit = 1e6;
+		return cfg.web3;
 	}
 
 	cat() {

@@ -5,11 +5,10 @@
 
 import {TransactionReceipt} from 'web3z';
 import {Primitive, Address, Bytes32} from './Primitive';
+import * as json from './Users.json';
 
-import * as abi from './Users.json';
-
-export { abi };
-
+export const abi = json.abi;
+export const contractName = json.contractName;
 export const contractAddress = '0xad9546798944502760E36f99C58230eA4972d076';
 
 export default interface Users extends Primitive {

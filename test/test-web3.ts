@@ -3,9 +3,9 @@
  * @date 2020-11-28
  */
 
-import somes from 'somes';
 import {Web3} from 'web3z';
 import * as utils from 'web3-utils';
+import cfg from '../cfg';
 
 const SAFE_TRANSACTION_MAX_TIMEOUT = 180 * 1e3;  // 180秒
 
@@ -13,7 +13,7 @@ var web3: Web3 | null = null;
 
 function getWeb3() {
 	if (!web3) {
-		var url = somes.config.ethereum;
+		var url = cfg.web3;
 		var { HttpProvider, WebsocketProvider } = Web3.providers;
 		var provider;
 		if (/^https?:/.test(url)) {

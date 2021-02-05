@@ -3,15 +3,14 @@
  * @date 2020-11-28
  */
 
-import utils, {prod} from './utils';
+import {prod} from './utils';
 import * as fs from 'somes/fs';
 import paths from './paths';
 import * as path from 'path';
 import server, {ServerIMPL} from 'somes/server';
 import service from 'somes/service';
 import {Descriptors} from 'somes/http_service';
-
-utils.config.moreLog = true;
+import cfg_ from './cfg';
 
 const cfg = {
 	temp: `${paths.var}/temp`,
@@ -26,7 +25,7 @@ const cfg = {
 	maxUploadFileSize: 	50   * 1024 * 1024, // 50MB
 	router: [],
 	timeout: 180 * 1e3, // 180s
-	...utils.config.server,
+	...cfg_.server as any,
 };
 
 // router

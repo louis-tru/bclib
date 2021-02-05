@@ -19,3 +19,16 @@ export class Bytes extends String {
 		return ('0x' + Buffer.from(str).toString('hex')) as Bytes;
 	}
 }
+
+export class Bytes4 extends Bytes32 {}
+export class Bytes8 extends Bytes32 {}
+export class Bytes16 extends Bytes32 {}
+
+export type Uint256 = bigint;
+export type Int256 = bigint;
+export type Uint8 = number;
+export type Uint16 = number;
+export type Uint32 = number;
+export type Int8 = number;
+export type Int16 = number;
+export type Int32 = number;

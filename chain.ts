@@ -12,55 +12,55 @@ const web3 = web3z.web3;
 export default class extends ApiController {
 	
 	isSyncing = ()=>web3.eth.isSyncing();
-	blockNumber = ()=>web3.getBlockNumber();
-	isListening = ()=>web3.raw.eth.net.isListening();
-	getNetworkType = ()=>web3.raw.eth.net.getNetworkType();
-	getPeerCount = ()=>web3.raw.eth.net.getPeerCount();
-	getId = ()=>web3.raw.eth.net.getId();
-	getChainId = ()=>web3.raw.eth.getChainId();
-	getNodeInfo = ()=>web3.raw.eth.getNodeInfo();
-	version = ()=>web3.raw.version;
-	isMining = ()=>web3.raw.eth.isMining();
-	getHashrate = ()=>web3.raw.eth.getHashrate();
-	getGasPrice = ()=>web3.raw.eth.getGasPrice();
+	blockNumber = ()=>web3.eth.getBlockNumber();
+	isListening = ()=>web3.eth.net.isListening();
+	getNetworkType = ()=>web3.eth.net.getNetworkType();
+	getPeerCount = ()=>web3.eth.net.getPeerCount();
+	getId = ()=>web3.eth.net.getId();
+	getChainId = ()=>web3.eth.getChainId();
+	getNodeInfo = ()=>web3.eth.getNodeInfo();
+	version = ()=>web3.version;
+	isMining = ()=>web3.eth.isMining();
+	getHashrate = ()=>web3.eth.getHashrate();
+	getGasPrice = ()=>web3.eth.getGasPrice();
 
 	async getBalance({address}:{address:string}) {
-		return web3.raw.eth.getBalance(address);
+		return web3.eth.getBalance(address);
 	}
 
 	async getTransactionCount({address}:{address:string}) {
 		return {
-			nonce: await web3.raw.eth.getTransactionCount(address),
-			nonceLatest: await web3.raw.eth.getTransactionCount(address, 'latest'),
-			nonceEarliest: await web3.raw.eth.getTransactionCount(address, 'earliest'),
-			noncePending: await web3.raw.eth.getTransactionCount(address, 'pending'),
+			nonce: await web3.eth.getTransactionCount(address),
+			nonceLatest: await web3.eth.getTransactionCount(address, 'latest'),
+			nonceEarliest: await web3.eth.getTransactionCount(address, 'earliest'),
+			noncePending: await web3.eth.getTransactionCount(address, 'pending'),
 		}
 	}
 
 	getBlock = (
 		{blockNumber, returnTransactionObjects = false}: 
 		{blockNumber: BlockNumber, returnTransactionObjects?: boolean}
-	)=>web3.raw.eth.getBlock(blockNumber, returnTransactionObjects);
+	)=>web3.eth.getBlock(blockNumber, returnTransactionObjects);
 
 	getBlockUncleCount = (
 		{blockNumber}: {blockNumber: BlockNumber}
-	)=>web3.raw.eth.getBlockUncleCount(blockNumber);
+	)=>web3.eth.getBlockUncleCount(blockNumber);
 
 	getTransaction = (
 		{transactionHash }: {transactionHash: string }
-	)=>web3.raw.eth.getTransaction(transactionHash);
+	)=>web3.eth.getTransaction(transactionHash);
 
-	getPendingTransactions = ()=>web3.raw.eth.getPendingTransactions();
+	getPendingTransactions = ()=>web3.eth.getPendingTransactions();
 
 	getTransactionFromBlock = (
 		{blockHashOrBlockNumber, index}: {blockHashOrBlockNumber: BlockNumber, index: number}
-	)=>web3.raw.eth.getTransactionFromBlock(blockHashOrBlockNumber, index);
+	)=>web3.eth.getTransactionFromBlock(blockHashOrBlockNumber, index);
 
 	getTransactionReceipt = (
 		{hash}: {hash: string}
-	)=>web3.raw.eth.getTransactionReceipt(hash);
+	)=>web3.eth.getTransactionReceipt(hash);
 
-	getCoinbase = ()=>web3.raw.eth.getCoinbase();
-	getProtocolVersion = ()=>web3.raw.eth.getProtocolVersion();
-	getCode = ({address}:{address:string})=>web3.raw.eth.getCode(address);
+	getCoinbase = ()=>web3.eth.getCoinbase();
+	getProtocolVersion = ()=>web3.eth.getProtocolVersion();
+	getCode = ({address}:{address:string})=>web3.eth.getCode(address);
 }

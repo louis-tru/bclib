@@ -2,8 +2,8 @@
 	"name": "bclib",
 	"version": "0.1.0",
 	"description": "dphoto block chain bass service libs",
-	"main": "index.js",
-	"types": "index",
+	"main": "utils.js",
+	"types": "utils",
 	"author": {
 		"name": "louistru",
 		"email": "louistru@hotmail.cn",

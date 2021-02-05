@@ -1,5 +1,5 @@
 {
-  "name": "Primitive",
+  "contractName": "Primitive",
   "abi": [
     {
       "inputs": [],

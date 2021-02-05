@@ -3,7 +3,7 @@
  * @date 2020-11-28
  */
 
-import web3z from '../src/web3';
+import web3z from '../web3';
 // import {Transaction} from 'web3z';
 import { AbiInput } from 'web3-utils';
 
@@ -463,7 +463,7 @@ export default async function() {
 
 	// debugger;
 
-	var web3 = web3z.raw;
+	var web3 = web3z.web3;
 
 	var log = web3.eth.abi.decodeLog([
 		{name: 'identity',  type: "address", "indexed": true },

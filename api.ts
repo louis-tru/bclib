@@ -10,20 +10,21 @@ import {RuleResult} from 'somes/router';
 import authorization, {AuthorizationUser} from './authorization';
 import errno from './errno';
 import message, {Events} from './message';
+import cfg from './cfg';
 
 const cryptoTx = require('crypto-tx');
-const port = utils.config.server.port;
-var   enableAccessAuth = utils.config.enableAccessAuth as boolean;
+const port = cfg.server.port;
+var   enable_auth = cfg.enable_auth as boolean;
 
 message.addEventListener(Events.DTTYD_PORT_FORWARD, (e)=>{
 	if (port == e.data.port) {
-		enableAccessAuth = false;
+		enable_auth = false;
 	}
 });
 
 message.addEventListener(Events.DTTYD_PORT_FORWARD_END, (e)=>{
 	if (port == e.data.port) {
-		enableAccessAuth = utils.config.enableAccessAuth as boolean;
+		enable_auth = cfg.enable_auth as boolean;
 	}
 });
 
@@ -42,7 +43,7 @@ export default class APIController extends ViewController {
 
 	private _auth(_: RuleResult): boolean {
 
-		if (!enableAccessAuth) {
+		if (!enable_auth) {
 			return true;
 		}
 		// if (this.socket.remoteAddress == '127.0.0.1' && !this.headers.unsafe) {

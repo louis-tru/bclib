@@ -8,6 +8,7 @@ import server from 'somes/server';
 import mbus from 'somes/mbus';
 import {WSService} from 'somes/ws/service';
 import {WatchCat} from './watch';
+import cfg from './cfg';
 
 // ----------------------------------
 
@@ -51,9 +52,8 @@ export class MessageCenter extends mbus.NotificationCenter implements WatchCat {
 
 }
 
-const msg = new MessageCenter(utils.config.mbus || 'mqtt://127.0.0.1:1883', utils.config.mbus_topic || 'default');
+const msg = new MessageCenter(cfg.mbus || 'mqtt://127.0.0.1:1883', cfg.mbus_topic || 'default');
 
 mbus.defaultNotificationCenter = msg;
 
 export default msg;
-	

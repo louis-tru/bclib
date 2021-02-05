@@ -4,9 +4,9 @@
  */
 
 import {TransactionReceipt} from 'web3z';
-import {Address} from '../solidity_types';
+import {Address} from '../../solidity_types';
 
-export * from '../solidity_types';
+export * from '../../solidity_types';
 
 export interface Primitive {
 	owner(): Promise<Address>;
