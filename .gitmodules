@@ -1,0 +1,14 @@
+[submodule "somes"]
+	path = deps/somes
+	#url = http://gitlab.stars-mine.com/hardware/somes.git
+	url = https://github.com/louis-tru/somes.git
+
+[submodule "web3z"]
+	path = deps/web3z
+	#url = http://gitlab.stars-mine.com/hardware/web3z.git
+	url = https://github.com/louis-tru/web3z.git
+
+[submodule "crypto-tx"]
+	path = deps/crypto-tx
+	#url = http://gitlab.stars-mine.com/hardware/crypto-tx.git
+	url = https://github.com/louis-tru/crypto-tx.git

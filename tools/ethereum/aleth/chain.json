@@ -1,0 +1,37 @@
+{
+	"sealEngine": "Ethash",
+	"params": {
+		"networkID": "0x40",
+		"gasLimitBoundDivisor": "0x0400",
+		"accountStartNonce": "0x00",
+		"maximumExtraDataSize": "0x20",
+		"minGasLimit": "0x1388",
+		"tieBreakingGas": false,
+		"maxGasLimit": "7fffffffffffffff",
+		"minimumDifficulty": "0x20000",
+		"difficultyBoundDivisor": "0x0800",
+		"durationLimit": "0x0d",
+		"blockReward": "0x4563918244F40000"
+	},
+	"genesis": {
+		"nonce": "0x0000000000000042",
+		"mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+		"difficulty": "0x080000",
+		"author": "0x0000000000000000000000000000000000000000",
+		"timestamp": "0x00",
+		"parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+		"extraData": "0x3535353535353535353535353535353535353535353535353535353535353535",
+		"gasLimit": "0x1000000"
+	},
+	"accounts": {
+		"0x5B9333Cf29A1115160CC82154a856f322120DEDC": {
+			"balance": "0xfffffffffffffffffff"
+		},
+		"0x855BcBaB4B629B3c41847fdB862Dedb90C519b4F": {
+			"balance": "0xfffffffffffffffffff"
+		},
+		"0xDdC086CeE20dFa97F7420a62Db6bDa1D1439fbc1": {
+			"balance": "0xfffffffffffffffffff"
+		}
+	}
+}

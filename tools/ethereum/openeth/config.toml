@@ -1,0 +1,161 @@
+[parity]
+mode = "last"
+mode_timeout = 300
+mode_alarm = 3600
+no_persistent_txqueue = false
+# chain = "/Users/louis/Workspace/openeth/l_1_chain.json"
+# base_path = "/Users/louis/Workspace/openeth/ethereum"
+# db_path = "/Users/louis/Workspace/openeth/ethereum"
+# keys_path = ""
+# identity = "ccl"
+
+[network]
+interface = "all"
+port = 5555
+min_peers = 25
+max_peers = 2000
+nat = "any"
+discovery = true
+warp = true
+allow_ips = "all" # private for miner, public for device, all for boot.
+snapshot_peers = 0
+max_pending_peers = 64
+# id = 1028
+# warp_barrier
+# bootnodes = []
+# node_key
+# reserved_peers
+# reserved_only
+
+[mining]
+# configure both author and signer for miner.
+# author = "0x227bc9451cf24D42747Be4f74164369419E4e15e"
+# engine_signer = "0x227bc9451cf24D42747Be4f74164369419E4e15e"
+force_sealing = true
+reseal_on_txs = "all"
+reseal_min_period = 2000 # 10000
+reseal_max_period = 120000
+work_queue_size = 20
+relay_set = "cheap"
+usd_per_tx = "0.0001"
+usd_per_eth = "auto"
+price_update_period = "hourly"
+gas_floor_target = "8000000"
+gas_cap = "10000000"
+tx_queue_size = 8192
+tx_gas_limit = "100000000"
+tx_time_limit = 8000 #ms
+extra_data = "Parity"
+remove_solved = false
+refuse_service_transactions = false
+# notify_work = ["http://127.0.0.1:8889"]
+# reseal_on_uncle
+# min_gas_price
+# gas_price_percentile
+# tx_queue_per_sender
+# tx_queue_mem_limit
+# tx_queue_locals
+# tx_queue_strategy
+# tx_queue_ban_count
+# tx_queue_ban_time
+# tx_queue_no_unfamiliar_locals
+# tx_queue_no_early_reject
+# infinite_pending_block
+# max_round_blocks_to_import
+
+[rpc]
+disable = false
+port = 7777
+# interface = "local"
+interface = "all"
+cors = ["all"]
+apis = ["web3", "eth", "pubsub", "net", "parity", "parity_pubsub", "traces", "personal"]
+hosts = ["*"]
+# server_threads
+# processing_threads
+# max_payload
+keep_alive = true
+# experimental_rpcs 
+# poll_lifetime
+# allow_missing_blocks
+
+[websockets]
+disable = false
+port = 8888
+interface = "local"
+origins = ["all"]
+apis = ["web3", "eth", "pubsub", "net", "parity", "parity_pubsub", "traces", "personal"]
+hosts = ["none"]
+# max_connections
+
+[ipc]
+disable = false
+# path = "/Users/louis/Workspace/ethereum/rpc.ipc"
+apis = ["web3", "eth", "pubsub", "net", "parity", "parity_pubsub", "parity_accounts", "traces", "personal"]
+
+[secretstore]
+disable = true
+nodes = []
+http_interface = "local"
+http_port = 8082
+interface = "local"
+port = 8083
+# disable_http
+# disable_auto_migrate
+# acl_contract
+# service_contract
+# service_contract_srv_gen
+# service_contract_srv_retr
+# service_contract_doc_store
+# service_contract_doc_sretr
+# self_secret
+# admin_public
+# server_set_contract
+# path
+
+[account]
+# unlock
+# password
+# keys_iterations
+# refresh_time
+# fast_unlock
+
+[ui]
+# path = ""
+
+[footprint]
+# tracing = "on"
+# pruning
+# pruning_history
+# pruning_memory
+# fast_and_loose
+# cache_size
+# cache_size_db
+# cache_size_blocks
+# cache_size_queue
+# cache_size_state
+# db_compaction
+# fat_db
+# scale_verifiers
+# num_verifiers
+
+[snapshots]
+# enable = false
+# processing_threads
+
+[misc]
+# logging
+# log_file
+# color
+# ports_shift
+# unsafe_expose
+
+[stratum]
+interface = "local"
+port = 8545
+# secret = ""
+
+[metrics]
+enable = false
+# port
+# interface
