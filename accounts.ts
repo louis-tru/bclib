@@ -34,7 +34,7 @@ class Accounts {
 	private setPrivateKey(privateKey: string) {
 		var privKey = buffer.from(crypto_tx.toBuffer(privateKey));
 		var address = crypto_tx.getAddress(privKey);
-		var addressBtc = (btc.address(privKey, true, false) as IBuffer).toString('base58');
+		var addressBtc = (btc.getAddressFromPrivateKey(privKey, true, false) as IBuffer).toString('base58');
 		if (this._accounts.find(e=>e.address == address)) {
 			return;
 		}

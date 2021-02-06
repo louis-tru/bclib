@@ -1,22 +1,23 @@
 ######################################################
-D_PORT      = 9221
-PROJ        = dphoto-bass
-MAIN        = index.js
-CP          = test res .cfg*.js
+D_PORT      ?= 9221
+PROJ        ?= bclib
+MAIN        ?= index.js
+COPYS       ?= .cfg*.js
+DEPS        ?= deps deps/bclib/deps
 ######################################################
-NODE     ?= node
-UNAME    ?= $(shell uname)
-BRANCH    = $(shell git branch|grep '*'|cut -d ' ' -f 2)
-TARGET   ?= dev stg prod
-TARGETS   = $(foreach i,$(TARGET),$(i) $(i)-brk)
-T_TARGETS = $(foreach i,$(TARGET),t_$(i) t_$(i)-brk)
-J_TARGETS = $(foreach i,$(TARGET),j_$(i) j_$(i)-brk)
-R_TARGETS = $(foreach i,$(TARGET),r_$(i) r_$(i)-brk)
-R_DIR    ?= ~/hc
-CWD      ?= $(shell pwd)
-OUT      ?= out/$(PROJ)
-ENV      ?= dev
-FILE_DEPS = $(shell ls deps)
+NODE       ?= node
+UNAME      ?= $(shell uname)
+BRANCH      = $(shell git branch|grep '*'|cut -d ' ' -f 2)
+TARGET     ?= dev stg prod
+TARGETS     = $(foreach i,$(TARGET),$(i) $(i)-brk)
+T_TARGETS   = $(foreach i,$(TARGET),t_$(i) t_$(i)-brk)
+J_TARGETS   = $(foreach i,$(TARGET),j_$(i) j_$(i)-brk)
+R_TARGETS   = $(foreach i,$(TARGET),r_$(i) r_$(i)-brk)
+R_DIR      ?= ~/hc
+CWD        ?= $(shell pwd)
+OUT        ?= out/$(PROJ)
+ENV        ?= dev
+COPYS      += package.json Makefile LICENSE README.md deps/bclib/tools deps/bclib/build.mk
 supervisor= $(shell node -e "console.log(path.resolve(require.resolve('supervisor'), '../../../.bin/supervisor'))")
 ######################################################
 
@@ -33,8 +34,16 @@ elif [ -f .cfg_$(1).js ]; then \
 	cat .cfg_$(1).js > config.js; \
 fi
 
+CP = \
+	if [ -f $(1) ]; then \
+		cp $(1) $(2); \
+		if [ "$(notdir $(2))" == "somes" ]; then \
+			cp $(dir $(1))*.types $(2); \
+		fi; \
+	fi;
+
 r_exec = cd $(OUT); \
-	$(NODE) ./tools/sync_watch_ser.js -u $1 -h $2 $(if $(SYNC),,-d 20000) -t \
+	$(NODE) ./deps/bclib/tools/sync_watch_ser.js -u $1 -h $2 $(if $(SYNC),,-d 20000) -t \
 		'$(R_DIR)/$(PROJ)/$(OUT)' -i config.js -i .config.js -i var -i node_modules & \
 	ssh $1@$2 'cd $(R_DIR)/$(PROJ)/$(OUT); make j$3'
 
@@ -45,13 +54,13 @@ r_exec = cd $(OUT); \
 all: build
 
 build:
-	@$(call cfg,$(ENV))
 	mkdir -p $(OUT)
-	cp -rf package.json Makefile LICENSE README.md tools $(CP) $(OUT)
+	cd out && ln -sf $(PROJ) dist
+	$(call cfg,$(ENV))
+	$(foreach i, $(COPYS), mkdir -p $(OUT)/$(dir $(i)); cp -rf $(i) $(OUT)/$(dir $(i));)
 	find out -name '*.ts'| xargs rm -rf
 	tsc
-	$(foreach i, $(FILE_DEPS), cp deps/$(i)/package.json $(OUT)/deps/$(i);)
-	@if [ -d deps/somes ]; then cp deps/somes/*.types $(OUT)/deps/somes; fi
+	$(foreach i, $(DEPS), $(foreach j, $(shell ls $(i)), $(call CP,$(i)/$(j)/package.json,$(OUT)/$(i)/$(j)) ))
 	rm -rf $(OUT)/config.js
 	cd out && tar -c --exclude $(PROJ)/node_modules -z -f $(PROJ).tgz $(PROJ)
 
@@ -80,7 +89,7 @@ $(T_TARGETS): kill
 # js debugger
 $(J_TARGETS): kill
 	@$(call cfg,$(subst -brk,,$(subst j_,,$@)))
-	@if [ ! -d node_modules ] && [ -d deps ]; then ln -s deps node_modules; fi
+	@if [ ! -d node_modules ]; then npm i --unsafe-perm; fi
 	@$(supervisor) -w . -i public -i node_modules -- --inspect$(findstring -brk,$@)=0.0.0.0:$(D_PORT) $(MAIN)
 
 # remote debugger
@@ -91,4 +100,4 @@ $(R_TARGETS): kill
 	@$(call r_exec,root,$(IP),$(shell echo $@|cut -b 2-10))
 
 init:
-	git submodule update --init
+	git submodule update --init --recursive

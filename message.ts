@@ -3,8 +3,8 @@
  * @date 2020-11-29
  */
 
-import utils from 'somes';
 import server from 'somes/server';
+import {Notification} from 'somes/event';
 import mbus from 'somes/mbus';
 import {WSService} from 'somes/ws/service';
 import {WatchCat} from './watch';
@@ -19,15 +19,7 @@ export enum Events {
 	WatchStatusChange = 'WatchStatusChange',
 }
 
-/**
- * @class MessageCenter
- */
-export class MessageCenter extends mbus.NotificationCenter implements WatchCat {
-
-	constructor(url?: string, topic?: string) {
-		super(url, topic);
-		this.subscribeAll();
-	}
+export class Mbus extends mbus.NotificationCenter {
 
 	afterNotificationHandle(event: string, data: any) {
 		super.afterNotificationHandle(event, data);
@@ -39,21 +31,52 @@ export class MessageCenter extends mbus.NotificationCenter implements WatchCat {
 					(handles.message as WSService).trigger(event, data);
 			}
 		}
-		return 0;
+	}
+}
+
+/**
+ * @class MessageCenter
+ */
+export class MessageCenter extends Notification implements WatchCat {
+
+	private _mbus?: Mbus;
+
+	constructor() {
+		super();
+		if (cfg.mbus) {
+			this._mbus = new Mbus(cfg.mbus, cfg.mbus_topic || 'default');
+			this._mbus.subscribeAll();
+		}
 	}
 
 	send(event: string, data?: any): void {
 		this.trigger(event, data);
 	}
 
+	// @overwrite:
+	getNoticer(name: string) {
+		if (!this.hasNoticer(name)) {
+			if (this._mbus) {
+				this._mbus.addEventForward(name, super.getNoticer(name));
+			} else {
+				console.warn('not config mbus');
+			}
+		}
+		return super.getNoticer(name);
+	}
+
+	// @overwrite:
+	trigger(event: string, data: any) {
+		if (this._mbus) {
+			this._mbus.trigger(event, data);
+		} else {
+			console.warn('not config mbus');
+		}
+	}
+
 	async cat() {
 		return true;
 	}
-
 }
 
-const msg = new MessageCenter(cfg.mbus || 'mqtt://127.0.0.1:1883', cfg.mbus_topic || 'default');
-
-mbus.defaultNotificationCenter = msg;
-
-export default msg;
+export default new MessageCenter();

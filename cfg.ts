@@ -15,6 +15,8 @@ const cfg = {
 	env: 'dev',
 	private_key: '',
 	amqp: 'amqp://127.0.0.1',
+	apis: [] as string[],
+	tests: [] as string[],
 	chainId: 64,
 	...somes.config,
 };

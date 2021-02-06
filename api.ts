@@ -15,7 +15,7 @@ import cfg from './cfg';
 const cryptoTx = require('crypto-tx');
 const port = cfg.server.port;
 var   enable_auth = cfg.enable_auth as boolean;
-
+debugger
 message.addEventListener(Events.DTTYD_PORT_FORWARD, (e)=>{
 	if (port == e.data.port) {
 		enable_auth = false;
