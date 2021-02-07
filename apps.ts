@@ -9,6 +9,7 @@ export interface ApplicationInfo {
 	icon: string;
 	appId: string;
 	appKey: string;
+	keyType: 'rsa'| 'secp256k1';
 	version: string;
 	// filesHash: Dict<string>;
 }

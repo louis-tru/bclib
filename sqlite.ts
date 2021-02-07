@@ -5,11 +5,7 @@
 
 import utils from 'somes';
 import sqlite3 from './sqlite_ext';
-import paths from './paths';
 import errno from './errno';
-import sql from './sql';
-
-const { SQL, SQL_PLUS, SQL_INDEXES } = sql;
 
 interface DBStructColumn {
 	name: string;
@@ -111,7 +107,7 @@ function selectAfter(struct: DBStruct, ls: Result[]): Result[] {
 /**
  * @class SQLiteTools
  */
-class SQLiteTools {
+export class SQLiteTools {
 	
 	private m_db: any = null;
 	private m_db_struct: DBStructMap | null = null;
@@ -131,7 +127,7 @@ class SQLiteTools {
 		this.m_path = path;
 	}
 
-	async initialize(): Promise<void> {
+	async initialize(SQL: string, SQL_PLUS: string[], SQL_INDEXES: string[]): Promise<void> {
 		utils.assert(!this.m_db);
 		var _db = new sqlite3.Database(this.m_path);
 		var _db_struct: DBStructMap = {};
@@ -274,11 +270,8 @@ class SQLiteTools {
 
 	async clear() {
 		for (var table of Object.keys(this.dbStruct)) {
-			if (table != 'tx_record')
-				await this.run(`delete from ${table}`);
+			await this.run(`delete from ${table}`);
 		}
 	}
 
 }
-
-export default new SQLiteTools(paths.db_path);

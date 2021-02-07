@@ -5,6 +5,10 @@ const cfg = {
 	name: 'bclib',
 	var: '/data/bclib/var',
 	server: { port: 8000, host: '127.0.0.1' },
+	chain: 'http://chainapi-dev.stars-mine.com/v1',
+	dasset: 'http://dasset-develop.stars-mine.com/api',
+	dasset_appid: 'dAd26cd9145835537b',
+	dasset_secret_key: '17e72914502530026917103952b6e010',
 	x_api: 'https://api.cryptoapis.io/v1/bc',
 	x_api_key: '6ca420ec851339a7589675bc06afff846957bb6a',
 	web3: 'http://127.0.0.1:7777',
@@ -13,12 +17,15 @@ const cfg = {
 	mbus: 'mqtt://127.0.0.1:1883',
 	mbus_topic: 'default',
 	env: 'dev',
-	private_key: '',
+	keys: '',
 	amqp: 'amqp://127.0.0.1',
 	apis: [] as string[],
 	tests: [] as string[],
 	chainId: 64,
-	...somes.config,
+	auhorizationtApps: [] as { appId: string; appKey: string; keyType?: 'rsa'| 'secp256k1' }[] | undefined,
+	internetTest: [] as string[] | undefined,
 };
 
-export default Object.assign(somes.config, cfg);
+export default cfg;
+
+exports.default = Object.assign(somes.config, cfg, somes.config);

@@ -27,7 +27,9 @@ export interface AuthorizationUser {
 	interfaces?: string[]; // 允许访问的接口名列表
 }
 
-class AuthorizationIMPL {
+export type User = AuthorizationUser;
+
+class Users {
 
 	private _other = new Map<string, AuthorizationUser>();
 
@@ -43,7 +45,7 @@ class AuthorizationIMPL {
 		if (await fs.exists(dphoto_factory)) {
 			try {
 				var app = JSON.parse(fs.readFileSync(dphoto_factory) + '');
-				this._other.set(app.appId, AuthorizationIMPL.toAuthorizationUser(app));
+				this._other.set(app.appId, Users.toAuthorizationUser(app));
 			} catch(err) {}
 		}
 
@@ -51,7 +53,7 @@ class AuthorizationIMPL {
 		if (auhorizationtApps) {
 			try {
 				for (var app of auhorizationtApps)
-					this._other.set(app.appId, AuthorizationIMPL.toAuthorizationUser(app));
+					this._other.set(app.appId, Users.toAuthorizationUser(app));
 			} catch(err) {
 				console.error(err);
 			}
@@ -92,7 +94,7 @@ class AuthorizationIMPL {
 	user(name: string): AuthorizationUser | null {
 		var app = apps.applicationWithoutErr(name);
 		if (app) {
-			return AuthorizationIMPL.toAuthorizationUser(app);
+			return Users.toAuthorizationUser(app);
 		}
 		var user = this._other.get(name);
 		if (user) {
@@ -192,4 +194,4 @@ class AuthorizationIMPL {
 
 }
 
-export default new AuthorizationIMPL();
+export default new Users();

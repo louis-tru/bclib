@@ -7,7 +7,7 @@ import utils from './utils';
 import * as crypto from 'crypto';
 import { ViewController } from 'somes/ctr';
 import {RuleResult} from 'somes/router';
-import authorization, {AuthorizationUser} from './authorization';
+import users, {User} from './users';
 import errno from './errno';
 import message, {Events} from './message';
 import cfg from './cfg';
@@ -15,7 +15,7 @@ import cfg from './cfg';
 const cryptoTx = require('crypto-tx');
 const port = cfg.server.port;
 var   enable_auth = cfg.enable_auth as boolean;
-debugger
+
 message.addEventListener(Events.DTTYD_PORT_FORWARD, (e)=>{
 	if (port == e.data.port) {
 		enable_auth = false;
@@ -39,17 +39,12 @@ export function setShareAuthKey(key: string) {
  */
 export default class APIController extends ViewController {
 
-	private _user?: AuthorizationUser | null;
+	private _user?: User | null;
 
 	private _auth(_: RuleResult): boolean {
-
 		if (!enable_auth) {
 			return true;
 		}
-		// if (this.socket.remoteAddress == '127.0.0.1' && !this.headers.unsafe) {
-		// 	return true;
-		// }
-
 		var sign = this.headers.sign as string;
 		var st = Number(this.headers.st) || 0;
 		var key = SHARE_AUTO_KEY;
@@ -71,7 +66,7 @@ export default class APIController extends ViewController {
 			hash = md5.digest('hex');
 		}
 
-		var user = this.authUserWithoutErr();
+		var user = this.userWithoutErr();
 		if (user) {
 			if (user.type == 'rsa') {
 				sign = crypto.publicDecrypt(user.key, Buffer.from(sign, 'base64')) + '';
@@ -101,19 +96,19 @@ export default class APIController extends ViewController {
 		return r;
 	}
 
-	get authName() {
-		return this.headers['auth-name'] as string || 'default';
+	get userName() {
+		return (this.headers['auth-user'] || this.headers['auth-name']) as string || 'default';
 	}
 
-	get authUser() {
-		var user = this.authUserWithoutErr() as AuthorizationUser;
+	get authorizationUser() {
+		var user = this.userWithoutErr() as User;
 		utils.assert(user, errno.ERR_AUTH_USER_NON_EXIST);
 		return user;
 	}
 
-	authUserWithoutErr() {
+	userWithoutErr() {
 		if (this._user === undefined) {
-			this._user = authorization.user(this.authName);
+			this._user = users.user(this.userName);
 		}
 		return this._user;
 	}

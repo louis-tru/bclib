@@ -5,19 +5,32 @@
 
 import {WatchCat} from './watch';
 import cfg from './cfg';
-import accounts from './accounts';
+import keys from './keys';
 import {IBuffer} from 'somes/buffer';
 import {Signature} from 'web3z';
 import {Web3Z} from 'web3z';
 import { TransactionQueue } from 'web3z/queue';
+import { Contract } from 'web3z';
+import {getAbiFromAddress} from './abi';
 
 class Web3IMPL extends Web3Z implements WatchCat {
 
 	TRANSACTION_CHECK_TIME = 5e3;
 	private _txQueue: TransactionQueue = new TransactionQueue(this);
+	private _contracts: Dict<Contract> = {};
+
+	async contract(address: string) {
+		var contract = this._contracts[address];
+		if (!contract) {
+			var {abi} = await getAbiFromAddress(address);
+			contract = this.createContract(address, abi);
+			this._contracts[address] = contract;
+		}
+		return contract;
+	}
 
 	sign(message: IBuffer, from?: string): Promise<Signature> {
-		return accounts.sign(message, from);
+		return keys.sign(message, from);
 	}
 
 	get txQueue() {

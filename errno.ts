@@ -19,6 +19,14 @@ class ErrnoList extends SysErrnoList {
 	ERR_REQUEST_TIMEOUT: ErrnoCode = [100232, '请求操时', '请求操时']
 	ERR_METHOD_NOT_FOUND: ErrnoCode = [100233, 'ERR_METHOD_NOT_FOUND']
 	ERR_DATA_TABLE_NOT_FOUND: ErrnoCode = [100237, '找不到数据表']
+	ERR_KEY_STORE_UNLOCK: ErrnoCode = [100238, 'ERR_KEY_STORE_UNLOCK']
+	ERR_GEN_KEYS_SIZE_LIMIT: ErrnoCode = [100239, 'ERR_GEN_KEYS_SIZE_LIMIT']
+	ERR_STAR_ADDRESS_NOT_FOUND: ErrnoCode = [100273, 'ERR_STAR_ADDRESS_NOT_FOUND', 'call getABIsAddressFromStar()']
+	ERR_GET_ABI_NOT_FOUND: ErrnoCode = [100274, 'ERR_GET_ABI_NOT_FOUND', 'call getAbiFromType() API to return null data']
+	ERR_REQ_DASSET_ERR: ErrnoCode = [100275, 'ERR_REQ_DASSET_ERR', 'ERR_REQ_DASSET_ERR']
+	ERR_WEB3_API_POST_EVENT_NON_EXIST: ErrnoCode = [100270, '交易事件不存在']
+	ERR_WEB3_API_POST_NON_EXIST: ErrnoCode = [100268, '交易不存在']
+	ERR_WEB3_API_POST_PENDING: ErrnoCode = [100269, '交易正在处理中']
 }
 
 export default new ErrnoList;

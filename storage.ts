@@ -4,17 +4,37 @@
  */
 
 import utils from 'somes';
+import paths from './paths';
 import {IStorage} from 'somes/storage';
+import {SQLiteTools} from './sqlite';
 
 class Storage implements IStorage {
 
+	private _db: SQLiteTools = new SQLiteTools(`${paths.var}/storage.db`);
 	private _data: Dict = {}
 	private _init = false;
 
 	async initialize(): Promise<void> {
 		utils.assert(!this._init);
 		this._init = true;
-		// TODO ...
+		await this._db.initialize(`
+			CREATE TABLE if not exists util (
+				key         VARCHAR (64) PRIMARY KEY NOT NULL,
+				value       TEXT    NOT NULL
+			);
+		`, [], [
+			'create unique index util_indexes    on util (key)'
+		]);
+
+		for (var {key, value} of await this._db.select('util')) {
+			if (value) {
+				try {
+					this._data[key] = JSON.parse(value);
+				} catch(err) {
+					console.error(err);
+				}
+			}
+		}
 	}
 
 	get(key: string, defaultValue?: any) {
