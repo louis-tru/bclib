@@ -11,14 +11,14 @@ import { exec } from 'somes/syscall';
 
 export class Console extends ConsoleBase {
 
-	constructor(path: string) {
+	constructor(path?: string) {
 		super(path || `${paths.var}/${cfg.name}.log`);
 
 		somes.onUncaughtException.on((e)=>{
 			this.error(e.data.reason);
 			this.reportException(cfg.name, e.data);
 		});
-		
+
 		somes.onUnhandledRejection.on((e)=>{
 			this.error(e.data.reason);
 			this.reportException(cfg.name, e.data);

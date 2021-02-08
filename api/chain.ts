@@ -3,8 +3,8 @@
  * @date 2020-12-12
  */
 
-import ApiController from './api';
-import web3z from './web3';
+import ApiController from '../api';
+import web3z from '../web3';
 import {BlockNumber} from 'web3-core/types';
 
 const web3 = web3z.web3;

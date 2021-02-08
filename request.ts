@@ -8,8 +8,7 @@ import * as crypto from 'crypto';
 import req, {Params,Options, PromiseResult, parseJSON as _parseJSON, Result} from 'somes/request';
 import errno from './errno';
 import buffer, {IBuffer} from 'somes/buffer';
-import './log';
-import keys from 'keys';
+import keys from './keys';
 import cfg from './cfg';
 
 const crypto_tx = require('crypto-tx');

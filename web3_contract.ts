@@ -22,22 +22,23 @@ interface _PostResult {
 	data?: any;
 }
 
-export abstract class AbstractContractWrap {
-	private _postResults: Map<string, _PostResult>;
+export abstract class CallContract {
+	private _PostResults: Map<string, _PostResult>;
 
 	constructor(postResultStore: Map<string, _PostResult>) {
-		this._postResults = postResultStore;
+		this._PostResults = postResultStore;
 	}
 
 	abstract getAddress(): Promise<string>;
 
-	async postSync(method: string, args?: any[], queryEvent?: string) {
+	async postSync(method: string, args?: any[], opes?: {event?: string; from?: string}) {
 		var contract = await this.contract();
 		var fn = contract.methods[method](...(args||[]));
-		var receipt = await web3.txQueue.push(e=>fn.sendSignTransaction(e));
+		// var nonce await web3.txQueue.getNonce();
+		var receipt = await web3.txQueue.push(e=>fn.sendSignTransaction(e), {from: opes?.from});
 		var event: FindEventResult | undefined;
-		if (queryEvent) {
-			event = await contract.findEvent(queryEvent, 
+		if (opes?.event) {
+			event = await contract.findEvent(opes.event,
 				receipt.blockNumber, receipt.transactionHash
 			) as FindEventResult;
 			somes.assert(event, errno.ERR_WEB3_API_POST_EVENT_NON_EXIST);
@@ -45,11 +46,11 @@ export abstract class AbstractContractWrap {
 		return { receipt, event } as PostResult;
 	}
 
-	async post(method: string, args?: any[], queryEvent?: string, complete?: ((r: PostResult)=>Promise<void>|void)) {
+	async post(method: string, args?: any[], opes?: {event?: string; from?: string}, complete?: ((r: PostResult)=>Promise<void>|void)) {
 		var id = String(somes.getId());
 		var result = {} as _PostResult;
-		this._postResults.set(id, result);
-		this.postSync(method, args, queryEvent).then(complete).catch(error=>Object.assign(result, {error}));
+		this._PostResults.set(id, result);
+		this.postSync(method, args, opes).then(complete).catch(error=>Object.assign(result, {error}));
 		return id;
 	}
 
@@ -65,7 +66,7 @@ export abstract class AbstractContractWrap {
 
 }
 
-class StarContractWrap extends AbstractContractWrap {
+class StarContract extends CallContract {
 	private _star: string;
 	private _type: ABIType;
 	getAddress() { return getAddressFromType(this._type, this._star) }
@@ -76,7 +77,7 @@ class StarContractWrap extends AbstractContractWrap {
 	}
 }
 
-class ContractWrap extends AbstractContractWrap {
+class CommonContract extends CallContract {
 	private _address: string;
 	async getAddress() {return this._address}
 	constructor(_address: string, store: Map<string, _PostResult>) {
@@ -86,34 +87,27 @@ class ContractWrap extends AbstractContractWrap {
 }
 
 class Contracts {
-	private _contractAPIs = new Map<string, AbstractContractWrap>();
+	private _contracts = new Map<string, CallContract>();
 	private _postResults = new Map<string, _PostResult>();
 
-	starContract(type: ABIType, star_?: string) {
+	contractFromType(type: ABIType, star_?: string) {
 		var star = star_ || '';
-		var api = this._contractAPIs.get(star + type);
+		var api = this._contracts.get(star + type);
 		if (!api) {
-			api = new StarContractWrap(star, type, this._postResults);
-			this._contractAPIs.set(star + type, api);
+			api = new StarContract(star, type, this._postResults);
+			this._contracts.set(star + type, api);
 		}
 		return api;
 	}
 
 	contract(address: string) {
-		var api = this._contractAPIs.get(address);
+		var api = this._contracts.get(address);
 		if (!api) {
-			api = new ContractWrap(address, this._postResults)
-			this._contractAPIs.set(address, api);
+			api = new CommonContract(address, this._postResults)
+			this._contracts.set(address, api);
 		}
 		return api;
 	}
-
-	star(star?: string) { return this.starContract(ABIType.STAR, star) }
-	erc20(star?: string) { return this.starContract(ABIType.ERC20, star) }
-	bank(star?: string) { return this.starContract(ABIType.BANK, star) }
-	miner(star?: string) { return this.starContract(ABIType.MINER, star) }
-	mining(star?: string) { return this.starContract(ABIType.MINING, star) }
-	erc721(star?: string) { return this.starContract(ABIType.ERC721, star) }
 
 	review(id: string): PostResult {
 		somes.assert(this._postResults.has(id), errno.ERR_WEB3_API_POST_NON_EXIST);

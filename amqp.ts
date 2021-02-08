@@ -7,7 +7,7 @@ import somes from 'somes';
 import { AmqpClient } from './amqp_cli';
 import errno from './errno';
 
-export class ClientWrap {
+export class Amqp {
 
 	private _amqp_cfg = 'amqp://127.0.0.1';
 	private _handlesDir = '.';
@@ -72,5 +72,3 @@ export class ClientWrap {
 		}
 	}
 }
-
-export default new ClientWrap();

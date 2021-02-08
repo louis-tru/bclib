@@ -27,6 +27,8 @@ class ErrnoList extends SysErrnoList {
 	ERR_WEB3_API_POST_EVENT_NON_EXIST: ErrnoCode = [100270, '交易事件不存在']
 	ERR_WEB3_API_POST_NON_EXIST: ErrnoCode = [100268, '交易不存在']
 	ERR_WEB3_API_POST_PENDING: ErrnoCode = [100269, '交易正在处理中']
+	ERR_NO_ADDRESS_IS_CREATED = [100276, '还没有创建过地址']
+	ERR_DEFAULT_KEY_NOT_FOUND = [100277, '找不到默认KEY']
 }
 
 export default new ErrnoList;

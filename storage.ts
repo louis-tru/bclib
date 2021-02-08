@@ -3,7 +3,6 @@
  * @date 2020-11-28
  */
 
-import utils from 'somes';
 import paths from './paths';
 import {IStorage} from 'somes/storage';
 import {SQLiteTools} from './sqlite';
@@ -11,19 +10,16 @@ import {SQLiteTools} from './sqlite';
 class Storage implements IStorage {
 
 	private _db: SQLiteTools = new SQLiteTools(`${paths.var}/storage.db`);
-	private _data: Dict = {}
-	private _init = false;
+	private _data: Dict = {};
 
 	async initialize(): Promise<void> {
-		utils.assert(!this._init);
-		this._init = true;
 		await this._db.initialize(`
 			CREATE TABLE if not exists util (
 				key         VARCHAR (64) PRIMARY KEY NOT NULL,
 				value       TEXT    NOT NULL
 			);
 		`, [], [
-			'create unique index util_indexes    on util (key)'
+			'create unique index util_indexes on util (key)'
 		]);
 
 		for (var {key, value} of await this._db.select('util')) {
@@ -53,11 +49,10 @@ class Storage implements IStorage {
 	}
 
 	set(key: string, value: any): void {
-		utils.assert(this._init);
 		if (key in this._data) {
-			// db.update('util', { value: JSON.stringify(value) }, { key });
+			this._db.update('util', { value: JSON.stringify(value) }, { key });
 		} else {
-			// db.insert('util', { key, value: JSON.stringify(value) });
+			this._db.insert('util', { key, value: JSON.stringify(value) });
 		}
 		this._data[key] = value;
 	}
@@ -67,15 +62,13 @@ class Storage implements IStorage {
 	}
 
 	delete(key: string): void {
-		utils.assert(this._init);
 		delete this._data[key];
-		// db.delete('util', { key });
+		this._db.delete('util', { key });
 	}
 
 	clear(): void {
-		utils.assert(this._init);
 		this._data = {};
-		// db.delete('util');
+		this._db.delete('util');
 	}
 
 	commit(): void {

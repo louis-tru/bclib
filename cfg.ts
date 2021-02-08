@@ -22,7 +22,7 @@ const cfg = {
 	apis: [] as string[],
 	tests: [] as string[],
 	chainId: 64,
-	auhorizationtApps: [] as { appId: string; appKey: string; keyType?: 'rsa'| 'secp256k1' }[] | undefined,
+	auhorizationtApps: [] as ({ appId: string; appKey: string; keyType?: 'rsa'| 'secp256k1' }[] | undefined),
 	internetTest: [] as string[] | undefined,
 };
 

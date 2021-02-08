@@ -3,7 +3,7 @@
  * @date 2020-11-29
  */
 
-import paths from './paths';
+import paths from '../paths';
 import {ViewController} from 'somes/ctr';
 import utils from 'somes';
 import wget from 'somes/wget';
@@ -47,7 +47,7 @@ export default class extends ViewController {
 			}
 			await fs.rename(`${save}~`, save);
 			if (!extname && mime)
-				await new Promise<void>((r,j)=>fs.writeFile(`${save}.mime`, mime, (e)=>e?j(e):r()));
+				await fs.writeFile(`${save}.mime`, mime);
 		});
 
 		this.returnFile(save, mime);

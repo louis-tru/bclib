@@ -9,7 +9,6 @@ import errno from './errno';
 import action from './action';
 import * as apps from './apps';
 import buffer from 'somes/buffer';
-import * as fs  from 'somes/fs2';
 
 export enum AuthorizationKeyType {
 	rsa = 'rsa', secp256k1 = 'secp256k1'
@@ -29,9 +28,7 @@ export interface AuthorizationUser {
 
 export type User = AuthorizationUser;
 
-class Users {
-
-	private _other = new Map<string, AuthorizationUser>();
+class UserManager {
 
 	async initialize() {
 		// fix old key
@@ -40,31 +37,13 @@ class Users {
 			storage.delete('auth_public_key');
 			this.setAuthorizationUser_('default', old_key, AuthorizationKeyType.rsa);
 		}
-
-		var dphoto_factory = '/mnt/app/software/static/dphoto-factory/app.json';
-		if (await fs.exists(dphoto_factory)) {
-			try {
-				var app = JSON.parse(fs.readFileSync(dphoto_factory) + '');
-				this._other.set(app.appId, Users.toAuthorizationUser(app));
-			} catch(err) {}
-		}
-
-		var auhorizationtApps = utils.config.auhorizationtApps;
-		if (auhorizationtApps) {
-			try {
-				for (var app of auhorizationtApps)
-					this._other.set(app.appId, Users.toAuthorizationUser(app));
-			} catch(err) {
-				console.error(err);
-			}
-		}
 	}
 
 	static toAuthorizationUser(app: apps.ApplicationInfo): AuthorizationUser {
 		return {
 			name: app.appId,
 			key: '0x' + buffer.from(app.appKey, 'base64').toString('hex'),
-			type: AuthorizationKeyType.secp256k1,
+			type: app.keyType as AuthorizationKeyType || AuthorizationKeyType.secp256k1,
 			mode: AuthorizationMode.INLINE,
 		};
 	}
@@ -75,11 +54,8 @@ class Users {
 		for (var name of storage.get('authorizationNames', []) as string[]) {
 			set.add(name);
 		}
-		for (var app of apps.applications()) {
+		for (var app of apps.all()) {
 			set.add(app.appId);
-		}
-		for (var [name] of this._other) {
-			set.add(name);
 		}
 
 		var users = [] as string[];
@@ -94,11 +70,7 @@ class Users {
 	user(name: string): AuthorizationUser | null {
 		var app = apps.applicationWithoutErr(name);
 		if (app) {
-			return Users.toAuthorizationUser(app);
-		}
-		var user = this._other.get(name);
-		if (user) {
-			return user;
+			return UserManager.toAuthorizationUser(app);
 		}
 		return storage.get(`authorization_${name}`) as AuthorizationUser | null;
 	}
@@ -194,4 +166,4 @@ class Users {
 
 }
 
-export default new Users();
+export default new UserManager();
