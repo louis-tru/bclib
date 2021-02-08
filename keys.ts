@@ -166,7 +166,7 @@ export class KeystoreGroup {
 			CREATE TABLE if not exists address_table (
 				address     VARCHAR (42) PRIMARY KEY NOT NULL,
 				addressBtc  VARCHAR (42)             NOT NULL,
-				group       VARCHAR (64)             NOT NULL
+				group       VARCHAR (64)             NOT NULL,
 				offset      INTEGER                  NOT NULL
 			);
 			CREATE TABLE if not exists keys (
@@ -306,7 +306,7 @@ export class KeysManager {
 			var strs = keys.parseFile(path);
 			for (var priv of strs) {
 				// add key
-				var privKey = buffer.from(crypto_tx.toBuffer(priv));
+				var privKey = buffer.from(priv, 'hex');
 				var address = crypto_tx.getAddress(privKey);
 				if (!this._keys.find(e=>e.address == address)) {
 					this._keys.push( SecretKey.from(privKey) );

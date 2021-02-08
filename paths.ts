@@ -12,7 +12,7 @@ var variable = String(cfg.var) || path.resolve(__dirname, '../var');
 fs.mkdirpSync(`${variable}/temp`);
 fs.mkdirpSync(`${variable}/res`);
 fs.chmodSync(`${variable}/temp`, 0o777);
-fs.writeFileSync(`${variable}/pid`, process.pid);
+fs.writeFileSync(`${variable}/pid`, String(process.pid));
 
 export default {
 	var: variable,
