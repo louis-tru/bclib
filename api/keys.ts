@@ -9,43 +9,48 @@ import keys from '../keys';
 export default class extends ApiController {
 
 	genSecretKeys({ size }: { size: number }) {
-		return keys.group.genSecretKeys(this.userName, size);
+		return keys.keychain.genSecretKeys(this.userName, size);
 	}
 
 	addressList() {
-		return keys.group.addressList(this.userName);
+		return keys.keychain.addressList(this.userName);
 	}
 
 	address() {
-		return keys.group.address(this.userName);
+		return keys.keychain.address(this.userName);
 	}
 
 	async unlock({pwd}:{pwd: string}) {
-		(await keys.group.root(this.userName)).unlock(pwd);
+		(await keys.keychain.root(this.userName)).unlock(pwd);
 	}
 
 	async lock() {
-		(await keys.group.root(this.userName)).lock();
+		(await keys.keychain.root(this.userName)).lock();
 	}
 
-	signData({ data, from }: { data: any, from?: string }) {
-		return keys.signData(data, from);
+	async signData({ data, from }: { data: any, from?: string }) {
+		await keys.checkPermission(this.userName, from);
+		return await keys.signData(data, from);
 	}
 
-	signString({ data, from }: { data: string, from?: string }) {
-		return keys.signString(data, from);
+	async signString({ data, from }: { data: string, from?: string }) {
+		await keys.checkPermission(this.userName, from);
+		return await keys.signString(data, from);
 	}
 
-	signDatas({datas, from}: { datas: any[], from?: string }) {
-		return keys.signDatas(datas, from);
+	async signDatas({datas, from}: { datas: any[], from?: string }) {
+		await keys.checkPermission(this.userName, from);
+		return await keys.signDatas(datas, from);
 	}
 
-	signMessages({ hash32Hexs, from }: { hash32Hexs: string[], from?: string }) {
-		return keys.signMessages(hash32Hexs, from);
+	async signMessages({ hash32Hexs, from }: { hash32Hexs: string[], from?: string }) {
+		await keys.checkPermission(this.userName, from);
+		return await keys.signMessages(hash32Hexs, from);
 	}
 
-	signArgumentsFromTypes({data, types, from}: { data: any[], types: string[], from?: string }) {
-		return keys.signArgumentsFromTypes(data, types, from);
+	async signArgumentsFromTypes({data, types, from}: { data: any[], types: string[], from?: string }) {
+		await keys.checkPermission(this.userName, from);
+		return await keys.signArgumentsFromTypes(data, types, from);
 	}
 
 }

@@ -29,6 +29,7 @@ class ErrnoList extends SysErrnoList {
 	ERR_WEB3_API_POST_PENDING: ErrnoCode = [100269, '交易正在处理中']
 	ERR_NO_ADDRESS_IS_CREATED = [100276, '还没有创建过地址']
 	ERR_DEFAULT_KEY_NOT_FOUND = [100277, '找不到默认KEY']
+	ERR_NO_ACCESS_KEY_PERMISSION = [100278, '找ERR_NO_ACCESS_KEY_PERMISSION不到默认KEY']
 }
 
 export default new ErrnoList;

@@ -28,4 +28,4 @@ const cfg = {
 
 export default cfg;
 
-exports.default = Object.assign(somes.config, cfg, somes.config);
+exports.default = Object.assign(somes.config, Object.assign(cfg, somes.config));
