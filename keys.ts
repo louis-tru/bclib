@@ -145,9 +145,9 @@ export class SecretKey {
 	}
 }
 
-export class KeystoreGroup {
+export class KeychainManager {
 
-	private _key_path: string = `${cfg.keys || paths.var}/keys_group`;
+	private _key_path: string = `${cfg.keys || paths.var}/keychain`;
 	private _keys: Map<string, SecretKey> = new Map(); // group => key
 	private _address_indexed: Map<string, [string, number]> = new Map(); // address => [group,offset]
 	private _addresss: Map<string, string[]> = new Map(); // group => [address]
@@ -166,12 +166,12 @@ export class KeystoreGroup {
 			CREATE TABLE if not exists address_table (
 				address     VARCHAR (42) PRIMARY KEY NOT NULL,
 				addressBtc  VARCHAR (42)             NOT NULL,
-				group       VARCHAR (64)             NOT NULL,
+				name        VARCHAR (64)             NOT NULL,
 				offset      INTEGER                  NOT NULL
 			);
 			CREATE TABLE if not exists keys (
 				address     VARCHAR (42) PRIMARY KEY NOT NULL,
-				group       VARCHAR (64)             NOT NULL,
+				name        VARCHAR (64)             NOT NULL,
 				size        INTEGER                  NOT NULL
 			);
 		`, [], [
@@ -181,9 +181,9 @@ export class KeystoreGroup {
 		]);
 	}
 
-	async genSecretKeys(group: string, size: number) {
+	async genSecretKeys(name: string, size: number) {
 		somes.assert(size < 100, errno.ERR_GEN_KEYS_SIZE_LIMIT);
-		var key = await this.root(group);
+		var key = await this.root(name);
 		var address: string[] = [];
 		var keys = (await this._db.select('keys', { address: key.address }))[0];
 		var start: number = keys ? keys.size: 0;
@@ -191,88 +191,88 @@ export class KeystoreGroup {
 		for (var i = start; i < size; i++) {
 			var _key = key.offset(i + 1);
 			if ((await this._db.select('address_table', { address: _key.address })).length === 0) {
-				await this._db.insert('address_table', { address: _key.address, addressBtc: _key.addressBtc, group, offset: i + 1 });
+				await this._db.insert('address_table', { address: _key.address, addressBtc: _key.addressBtc, name, offset: i + 1 });
 			}
 			address.push(_key.address);
 		}
 
 		if (keys) {
-			await this._db.update('keys', { address: key.address, size, group });
+			await this._db.update('keys', { address: key.address, size, name });
 		} else {
-			await this._db.insert('keys', { address: key.address, size, group });
+			await this._db.insert('keys', { address: key.address, size, name });
 		}
 
 		return address;
 	}
 
-	async addressList(group: string) {
-		if (this._addresss.has(group)) {
-			return this._addresss.get(group) as string[];
+	async addressList(name: string) {
+		if (this._addresss.has(name)) {
+			return this._addresss.get(name) as string[];
 		} else {
 			var address = [] as string[];
-			for (var item of await this._db.select('address_table', { group })) {
+			for (var item of await this._db.select('address_table', { name })) {
 				address.push(item.address);
 			}
-			this._addresss.set(group, address);
+			this._addresss.set(name, address);
 			return address;
 		}
 	}
 
-	async address(group: string) { // get random address
-		var addresss = await this.addressList(group);
+	async address(name: string) { // get random address
+		var addresss = await this.addressList(name);
 		somes.assert(addresss.length, errno.ERR_NO_ADDRESS_IS_CREATED);
 		return addresss[somes.random(0, addresss.length - 1)];
 	}
 
-	async getSecretKey(addressOrAddressBtc: string): Promise<SecretKey | null> {
+	async getSecretKey(addressOrAddressBtc: string) {
 		var indexed = this._address_indexed.get(addressOrAddressBtc);
 		if (indexed) {
-			var [group,offset] = indexed;
-			return await this.getSecretKeyByOffset(group, offset);
+			var [name,offset] = indexed;
+			return await this.getSecretKeyByOffset(name, offset);
 		}
 		var r = (await this._db.select('address_table', { address: addressOrAddressBtc }))[0];
 		if (!r)
 			r =   (await this._db.select('address_table', { addressBtc: addressOrAddressBtc }))[0];
 		if (r) {
-			var key = await this.getSecretKeyByOffset(r.group, r.offset);
-			this._address_indexed.set(r.address, [r.group, r.offset]);
-			this._address_indexed.set(r.addressBtc, [r.group, r.offset]);
+			var key = await this.getSecretKeyByOffset(r.name, r.offset);
+			this._address_indexed.set(r.address, [r.name, r.offset]);
+			this._address_indexed.set(r.addressBtc, [r.name, r.offset]);
 			return key;
 		}
 		return null;
 	}
 
-	async getSecretKeyByOffset(group: string, offset: number) {
-		var root = await this.root(group);
-		return root.offset(offset);
+	async getSecretKeyByOffset(name: string, offset: number) {
+		var root = await this.root(name);
+		return { name, key: root.offset(offset) };
 	}
 
-	private async backupKeystore(group: string) {
-		var path = `${this._key_path}/${group}`;
+	private async backupKeystore(name: string) {
+		var path = `${this._key_path}/${name}`;
 		var bin = fs.readFile(path);
 		await fs.mkdirp(`${this._key_path}/backup`); // backup keystore
-		await fs.writeFile(`${this._key_path}/backup/${group}`, bin);
+		await fs.writeFile(`${this._key_path}/backup/${name}`, bin);
 		await fs.mkdirp(`${this._key_path}/backup2`); // backup keystore
-		await fs.writeFile(`${this._key_path}/backup2/${group}`, bin);
+		await fs.writeFile(`${this._key_path}/backup2/${name}`, bin);
 		await fs.mkdirp(`${this._key_path}/backup3`); // backup keystore
-		await fs.writeFile(`${this._key_path}/backup3/${group}`, bin);
+		await fs.writeFile(`${this._key_path}/backup3/${name}`, bin);
 	}
 
-	async setKeystorePassword(group: string, oldPwd: string, newPwd: string) {
-		var key = await this.root(group);
+	async setKeystorePassword(name: string, oldPwd: string, newPwd: string) {
+		var key = await this.root(name);
 		key.unlock(oldPwd);
-		var path = `${this._key_path}/${group}`;
+		var path = `${this._key_path}/${name}`;
 		var keystore = JSON.stringify(key.exportKeystore(newPwd));
 		await fs.writeFile(path, keystore);
-		await this.backupKeystore(group);
+		await this.backupKeystore(name);
 		key.lock();
-		this._keys.delete(group);
+		this._keys.delete(name);
 	}
 
-	async root(group: string) {
-		var key = this._keys.get(group);
+	async root(name: string) {
+		var key = this._keys.get(name);
 		if (!key) {
-			var path = `${this._key_path}/${group}`;
+			var path = `${this._key_path}/${name}`;
 			if (!await fs.exists(path)) {
 				// gen root key
 				var privkey = buffer.from(crypto_tx.genPrivateKey());
@@ -283,8 +283,8 @@ export class KeystoreGroup {
 				var keystore_bin = await fs.readFile(path);
 				key = SecretKey.keystore(JSON.parse(keystore_bin.toString()));
 			}
-			await this.backupKeystore(group);
-			this._keys.set(group, key);
+			await this.backupKeystore(name);
+			this._keys.set(name, key);
 		}
 		return key as SecretKey;
 	}
@@ -293,10 +293,10 @@ export class KeystoreGroup {
 
 export class KeysManager {
 	private _keys: SecretKey[] = [];
-	private _group = new KeystoreGroup();
+	private _keychain = new KeychainManager();
 
-	get group() {
-		return this._group;
+	get keychain() {
+		return this._keychain;
 	}
 
 	constructor() {
@@ -318,7 +318,7 @@ export class KeysManager {
 	}
 
 	initialize() {
-		return this._group.initialize();
+		return this._keychain.initialize();
 	}
 
 	private _randomIndex() {
@@ -357,9 +357,10 @@ export class KeysManager {
 		return this._keys[this._randomIndex()].addressBtc;
 	}
 
-	private async _key(addressOrAddressBtc?: string) {
+	async getKey(addressOrAddressBtc?: string) {
 		var def = this._keys[0];
 		var key: typeof def | undefined | null;
+		var name = '__system';
 		if (addressOrAddressBtc) {
 			if (addressOrAddressBtc.substr(0, 2) == '0x') { // eth address
 				key = this._keys.find(e=>e.address == addressOrAddressBtc);
@@ -367,18 +368,27 @@ export class KeysManager {
 				key = this._keys.find(e=>e.addressBtc == addressOrAddressBtc);
 			}
 			if (!key) {
-				key = await this.group.getSecretKey(addressOrAddressBtc);
+				var k = await this.keychain.getSecretKey(addressOrAddressBtc);
+				if (k) {
+					name = k.name;
+					key = k.key;
+				}
 			}
 		}
-		return key ? {key: key, ok: true}: {key: def, ok: false};
+		return key ? { name, key: key, isDefault: false }: { name, key: def, isDefault: true};
+	}
+
+	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
+		var {name} = await this.getKey(addressOrAddressBtc);
+		somes.assert(name == '__system' || name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
 	}
 
 	async has(addressOrAddressBtc: string) {
-		return (await this._key(addressOrAddressBtc)).ok;
+		return !(await this.getKey(addressOrAddressBtc)).isDefault;
 	}
 
 	async sign(message: IBuffer, from?: string): Promise<Signature> {
-		var _key = await this._key(from);
+		var _key = await this.getKey(from);
 		somes.assert(_key.key, errno.ERR_DEFAULT_KEY_NOT_FOUND);
 		var signature = await _key.key.sign(message);
 		return {
