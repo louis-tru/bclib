@@ -272,47 +272,95 @@ async contractPostSync({
 bankGet({method: string, args: string}): any;
 ```
 
-`erc20Get({method: string, args: string}): any;`
+```ts
+erc20Get({method: string, args: string}): any;
+```
 
-`erc721Get({method: string, args: string}): any;`
+```ts
+erc721Get({method: string, args: string}): any;
+```
 
-`proofGet({method: string, args: string}): any;`
+```ts
+proofGet({method: string, args: string}): any;
+```
 
-`casperGet({method: string, args: string}): any;`
+```ts
+casperGet({method: string, args: string}): any;
+```
 
-`starGet({method: string, args: string}): any;`
+```ts
+starGet({method: string, args: string}): any;
+```
 
-`minerGet({method: string, args: string}): any;`
+```ts
+minerGet({method: string, args: string}): any;
+```
 
-`miningGet({method: string, args: string}): any;`
+```ts
+miningGet({method: string, args: string}): any;
+```
 
 ### post
 
 调用具名的协约方法,发送交易立即返回服务查询`review(id)`句柄id
 
 ```ts
-async bankPost({method: string, args: any[], event? string, from?: string}): string;
+bankPost({method: string, args: any[], event? string, from?: string}): string;
 ```
 
-`async erc20Post({method: string, args: any[], event? string, from?: string}): any;`
+```ts
+erc20Post({method: string, args: any[], event? string, from?: string}): string;
+```
 
-`async erc721Post({method: string, args: any[], event? string, from?: string}): any;`
+```ts
+erc721Post({method: string, args: any[], event? string, from?: string}): string;
+```
 
-`async proofPost({method: string, args: any[], event? string, from?: string}): any;`
+```ts
+proofPost({method: string, args: any[], event? string, from?: string}): string;
+```
 
-`async casperPost({method: string, args: any[], event? string, from?: string}): any;`
+```ts
+casperPost({method: string, args: any[], event? string, from?: string}): string;
+```
 
-`async starPost({method: string, args: any[], event? string, from?: string}): any;`
+```ts
+starPost({method: string, args: any[], event? string, from?: string}): string;
+```
 
-`async minerPost({method: string, args: any[], event? string, from?: string}): any;`
+```ts
+minerPost({method: string, args: any[], event? string, from?: string}): string;
+```
 
-`async miningPost({method: string, args: any[], event? string, from?: string}): any;`
+```ts
+miningPost({method: string, args: any[], event? string, from?: string}): string;
+```
 
-### review({id}: { id: string });
+### review
 
-### contractAddress({type,star}: {type: ABIType, star?: string}): string;
+```ts
+review({ id: string }): PostResult;
+```
 
-### getBlockNumber(): number;
+[`PostResult`]
+
+### contractAddress
+
+获取具名协约地址
+
+```ts
+contractAddress({type: ABIType}): string;
+```
+
+[`ABIType`]
+
+### getBlockNumber
+
+获取区块高度
+
+```ts
+getBlockNumber(): number;
+```
 
 ### getNonce({account,from}: {account?: string, from?: string}): number;
 
@@ -458,6 +506,34 @@ interfaces TransactionReceipt {
 }
 ```
 
+### PostResult
 
+```ts
+interface PostResult {
+	receipt: TransactionReceipt;
+	event?: FindEventResult;
+	data?: any;
+}
+```
+
+### ABIType
+
+```ts
+enum ABIType {
+	STAR = 1, // Deprecated
+	BANK = 2,
+	KUN = 3, // Deprecated
+	BIGBANG = 5, // Deprecated
+	ERC20 = 6,
+	ERC721 = 7,
+	MINING = 8, // Deprecated
+	MINER = 11, // Deprecated
+	KUN_CTR = 33, // Deprecated
+	PROOF = 40, 
+	CASPER = 41,
+};
+```
 
 [`TransactionReceipt`]: #TransactionReceipt
+[`PostResult`]: #PostResult
+[`ABIType`]: #ABIType
