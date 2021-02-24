@@ -491,17 +491,7 @@ interfaces TransactionReceipt {
 	}[];
 	logsBloom: string;
 	events?: {
-		[eventName: string]: {
-			event: string;
-			address: string;
-			returnValues: any;
-			logIndex: number;
-			transactionIndex: number;
-			transactionHash: string;
-			blockHash: string;
-			blockNumber: number;
-			raw?: {data: string; topics: any[]};
-		};
+		[eventName: string]: EventData;
 	};
 }
 ```
