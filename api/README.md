@@ -6,7 +6,7 @@
 
 一般通过 `http://127.0.0.1:8000/service-api/web3/contractGet`这种形式访问
 
-参数建议以 `post` `json` 方式发送，并在http请求头中加入 `Content-Type: application/json` `json`方法这是必须的
+参数建议以 `post` `json` 方式发送，并在http请求头中加入 `Content-Type: application/json`
 
 返回数据包含返回错误代码以及异常信息，`errno=0`表示这个请求是正确的非`0`表示错误代码
 
