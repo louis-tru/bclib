@@ -468,7 +468,7 @@ sendSignedTransaction({
 ### TransactionReceipt
 
 ```ts
-interfaces TransactionReceipt {
+interface TransactionReceipt {
 	status: boolean;
 	transactionHash: string;
 	transactionIndex: number;
