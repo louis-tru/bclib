@@ -124,7 +124,7 @@ lock(): void;
 重设解锁钥匙串密码，重设后会锁定钥匙串
 
 ```ts
-setPassword({oldPwd, newPwd}: {oldPwd: string, newPwd: string});
+setPassword({oldPwd, newPwd}: {oldPwd: string, newPwd: string}): void;
 ```
 
 ### keychainKeystore
