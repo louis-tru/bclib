@@ -273,11 +273,17 @@ bankGet({method: string, args: string}): any;
 ```
 
 `erc20Get({method: string, args: string}): any;`
+
 `erc721Get({method: string, args: string}): any;`
+
 `proofGet({method: string, args: string}): any;`
+
 `casperGet({method: string, args: string}): any;`
+
 `starGet({method: string, args: string}): any;`
+
 `minerGet({method: string, args: string}): any;`
+
 `miningGet({method: string, args: string}): any;`
 
 ### post
@@ -289,11 +295,17 @@ async bankPost({method: string, args: any[], event? string, from?: string}): str
 ```
 
 `async erc20Post({method: string, args: any[], event? string, from?: string}): any;`
+
 `async erc721Post({method: string, args: any[], event? string, from?: string}): any;`
+
 `async proofPost({method: string, args: any[], event? string, from?: string}): any;`
+
 `async casperPost({method: string, args: any[], event? string, from?: string}): any;`
+
 `async starPost({method: string, args: any[], event? string, from?: string}): any;`
+
 `async minerPost({method: string, args: any[], event? string, from?: string}): any;`
+
 `async miningPost({method: string, args: any[], event? string, from?: string}): any;`
 
 ### review({id}: { id: string });
