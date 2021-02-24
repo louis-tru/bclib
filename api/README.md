@@ -382,7 +382,7 @@ getNonceQueue({account: string}): {
 
 ### serializedTx
 
-对交易进行签名，序列化rawData
+对交易进行签名，序列化交易数据返回rawData
 
 ```ts
 serializedTx({
@@ -405,7 +405,7 @@ serializedTx({
 
 ### serializedTxForContract
 
-调用协约交易进行签名，序列化rawData
+调用协约交易进行签名，序列化交易数据返回rawData
 
 ```ts
 serializedTxForContract({
