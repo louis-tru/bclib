@@ -342,7 +342,7 @@ miningPost({method: string, args: any[], event? string, from?: string}): string;
 review({ id: string }): PostResult;
 ```
 
-[`PostResult`]
+查看定义[`PostResult`]
 
 ### contractAddress
 
@@ -352,7 +352,7 @@ review({ id: string }): PostResult;
 contractAddress({type: ABIType}): string;
 ```
 
-[`ABIType`]
+查看定义[`ABIType`]
 
 ### getBlockNumber
 
@@ -362,18 +362,13 @@ contractAddress({type: ABIType}): string;
 getBlockNumber(): number;
 ```
 
-### getNonce({account,from}: {account?: string, from?: string}): number;
+### getNonce({account: string}): number;
 
-	chainId?: number;
-	from?: string;
-	nonce?: number;
-	to?: string;
-	gasLimit?: number;
-	gasPrice?: number;
-	value?: string;
-	data?: string;
+获取账户的当前nonce
 
 ### getNonceQueue
+
+通过account申请nonce，会以自增方式增加值，如果长时间不使用申请的nonce会自动重新被分配
 
 ```ts
 getNonceQueue({account: string}): {
@@ -382,8 +377,6 @@ getNonceQueue({account: string}): {
 	gasLimit: number;
 };
 ```
-
-通过account申请nonce，会以自增方式增加值，如果长时间不使用申请的nonce会自动重新被分配
 
 ### serializedTx
 
