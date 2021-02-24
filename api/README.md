@@ -139,7 +139,9 @@ keychainKeystore({pwd: string}): object;
 
 系列数据签名方法, 调用这些方法前需先解锁钥匙串
 
-`from` 是可选参数，如果服务设置过默认账号不传入`from`会用不用默认进行签名，否则会抛出异常。
+`from` 是可选参数，如果服务设置过默认账号不传入`from`会使用默认账户进行签名
+
+如果找不到账户会抛出异常。
 
 ```ts
 signData({ data: any, from?: string }): {
