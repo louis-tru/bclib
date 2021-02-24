@@ -516,6 +516,55 @@ interface PostResult {
 }
 ```
 
+### FindEventResult
+
+```ts
+interface FindEventResult {
+	event: EventData;
+	transaction: Transaction;
+}
+```
+
+### EventData
+
+```ts
+interface EventData {
+	returnValues: {
+			[key: string]: any;
+	};
+	raw: {
+			data: string;
+			topics: string[];
+	};
+	event: string;
+	signature: string;
+	logIndex: number;
+	transactionIndex: number;
+	transactionHash: string;
+	blockHash: string;
+	blockNumber: number;
+	address: string;
+}
+```
+
+### Transaction
+
+```ts
+interface Transaction {
+	hash: string;
+	nonce: number;
+	blockHash: string | null;
+	blockNumber: number | null;
+	transactionIndex: number | null;
+	from: string;
+	to: string | null;
+	value: string;
+	gasPrice: string;
+	gas: number;
+	input: string;
+}
+```
+
 ### ABIType
 
 ```ts
@@ -535,5 +584,8 @@ enum ABIType {
 ```
 
 [`TransactionReceipt`]: #TransactionReceipt
+[`FindEventResult`]: #FindEventResult
 [`PostResult`]: #PostResult
+[`EventData`]: #EventData
+[`Transaction`]: #Transaction
 [`ABIType`]: #ABIType
