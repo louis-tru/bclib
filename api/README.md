@@ -237,13 +237,13 @@ signArgumentsFromTypes({
 调用指定address协约方法
 
 ```ts
-contractGet({address: string, method: string, args: any[]}): any;`
+contractGet({address: string, method: string, args: any[]}): any;
 ```
 
 调用指定address协约方法，发送交易立即返回服务查询`review(id)`句柄id
 
 ```ts
-async contractPost({
+contractPost({
 	address: string; // 协约地址
 	method: string; // 方法名
 	args: any[]; // 实参
@@ -255,7 +255,7 @@ async contractPost({
 调用指定address协约方法，发送交易关挂起运行，直接有结果返回
 
 ```ts
-async contractPostSync({
+contractPostSync({
 	address: string; // 协约地址
 	method: string; // 方法名
 	args: any[]; // 实参
