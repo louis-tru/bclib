@@ -259,7 +259,7 @@ async contractPostSync({
 	args: any[]; // 实参
 	event:? string; // 发送交易成功后需要检查的event
 	from?: string; // 账户
-}): [`TransactionReceipt`];
+}): TransactionReceipt;
 ```
 
 查看定义[`TransactionReceipt`]
@@ -383,7 +383,7 @@ sendSignTransaction({
 		value?: string;
 		data?: string;
 	}
-}): [`TransactionReceipt`];
+}): TransactionReceipt;
 ```
 
 查看定义[`TransactionReceipt`]
