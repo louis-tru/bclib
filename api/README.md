@@ -71,7 +71,7 @@
 
 3.把在服务器登记的 `appId` 加入到请求头中 `auth-user: xxxx`
 
-这个是过程的简写 `sign(rsa1(data + st + shareKey))`
+这是算法过程简写： `sign(rsa1(data + st + shareKey))`
 
 以下是服务提供的具体api方法.
 
