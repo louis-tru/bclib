@@ -8,7 +8,9 @@ import {TransactionReceipt} from 'web3z';
 import keys from '../keys';
 import solidity from './contracts';
 
-export default async function({ num, from, to, value }:{ num: number, from?: string, to?: string, value?: number }) {
+export default async function({ num, from, to, value }: {
+	num: number, from?: string, to?: string, value?: number
+}) {
 	var blockNumber = Number(num) || 1863;
 	var web3 = web3z.web3;
 	var accounts = keys.addresss;
@@ -27,7 +29,7 @@ export default async function({ num, from, to, value }:{ num: number, from?: str
 		}, { from });
 	}
 
-	return {
+	var r = {
 		tx1,
 		accounts: await (async ()=>{
 			var balances = {} as Dict;
@@ -103,12 +105,14 @@ export default async function({ num, from, to, value }:{ num: number, from?: str
 					owner: await license_types.owner(),
 					get1, get2
 				},
-				logs: {
-					get: await logs.get('0xc6f902b98b99ba59f2aef94888b199ac06953fe53b67bd93ae2cc1f302cac1c5'),
-				},
+				// logs: {
+				// 	get: await logs.get('0xc6f902b98b99ba59f2aef94888b199ac06953fe53b67bd93ae2cc1f302cac1c5'),
+				// },
 			};
 		})(),
 		tx2: await web3.eth.getTransaction('0x5696baa29a79c17d1fc45245336f8eb4a03bcf713b76ea86706aebd1b4b7e0b6'),
 		tx3: await web3.eth.getTransaction('0x3b4e171879e61cffa3298d5e26f6fa5506333f3a388ce9a0de470e531a6004a6'),
 	};
-};
+
+	return r;
+}

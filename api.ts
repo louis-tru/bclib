@@ -68,17 +68,17 @@ export default class APIController extends ViewController {
 
 		var user = this.userWithoutErr();
 		if (user) {
-			if (user.type == 'rsa') {
+			if (user.keyType == 'rsa') {
 				sign = crypto.publicDecrypt(user.key, Buffer.from(sign, 'base64')) + '';
 			}
-			else if (user.type == 'secp256k1') { // secp256k1
+			else if (user.keyType == 'secp256k1') { // secp256k1
 				var pkey = Buffer.from(user.key.slice(2), 'hex');
 				var buf = Buffer.from(sign, 'base64');
 				var signature = Buffer.from(buf.buffer, buf.byteOffset, 64);
 				var ok = cryptoTx.verify(Buffer.from(hash), signature, pkey);
 				return ok;
 			} else {
-				console.warn('Authentication mode is not supported', user.type);
+				console.warn('Authentication mode is not supported', user.keyType);
 				return false;
 			}
 			return sign == hash;

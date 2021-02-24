@@ -28,6 +28,14 @@ export default class extends ApiController {
 		(await keys.keychain.root(this.userName)).lock();
 	}
 
+	setPassword({oldPwd, newPwd}: {oldPwd: string, newPwd: string}) {
+		return keys.keychain.setPassword(this.userName, oldPwd, newPwd);
+	}
+
+	async keychainKeystore({pwd}: {pwd: string}) {
+		return (await keys.keychain.root(this.userName)).exportKeystore(pwd);
+	}
+
 	async signData({ data, from }: { data: any, from?: string }) {
 		await keys.checkPermission(this.userName, from);
 		return await keys.signData(data, from);

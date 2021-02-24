@@ -131,7 +131,7 @@ export default class extends ApiController {
 		return {
 			data: '0x' + data.toString('hex'),
 			txid: '0x' + hash.toString('hex'),
-			nonce: tx.nonce,
+			nonce: tx.nonce as number,
 		};
 	}
 

@@ -76,7 +76,6 @@ export class SecretKey {
 	offset(offset: number): SecretKey {
 		somes.assert(offset > 0, errno.ERR_GEN_KEYS_SIZE_LIMIT);
 		somes.assert(offset < 100, errno.ERR_GEN_KEYS_SIZE_LIMIT);
-		var hash = crypto.createHash('sha256');
 		var priv = Buffer.from(this.getPrivKey());
 
 		if (this._offsets[offset - 1]) {
@@ -85,7 +84,9 @@ export class SecretKey {
 
 		for (var i = 0; i < offset; i++) {
 			if (!this._offsets[i]) {
-				priv = hash.update(priv).update('b4dd53f2fefde37c07ac4824cf7086465633e3a357daacc3adf16418275a9e51').digest();
+				priv = crypto.createHash('sha256').update(priv)
+					// .update('b4dd53f2fefde37c07ac4824cf7086465633e3a357daacc3adf16418275a9e51')
+					.digest();
 				this._offsets[i] = SecretKey.from(buffer.from(priv));
 			} else {
 				priv = Buffer.from(this._offsets[i].getPrivKey());
@@ -115,7 +116,7 @@ export class SecretKey {
 	}
 
 	exportKeystore(pwd: string): object {
-		return keystore.encryptPrivateKey(this.getPrivKey(), pwd);
+		return keystore.encryptPrivateKey(Buffer.from(this.getPrivKey()), pwd);
 	}
 
 	get publicKey() {
@@ -132,7 +133,8 @@ export class SecretKey {
 
 	get addressBtc() {
 		if (!this._addressBtc)
-			this._addressBtc = (btc.getAddressFromPrivateKey(this.getPrivKey(), true, false) as IBuffer).toString('base58');
+			this._addressBtc = (btc.getAddressFromPrivateKey(
+				this.getPrivKey(), true, false) as IBuffer).toString('base58');
 		return this._addressBtc as string;
 	}
 
@@ -191,13 +193,14 @@ export class KeychainManager {
 		for (var i = start; i < size; i++) {
 			var _key = key.offset(i + 1);
 			if ((await this._db.select('address_table', { address: _key.address })).length === 0) {
-				await this._db.insert('address_table', { address: _key.address, addressBtc: _key.addressBtc, name, offset: i + 1 });
+				await this._db.insert('address_table', 
+					{ address: _key.address, addressBtc: _key.addressBtc, name, offset: i + 1 });
 			}
 			address.push(_key.address);
 		}
 
 		if (keys) {
-			await this._db.update('keys', { address: key.address, size, name });
+			await this._db.update('keys', { size, name }, {address: key.address});
 		} else {
 			await this._db.insert('keys', { address: key.address, size, name });
 		}
@@ -249,7 +252,7 @@ export class KeychainManager {
 
 	private async backupKeystore(name: string) {
 		var path = `${this._key_path}/${name}`;
-		var bin = fs.readFile(path);
+		var bin = await fs.readFile(path);
 		await fs.mkdirp(`${this._key_path}/backup`); // backup keystore
 		await fs.writeFile(`${this._key_path}/backup/${name}`, bin);
 		await fs.mkdirp(`${this._key_path}/backup2`); // backup keystore
@@ -258,7 +261,7 @@ export class KeychainManager {
 		await fs.writeFile(`${this._key_path}/backup3/${name}`, bin);
 	}
 
-	async setKeystorePassword(name: string, oldPwd: string, newPwd: string) {
+	async setPassword(name: string, oldPwd: string, newPwd: string) {
 		var key = await this.root(name);
 		key.unlock(oldPwd);
 		var path = `${this._key_path}/${name}`;
@@ -374,8 +377,12 @@ export class KeysManager {
 					key = k.key;
 				}
 			}
+			somes.assert(key, errno.ERR_KEY_NOT_FOUND);
+
+			return { name, key: key as SecretKey, isDefault: false }; 
+		} else {
+			return { name, key: def, isDefault: true};
 		}
-		return key ? { name, key: key, isDefault: false }: { name, key: def, isDefault: true};
 	}
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
@@ -389,7 +396,6 @@ export class KeysManager {
 
 	async sign(message: IBuffer, from?: string): Promise<Signature> {
 		var _key = await this.getKey(from);
-		somes.assert(_key.key, errno.ERR_DEFAULT_KEY_NOT_FOUND);
 		var signature = await _key.key.sign(message);
 		return {
 			signature: buffer.from(signature.signature),

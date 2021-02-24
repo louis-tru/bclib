@@ -21,7 +21,7 @@ export enum AuthorizationMode {
 export interface AuthorizationUser {
 	name: string;
 	key: string;
-	type: AuthorizationKeyType;
+	keyType: AuthorizationKeyType;
 	mode: AuthorizationMode;
 	interfaces?: string[]; // 允许访问的接口名列表
 }
@@ -42,8 +42,8 @@ class UserManager {
 	static toAuthorizationUser(app: apps.ApplicationInfo): AuthorizationUser {
 		return {
 			name: app.appId,
-			key: '0x' + buffer.from(app.appKey, 'base64').toString('hex'),
-			type: app.keyType as AuthorizationKeyType || AuthorizationKeyType.secp256k1,
+			key: app.appKey,
+			keyType: app.keyType as AuthorizationKeyType || AuthorizationKeyType.secp256k1,
 			mode: AuthorizationMode.INLINE,
 		};
 	}
@@ -77,7 +77,7 @@ class UserManager {
 
 	private setAuthorizationUser_(name: string, key: string, type?: AuthorizationKeyType): void {
 		key = String(key).trim();
-		type = type || AuthorizationKeyType.rsa;
+		type = type || AuthorizationKeyType.secp256k1;
 		var username = name || 'default'; // utils.hash(utils.random());
 
 		if (type == AuthorizationKeyType.rsa) {

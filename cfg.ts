@@ -4,7 +4,7 @@ import somes from 'somes';
 const cfg = {
 	name: 'bclib',
 	var: '/data/bclib/var',
-	server: { port: 8000, host: '127.0.0.1' },
+	server: { port: 8000, host: '127.0.0.1', formHash: 'sha1' },
 	chain: 'http://chainapi-dev.stars-mine.com/v1',
 	dasset: 'http://dasset-develop.stars-mine.com/api',
 	dasset_appid: 'dAd26cd9145835537b',

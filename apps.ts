@@ -5,6 +5,7 @@
 
 import cfg  from './cfg';
 import * as fs  from 'somes/fs2';
+import buffer from 'somes/buffer';
 
 export interface ApplicationInfo {
 	name: string;
@@ -26,6 +27,11 @@ export function insides(): ApplicationInfo[] {
 		var auhorizationtApps = cfg.auhorizationtApps;
 		if (auhorizationtApps) {
 			for (var app of auhorizationtApps) {
+				if (!app.keyType || app.keyType == 'secp256k1') {
+					if (app.appKey.substr(0, 2) != '0x') { //base64
+						app.appKey = '0x' + buffer.from(app.appKey, 'base64').toString('hex')
+					}
+				}
 				_insides.push({ icon: '', displayName: '', name: '', version: '', ...app });
 			}
 		}
