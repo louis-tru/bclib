@@ -2,9 +2,9 @@
 
 ## 访问的基本方式与数据格式
 
-`http://127.0.0.1/service-api` 这是bass服务api前缀，建议使用post方式访问
+`http://127.0.0.1:8000/service-api` 这是bass服务api前缀，建议使用post方式访问
 
-一般通过 `http://127.0.0.1/service-api/web3/contractGet`这种形式访问
+一般通过 `http://127.0.0.1:8000/service-api/web3/contractGet`这种形式访问
 
 参数建议以 `post` `json` 方式发送，并在http请求头中加入 `Content-Type: application/json` `json`方法这是必须的
 
