@@ -3,6 +3,7 @@
  * @date 2020-11-29
  */
 
+import utils, {createCache} from './utils';
 import {WatchCat} from './watch';
 import cfg from './cfg';
 import keys from './keys';
@@ -40,6 +41,14 @@ class Web3IMPL extends Web3Z implements WatchCat {
 	getProvider() {
 		this.gasLimit = 1e6;
 		return cfg.web3;
+	}
+
+	getBlockNumber() {
+		var fetch = (): Promise<number>=>this.eth.getBlockNumber();
+		var fn = createCache(fetch, {
+			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber'
+		});
+		return fn();
 	}
 
 	cat() {
