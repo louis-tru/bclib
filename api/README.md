@@ -79,7 +79,7 @@
 
 提供系列私钥链条（钥匙串）的管理方法，以及对普通数据签名的方法
 
-### genSecretKeys
+### keys/genSecretKeys
 
 生成钥匙串，返回钥匙串对应的地址列表，目前`size`限制需小于100
 
@@ -87,7 +87,7 @@
 genSecretKeys({ size: number }): string[];
 ```
 
-### addressList
+### keys/addressList
 
 获取之前生成的钥匙串地址列表
 
@@ -95,7 +95,7 @@ genSecretKeys({ size: number }): string[];
 addressList(): string[];
 ```
 
-### address
+### keys/address
 
 随机从之前生成的钥匙串列表中取出一个并返回对应的地址
 
@@ -103,7 +103,7 @@ addressList(): string[];
 address(): string;
 ```
 
-### unlock
+### keys/unlock
 
 通过密码解锁钥匙串，在调用需要签名的方法中必须先解锁，默认密码为`0000`
 
@@ -111,7 +111,7 @@ address(): string;
 unlock({pwd: string}): void;
 ```
 
-### lock
+### keys/lock
 
 锁定钥匙串
 
@@ -119,7 +119,7 @@ unlock({pwd: string}): void;
 lock(): void;
 ```
 
-### setPassword
+### keys/setPassword
 
 重设解锁钥匙串密码，重设后会锁定钥匙串
 
@@ -127,7 +127,7 @@ lock(): void;
 setPassword({oldPwd: string, newPwd: string}): void;
 ```
 
-### keychainKeystore
+### keys/keychainKeystore
 
 以Keystore形式导出钥匙串根密钥，这个`pwd`非解锁密码，导出前先解锁钥匙串
 
@@ -135,7 +135,7 @@ setPassword({oldPwd: string, newPwd: string}): void;
 keychainKeystore({pwd: string}): object;
 ```
 
-### sign
+### keys/sign
 
 系列数据签名方法, 调用这些方法前需先解锁钥匙串
 
@@ -232,7 +232,7 @@ signArgumentsFromTypes({
 
 提供web3上链服务以及协议的访问方法与协议的签名方法访问
 
-### contract call
+### web3/contract*
 
 调用指定address协约方法
 
@@ -266,7 +266,7 @@ contractPostSync({
 
 查看定义[`TransactionReceipt`]
 
-### get
+### web3/*get
 
 调用具名的协约方法
 
@@ -302,7 +302,7 @@ minerGet({method: string, args: string}): any;
 miningGet({method: string, args: string}): any;
 ```
 
-### post
+### web3/*Post
 
 调用具名的协约方法,发送交易立即返回服务查询`review(id)`句柄id
 
@@ -338,7 +338,7 @@ minerPost({method: string, args: any[], event? string, from?: string}): string;
 miningPost({method: string, args: any[], event? string, from?: string}): string;
 ```
 
-### review
+### web3/review
 
 ```ts
 review({ id: string }): PostResult;
@@ -346,7 +346,7 @@ review({ id: string }): PostResult;
 
 查看定义[`PostResult`]
 
-### contractAddress
+### web3/contractAddress
 
 获取具名协约地址
 
@@ -356,7 +356,7 @@ contractAddress({type: ABIType}): string;
 
 查看定义[`ABIType`]
 
-### getBlockNumber
+### web3/getBlockNumber
 
 获取区块高度
 
@@ -364,11 +364,11 @@ contractAddress({type: ABIType}): string;
 getBlockNumber(): number;
 ```
 
-### getNonce({account: string}): number;
+### web3/getNonce({account: string}): number;
 
 获取账户的当前nonce
 
-### getNonceQueue
+### web3/getNonceQueue
 
 通过account申请nonce，会以自增方式增加值，如果长时间不使用申请的nonce会自动重新被分配
 
@@ -380,7 +380,7 @@ getNonceQueue({account: string}): {
 };
 ```
 
-### serializedTx
+### web3/serializedTx
 
 对交易进行签名，序列化交易数据返回rawData
 
@@ -403,7 +403,7 @@ serializedTx({
 };
 ```
 
-### serializedTxForContract
+### web3/serializedTxForContract
 
 调用协约交易进行签名，序列化交易数据返回rawData
 
@@ -420,7 +420,7 @@ serializedTxForContract({
 };
 ```
 
-### sendSignTransaction
+### web3/sendSignTransaction
 
 签名交易数据并发送，挂起http请求直到成功或者失败
 
@@ -443,7 +443,7 @@ sendSignTransaction({
 
 查看定义[`TransactionReceipt`]
 
-### sendSignedTransaction
+### web3/sendSignedTransaction
 
 发送签名后的交易数据`rawData`
 
