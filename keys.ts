@@ -316,7 +316,7 @@ export class KeysManager {
 				}
 			}
 		} else {
-			throw new Error(`The private key file was not found, ${path}`);
+			// throw new Error(`The private key file was not found, ${path}`);
 		}
 	}
 
