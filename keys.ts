@@ -307,12 +307,14 @@ export class KeysManager {
 
 		if (fs.existsSync(path)) {
 			var strs = keys.parseFile(path);
-			for (var priv of strs) {
-				// add key
-				var privKey = buffer.from(priv, 'hex');
-				var address = crypto_tx.getAddress(privKey);
-				if (!this._keys.find(e=>e.address == address)) {
-					this._keys.push( SecretKey.from(privKey) );
+			if (Array.isArray(strs)) {
+				for (var priv of strs) {
+					// add key
+					var privKey = buffer.from(priv, 'hex');
+					var address = crypto_tx.getAddress(privKey);
+					if (!this._keys.find(e=>e.address == address)) {
+						this._keys.push( SecretKey.from(privKey) );
+					}
 				}
 			}
 		} else {
