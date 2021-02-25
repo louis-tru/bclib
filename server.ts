@@ -14,7 +14,7 @@ import cfg_ from './cfg';
 
 const cfg = {
 	temp: `${paths.var}/temp`,
-	root: `${__dirname}/../public`,
+	root: `${__dirname}/../../public`,
 	port: 8000,
 	host: '127.0.0.1',
 	autoIndex: !prod,
