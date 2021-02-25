@@ -61,7 +61,7 @@ build:
 	find out -name '*.ts'| xargs rm -rf
 	tsc
 	$(foreach i, $(DEPS), $(foreach j, $(shell ls $(i)), $(call CP,$(i)/$(j)/package.json,$(OUT)/$(i)/$(j)) ))
-	rm -rf $(OUT)/config.js
+	@# rm -rf $(OUT)/config.js
 	cd out && tar -c --exclude $(PROJ)/node_modules -z -f $(PROJ).tgz $(PROJ)
 
 build-install: build
