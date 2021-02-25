@@ -26,6 +26,7 @@ const cfg = {
 	router: [],
 	timeout: 180 * 1e3, // 180s
 	...cfg_.server as any,
+	formHash: 'sha256',
 };
 
 // router

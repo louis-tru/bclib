@@ -59,7 +59,7 @@
 
 暂且只考虑`Post`方式
 
-1.通过`sha1`算法计算`data`+`st`+`shareKey`得到`hash`
+1.通过`sha256`算法计算`data`+`st`+`shareKey`得到256位长度的`hash`值
 
 	data = http post 主体数据
 	st = 发起请求的时间戳，时间戳必须有时效性目前是10分钟，发起请求时把这个时间戳放到请求头中 `st: 1614154609262`
@@ -71,7 +71,7 @@
 
 3.把在服务器登记的 `appId` 加入到请求头中 `auth-user: xxxx`
 
-这是算法过程简写： `sign(rsa1(data + st + shareKey))`
+这是算法过程简写： `sign(sha256(data + st + shareKey))`
 
 以下是服务提供的具体api方法.
 

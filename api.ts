@@ -45,10 +45,10 @@ export default class APIController extends ViewController {
 		if (!enable_auth) {
 			return true;
 		}
-		var sign = this.headers.sign as string;
+		var sign = Buffer.from(this.headers.sign as string, 'base64');
 		var st = Number(this.headers.st) || 0;
 		var key = SHARE_AUTO_KEY;
-		var hash = '';
+		var hash: Buffer;
 
 		if (!st)
 			return false;
@@ -58,30 +58,26 @@ export default class APIController extends ViewController {
 			return false;
 
 		if (this.form) {
-			this.form.hash.update(st + key);
-			hash = this.form.hash.digest('hex');
+			hash = this.form.hash.update(st + key).digest();
 		} else {
-			var md5 = crypto.createHash('md5');
-			md5.update(st + key);
-			hash = md5.digest('hex');
+			hash = crypto.createHash('sha256').update(st + key).digest();
 		}
 
 		var user = this.userWithoutErr();
 		if (user) {
 			if (user.keyType == 'rsa') {
-				sign = crypto.publicDecrypt(user.key, Buffer.from(sign, 'base64')) + '';
+				sign = crypto.publicDecrypt(user.key, sign);
+				var c = sign.compare(hash);
+				return c == 0;
 			}
 			else if (user.keyType == 'secp256k1') { // secp256k1
 				var pkey = Buffer.from(user.key.slice(2), 'hex');
-				var buf = Buffer.from(sign, 'base64');
-				var signature = Buffer.from(buf.buffer, buf.byteOffset, 64);
-				var ok = cryptoTx.verify(Buffer.from(hash), signature, pkey);
+				var signature = Buffer.from(sign.buffer, sign.byteOffset, 64);
+				var ok = cryptoTx.verify(hash, signature, pkey);
 				return ok;
 			} else {
 				console.warn('Authentication mode is not supported', user.keyType);
-				return false;
 			}
-			return sign == hash;
 		}
 
 		return false;
