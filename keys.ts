@@ -402,11 +402,11 @@ export class KeysManager {
 	}
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
-		var {name} = await this.getKey(addressOrAddressBtc);
 		if (this._useSystemPermission) {
+			var {name} = await this.getKey(addressOrAddressBtc);
 			somes.assert(name == '__system' || name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
 		} else {
-			somes.assert(name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
+			await this.keychain.checkPermission(keychainName, addressOrAddressBtc);
 		}
 	}
 

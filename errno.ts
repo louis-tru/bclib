@@ -31,7 +31,7 @@ class ErrnoList extends SysErrnoList {
 	ERR_KEY_NOT_FOUND = [100277, 'ERR_KEY_NOT_FOUND', '找不到KEY']
 	ERR_NO_ACCESS_KEY_PERMISSION = [100278, 'ERR_NO_ACCESS_KEY_PERMISSION']
 	ERR_NO_DEFAULT_SECRET_KEY = [100279, 'ERR_NO_DEFAULT_SECRET_KEY']
-	ERR_ADDRESS_IS_EMPTY = [100280, 'ERR_ADDRESS_IS_EMPTY', 'address or account is empty']
+	ERR_ADDRESS_IS_EMPTY = [100280, 'ERR_ADDRESS_IS_EMPTY', 'address or from account is empty']
 }
 
 export default new ErrnoList;
