@@ -292,11 +292,21 @@ export class KeychainManager {
 		return key as SecretKey;
 	}
 
+	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
+		somes.assert(addressOrAddressBtc, errno.ERR_ADDRESS_IS_EMPTY);
+		var k = await this.getSecretKey(addressOrAddressBtc as string);
+		somes.assert(k && k.name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
+	}
+
 }
 
 export class KeysManager {
 	private _keys: SecretKey[] = [];
 	private _keychain = new KeychainManager();
+	private _useSystemPermission = true;
+
+	get useSystemPermission() { return this._useSystemPermission }
+	set useSystemPermission(val) { this._useSystemPermission = val }
 
 	get keychain() {
 		return this._keychain;
@@ -393,7 +403,11 @@ export class KeysManager {
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
 		var {name} = await this.getKey(addressOrAddressBtc);
-		somes.assert(name == '__system' || name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
+		if (this._useSystemPermission) {
+			somes.assert(name == '__system' || name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
+		} else {
+			somes.assert(name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
+		}
 	}
 
 	async has(addressOrAddressBtc: string) {
