@@ -131,8 +131,9 @@ export abstract class SafeRequest extends req.Request {
 		return this._chack.internetAvailable;
 	}
 
-	protected sign(hash32Hex: string) {
-		return keys.sign(buffer.from(hash32Hex, 'hex'), keys.defauleAddress);
+	protected async sign(hash32Hex: string) {
+		var signature = await keys.sign(buffer.from(hash32Hex.slice(2), 'hex'), keys.defauleAddress);
+		return buffer.concat([signature.signature, [signature.recovery]]).toString('base64');
 	}
 
 	async sendSignRequest<T>(

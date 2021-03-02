@@ -330,12 +330,17 @@ export class KeysManager {
 		return somes.random(0, this._keys.length - 1);
 	}
 
+	private get _defaultKey() {
+		somes.assert(this._keys[0], errno.ERR_NO_DEFAULT_SECRET_KEY);
+		return this._keys[0];
+	}
+
 	get defauleAddressBtc() {
-		return this._keys[0].addressBtc;
+		return this._defaultKey.addressBtc;
 	}
 
 	get defauleAddress() {
-		return this._keys[0].address;
+		return this._defaultKey.address;
 	}
 
 	get publicKeys() {
@@ -363,8 +368,7 @@ export class KeysManager {
 	}
 
 	async getKey(addressOrAddressBtc?: string) {
-		var def = this._keys[0];
-		var key: typeof def | undefined | null;
+		var key: SecretKey | undefined | null;
 		var name = '__system';
 		if (addressOrAddressBtc) {
 			if (addressOrAddressBtc.substr(0, 2) == '0x') { // eth address
@@ -383,7 +387,7 @@ export class KeysManager {
 
 			return { name, key: key as SecretKey, isDefault: false }; 
 		} else {
-			return { name, key: def, isDefault: true};
+			return { name, key: this._defaultKey, isDefault: true};
 		}
 	}
 
