@@ -125,7 +125,7 @@ export default class extends ApiController {
 	async serializedTx({tx}: { tx: TxOptions }) {
 		await keys.checkPermission(this.userName, tx.from);
 		if (!tx.nonce) {
-			Object.assign(tx, await web3.txQueue.getNonce());
+			Object.assign(tx, await web3.txQueue.getNonce(tx.from));
 		}
 		var {data, hash} = await web3.signTx(tx);
 		return {
