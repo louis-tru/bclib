@@ -3,7 +3,7 @@
  * @date 2020-11-29
  */
 
-import utils, {createCache} from './utils';
+import {createCache} from './utils';
 import {WatchCat} from './watch';
 import cfg from './cfg';
 import keys from './keys';
