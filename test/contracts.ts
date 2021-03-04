@@ -3,7 +3,7 @@
  * @date 2020-12-08
  */
 
-import web3 from '../web3';
+import web3 from '../web3+';
 import Happy from 'web3z/happy';
 
 import * as LicenseTypes from './artifacts/LicenseTypes';

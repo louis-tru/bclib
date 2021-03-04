@@ -3,7 +3,7 @@
  * @date 2020-11-28
  */
 
-import web3z from '../web3';
+import web3z from '../web3+';
 // import {Transaction} from 'web3z';
 import { AbiInput } from 'web3-utils';
 

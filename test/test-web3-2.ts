@@ -3,7 +3,7 @@
  * @date 2020-11-28
  */
 
-import web3z from '../web3';
+import web3z from '../web3+';
 import {TransactionReceipt} from 'web3z';
 import keys from '../keys';
 import solidity from './contracts';
