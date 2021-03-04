@@ -249,6 +249,7 @@ contractPost({
 	args: any[]; // 实参
 	event:? string; // 发送交易成功后需要检查的event
 	from?: string; // 账户
+	value?: string;
 }): string; // 返回句柄id
 ```
 
@@ -261,6 +262,7 @@ contractPostSync({
 	args: any[]; // 实参
 	event:? string; // 发送交易成功后需要检查的event
 	from?: string; // 账户
+	value?: string;
 }): TransactionReceipt;
 ```
 
@@ -307,35 +309,35 @@ miningGet({method: string, args: string}): any;
 调用具名的协约方法,发送交易立即返回服务查询`review(id)`句柄id
 
 ```ts
-bankPost({method: string, args: any[], event? string, from?: string}): string;
+bankPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
 ```
 
 ```ts
-erc20Post({method: string, args: any[], event? string, from?: string}): string;
+erc20Post({method: string, args: any[], event? string, from?: string, value?: string}): string;
 ```
 
 ```ts
-erc721Post({method: string, args: any[], event? string, from?: string}): string;
+erc721Post({method: string, args: any[], event? string, from?: string, value?: string}): string;
 ```
 
 ```ts
-proofPost({method: string, args: any[], event? string, from?: string}): string;
+proofPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
 ```
 
 ```ts
-casperPost({method: string, args: any[], event? string, from?: string}): string;
+casperPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
 ```
 
 ```ts
-starPost({method: string, args: any[], event? string, from?: string}): string;
+starPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
 ```
 
 ```ts
-minerPost({method: string, args: any[], event? string, from?: string}): string;
+minerPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
 ```
 
 ```ts
-miningPost({method: string, args: any[], event? string, from?: string}): string;
+miningPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
 ```
 
 ### web3/review
@@ -386,16 +388,14 @@ getNonceQueue({account: string}): {
 
 ```ts
 serializedTx({
-	tx: {
-		chainId?: number;
-		from?: string;
-		nonce?: number;
-		to?: string;
-		gasLimit?: number;
-		gasPrice?: number;
-		value?: string;
-		data?: string;
-	}
+	chainId?: number;
+	from?: string;
+	nonce?: number;
+	to?: string;
+	gasLimit?: number;
+	gasPrice?: number;
+	value?: string;
+	data?: string;
 }): {
 	data: string;
 	txid: string;
@@ -413,6 +413,7 @@ serializedTxForContract({
 	args?: any[];  // 实参列表
 	from?: string; // 发送交易的账户
 	address: string; // 协约地址
+	value?: string; // eth value
 }): {
 	data: string; // rawData
 	txid: string;
@@ -454,8 +455,10 @@ sendSignedTransaction({
 		timeout?: number; // 超时放弃交易
 		blockRange?: number; // 超过区块后放弃交易视为失败，默认为32个区块
 	}
-});
+}): TransactionReceipt;
 ```
+
+查看定义[`TransactionReceipt`]
 
 ## interfaces
 

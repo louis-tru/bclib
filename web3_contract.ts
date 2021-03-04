@@ -4,7 +4,7 @@
  */
 
 import somes from 'somes';
-import web3 from './web3';
+import web3 from './web3+';
 import { TransactionReceipt, FindEventResult } from 'web3z';
 import {ABIType, getAddressFromType} from './abi';
 import errno from './errno';
@@ -22,6 +22,12 @@ interface _PostResult {
 	data?: any;
 }
 
+export interface PostOpts {
+	from?: string;
+	value?: string;
+	event?: string;
+}
+
 export abstract class CallContract {
 	private _PostResults: Map<string, _PostResult>;
 
@@ -31,14 +37,14 @@ export abstract class CallContract {
 
 	abstract getAddress(): Promise<string>;
 
-	async postSync(method: string, args?: any[], opes?: {event?: string; from?: string}) {
+	async postSync(method: string, args?: any[], opts?: PostOpts) {
 		var contract = await this.contract();
 		var fn = contract.methods[method](...(args||[]));
 		// var nonce await web3.txQueue.getNonce();
-		var receipt = await web3.txQueue.push(e=>fn.sendSignTransaction(e), {from: opes?.from});
+		var receipt = await web3.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}), opts);
 		var event: FindEventResult | undefined;
-		if (opes?.event) {
-			event = await contract.findEvent(opes.event,
+		if (opts?.event) {
+			event = await contract.findEvent(opts.event,
 				receipt.blockNumber, receipt.transactionHash
 			) as FindEventResult;
 			somes.assert(event, errno.ERR_WEB3_API_POST_EVENT_NON_EXIST);
@@ -46,11 +52,11 @@ export abstract class CallContract {
 		return { receipt, event } as PostResult;
 	}
 
-	async post(method: string, args?: any[], opes?: {event?: string; from?: string}, complete?: ((r: PostResult)=>Promise<void>|void)) {
+	async post(method: string, args?: any[], opts?: PostOpts, complete?: ((r: PostResult)=>Promise<void>|void)) {
 		var id = String(somes.getId());
 		var result = {} as _PostResult;
 		this._PostResults.set(id, result);
-		this.postSync(method, args, opes).then(complete).catch(error=>Object.assign(result, {error}));
+		this.postSync(method, args, opts).then(complete).catch(error=>Object.assign(result, {error}));
 		return id;
 	}
 

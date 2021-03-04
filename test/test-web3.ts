@@ -9,12 +9,12 @@ import cfg from '../cfg';
 
 const SAFE_TRANSACTION_MAX_TIMEOUT = 180 * 1e3;  // 180秒
 
-var web3: any = null;
+var web3: Web3 | null = null;
 
 function getWeb3() {
 	if (!web3) {
 		var url = cfg.web3;
-		var { HttpProvider, WebsocketProvider } = (Web3 as any).providers;
+		var { HttpProvider, WebsocketProvider } = Web3.providers;
 		var provider;
 		if (/^https?:/.test(url)) {
 			provider = new HttpProvider(url, { timeout: SAFE_TRANSACTION_MAX_TIMEOUT });
@@ -24,7 +24,7 @@ function getWeb3() {
 			// web3Provider = new Web3.providers.HttpProvider('http://120.132.94.167:18545');
 			throw Error(`Can't create 'Web3 provider`);
 		}
-		web3 = new (Web3 as any)(provider);
+		web3 = new Web3(provider);
 
 		var requestManager = (web3 as any)._requestManager;
 
