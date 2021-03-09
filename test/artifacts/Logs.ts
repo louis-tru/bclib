@@ -3,7 +3,7 @@
  * @date 2020-12-08
  */
 
-import {TransactionReceipt} from 'web3z';
+import {Result} from 'web3z/happy';
 import {Primitive,Bytes32,Address} from './Primitive';
 import * as json from './Logs.json';
 
@@ -26,6 +26,6 @@ export default interface Logs extends Primitive {
 	/**
 	 * 安全添加数据日志，同时通过签名获取签名者，用这个签名者来验证数据
 	 */
-	setHash(hash: Bytes32, sigR: Bytes32, sigS: Bytes32, sigV: number): Promise<TransactionReceipt>;
+	setHash(hash: Bytes32, sigR: Bytes32, sigS: Bytes32, sigV: number): Result<void>;
 
 }

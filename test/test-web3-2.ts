@@ -21,7 +21,7 @@ export default async function({ num, from, to, value }: {
 
 	if (from && to && _value) {
 		tx1 = await web3z.txQueue.push(e=>{
-			return web3z.sendTransaction({
+			return web3z.sendSignTransaction({
 				...e,
 				to: to,
 				value: '0x' + (1e18 * Math.abs(_value)).toString(16),
@@ -88,21 +88,21 @@ export default async function({ num, from, to, value }: {
 		})(),
 		// smart contract test
 		...await (async function() {
-			var license_types = solidity.license_types.happy(address);
-			var users = solidity.users.happy(address);
-			var logs = solidity.logs.happy(address);
+			var license_types = solidity.license_types.api;//happy(address);
+			var users = solidity.users.api;//happy(address);
+			var logs = solidity.logs.api;//happy(address);
 
-			var get1 = await license_types.get('11100000000019713D057');
-			var get2 = await license_types.get('11100000000019713D006');
+			var get1 = await license_types.get('11100000000019713D057').call();
+			var get2 = await license_types.get('11100000000019713D006').call();
 
 			return {
 				did_users: {
-					name: await users.name(address),
-					data: await users.data(address),
+					name: await users.name(address).call(),
+					data: await users.data(address).call(),
 				},
 				license_types: {
-					is_running: await license_types.isRunning(),
-					owner: await license_types.owner(),
+					is_running: await license_types.isRunning().call(),
+					owner: await license_types.owner().call(),
 					get1, get2
 				},
 				// logs: {

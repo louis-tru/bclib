@@ -3,7 +3,7 @@
  * @date 2020-12-08
  */
 
-import {TransactionReceipt} from 'web3z';
+import {Result} from 'web3z/happy';
 import {Primitive} from './Primitive';
 import * as json from './LicenseTypes.json';
 
@@ -28,7 +28,7 @@ export default interface LicenseTypes extends Primitive {
 	/**
 	 * 通过证照类型代码获取类型数据
 	 */
-	get(certificate_type_name_code: string): Promise<LicenseType>;
+	get(certificate_type_name_code: string): Result<LicenseType>;
 
 	/**
 	 * 添加证照类型数据
@@ -40,6 +40,6 @@ export default interface LicenseTypes extends Primitive {
 		certificate_define_authority_code: string,
 		certificate_holder_type_name: string,
 		shared_province: string[]
-	): Promise<TransactionReceipt>;
+	): Result<void>;
 
 }

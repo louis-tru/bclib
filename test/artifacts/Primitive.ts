@@ -4,13 +4,14 @@
  */
 
 import {TransactionReceipt} from 'web3z';
+import {Result} from 'web3z/happy';
 import {Address} from '../../solidity_types';
 
 export * from '../../solidity_types';
 
 export interface Primitive {
-	owner(): Promise<Address>;
-	isRunning(): Promise<boolean>; // 合约是否被作废
-	destroy(): Promise<TransactionReceipt>;
-	setOwner(address: Address): Promise<TransactionReceipt>;
+	owner(): Result<Address>;
+	isRunning(): Result<boolean>; // 合约是否被作废
+	destroy(): Result<TransactionReceipt>;
+	setOwner(address: Address): Result<TransactionReceipt>;
 }

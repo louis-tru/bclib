@@ -20,10 +20,10 @@ export default async function({ num, tx }:{ num: number, tx?:number }) {
 	// 	value: '0x00',
 	// 	data: abi.bytecode
 	// }), { from });
-
-	var license_types = solidity.license_types.happy(address);
-	var users = solidity.users.happy(address);
-	var logs = solidity.logs.happy(address);
+	var opts = {from:address};
+	var license_types = solidity.license_types.api;//happy(address);
+	var users = solidity.users.api;//happy(address);
+	var logs = solidity.logs.api;//happy(address);
 
 	var set_send: any = {
 		set_send: {
@@ -70,8 +70,8 @@ export default async function({ num, tx }:{ num: number, tx?:number }) {
 	// 	]
 	// );
 
-	var get1 = await license_types.get('11100000000019713D057');
-	var get2 = await license_types.get('11100000000019713D006');
+	var get1 = await license_types.get('11100000000019713D057').call();
+	var get2 = await license_types.get('11100000000019713D006').call();
 
 	return {
 		tx1,set_send,get1,get2,
