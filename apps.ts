@@ -48,6 +48,7 @@ export function applications(): ApplicationInfo[] {
 	if (!_applications) {
 		_applications = [];
 	}
+	// TODO ...
 	return _applications;
 }
 
@@ -56,5 +57,5 @@ export function all() {
 }
 
 export function applicationWithoutErr(appId: string): ApplicationInfo | null {
-	return null;
+	return insides().find(e=>e.appId == appId) || null;
 }
