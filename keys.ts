@@ -31,6 +31,7 @@ export class SecretKey {
 	private _aes256key = rng(32); // random key
 
 	static keystore(keystore: object) {
+		somes.assert(keystore, 'Keystore cannot be empty');
 		/*
 			{
 				"id":"bf663519-ed4c-e602-6fe8-8cbf86f4513b",

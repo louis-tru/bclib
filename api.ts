@@ -73,7 +73,7 @@ export default class APIController extends ViewController {
 			else if (user.keyType == 'secp256k1') { // secp256k1
 				var pkey = Buffer.from(user.key.slice(2), 'hex');
 				var signature = Buffer.from(sign.buffer, sign.byteOffset, 64);
-				var ok = cryptoTx.verify(hash, signature, pkey);
+				var ok = cryptoTx.verify(hash, signature, pkey, false);
 				return ok;
 			} else {
 				console.warn('Authentication mode is not supported', user.keyType);
