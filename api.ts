@@ -45,7 +45,11 @@ export default class APIController extends ViewController {
 		if (!enable_auth) {
 			return true;
 		}
-		var sign = Buffer.from(this.headers.sign as string, 'base64');
+		var signRaw = this.headers.sign as string;
+		if (!signRaw)
+			return false;
+		var sign = signRaw.substr(0, 2) == '0x' ? 
+			Buffer.from(signRaw.slice(2), 'hex'): Buffer.from(signRaw, 'base64');
 		var st = Number(this.headers.st) || 0;
 		var key = SHARE_AUTO_KEY;
 		var hash: Buffer;
