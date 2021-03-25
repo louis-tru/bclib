@@ -279,6 +279,7 @@ class XApi extends SafeRequest {
 }
 
 export const get = req.get;
+export const post = req.post;
 export const request = req.request;
 
 export const chain = new Chain(cfg.chain);

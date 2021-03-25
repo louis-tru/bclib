@@ -250,6 +250,7 @@ contractPost({
 	event:? string; // 发送交易成功后需要检查的event
 	from?: string; // 账户
 	value?: string;
+	callback?: string; // 回调地址,只有异步方法才生效
 }): string; // 返回句柄id
 ```
 
@@ -443,6 +444,31 @@ sendSignTransaction({
 ```
 
 查看定义[`TransactionReceipt`]
+
+
+
+### web3/sendSignTransactionAsync
+
+签名交易数据并发送，挂起http请求直到成功或者失败
+
+```ts
+sendSignTransactionAsync({
+	tx: {
+		timeout?: number; // 超时放弃交易
+		blockRange?: number; // 超过区块后放弃交易视为失败，默认为32个区块
+		chainId?: number;
+		from?: string;
+		nonce?: number;
+		to?: string;
+		gasLimit?: number;
+		gasPrice?: number;
+		value?: string;
+		data?: string;
+	};
+	callback?: string; // 回调地址url
+}): string;
+```
+
 
 ### web3/sendSignedTransaction
 

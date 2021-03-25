@@ -10,6 +10,7 @@ import web3_c from '../web3_contract';
 import {ABIType} from '../abi';
 import buffer from 'somes/buffer';
 import keys from '../keys';
+import {callbackURI} from '../utils';
 
 interface Args_ {
 	method: string;
@@ -17,6 +18,7 @@ interface Args_ {
 	event?: string;
 	from?: string;
 	value?: string;
+	callback?: string;
 }
 
 interface Args extends Args_ {
@@ -33,9 +35,11 @@ export default class extends ApiController {
 	contractGet({address, method, args}: Args) {
 		return web3_c.contract(address).get(method, args);
 	}
-	async contractPost({address, method, args,event,from,value}: Args) {
+	async contractPost({address, method, args,event,from,value,callback}: Args) {
 		await keys.checkPermission(this.userName, from);
-		return await web3_c.contract(address).post(method, args,{event,from,value});
+		return await web3_c.contract(address).post(method, args,{event,from,value}, e=>{
+			callback && callbackURI(e, callback);
+		});
 	}
 	async contractPostSync({address, method, args, event,from,value}: Args) {
 		await keys.checkPermission(this.userName, from);
@@ -151,6 +155,13 @@ export default class extends ApiController {
 	async sendSignTransaction({tx}: {tx: TxOptions}) {
 		await keys.checkPermission(this.userName, tx.from);
 		return await web3.sendSignTransaction(tx);
+	}
+
+	async sendSignTransactionAsync({tx, callback}: {tx: TxOptions, callback?: string}) {
+		await keys.checkPermission(this.userName, tx.from);
+		return await web3_c.sendSignTransactionAsync(tx, e=>{
+			callback && callbackURI(e, callback);
+		});
 	}
 
 	sendSignedTransaction({serializedTx,opts}: {serializedTx: string, opts?: STOptions}) {

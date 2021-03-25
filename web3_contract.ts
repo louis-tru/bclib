@@ -5,7 +5,7 @@
 
 import somes from 'somes';
 import web3 from './web3+';
-import { TransactionReceipt, FindEventResult } from 'web3z';
+import { TransactionReceipt, FindEventResult,STOptions,TxOptions, TransactionPromise } from 'web3z';
 import {ABIType, getAddressFromType} from './abi';
 import errno from './errno';
 
@@ -13,13 +13,7 @@ export interface PostResult {
 	receipt: TransactionReceipt;
 	event?: FindEventResult;
 	data?: any;
-}
-
-interface _PostResult {
-	receipt?: TransactionReceipt;
-	event?: FindEventResult;
 	error?: Error;
-	data?: any;
 }
 
 export interface PostOpts {
@@ -29,35 +23,20 @@ export interface PostOpts {
 }
 
 export abstract class CallContract {
-	private _PostResults: Map<string, _PostResult>;
+	private _host: Contracts;
 
-	constructor(postResultStore: Map<string, _PostResult>) {
-		this._PostResults = postResultStore;
+	constructor(host: Contracts) {
+		this._host = host;
 	}
 
 	abstract getAddress(): Promise<string>;
 
 	async postSync(method: string, args?: any[], opts?: PostOpts) {
-		var contract = await this.contract();
-		var fn = contract.methods[method](...(args||[]));
-		// var nonce await web3.txQueue.getNonce();
-		var receipt = await web3.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}), opts);
-		var event: FindEventResult | undefined;
-		if (opts?.event) {
-			event = await contract.findEvent(opts.event,
-				receipt.blockNumber, receipt.transactionHash
-			) as FindEventResult;
-			somes.assert(event, errno.ERR_WEB3_API_POST_EVENT_NON_EXIST);
-		}
-		return { receipt, event } as PostResult;
+		return await this._host.contractPost(await this.getAddress(), method, args, opts);
 	}
 
-	async post(method: string, args?: any[], opts?: PostOpts, complete?: ((r: PostResult)=>Promise<void>|void)) {
-		var id = String(somes.getId());
-		var result = {} as _PostResult;
-		this._PostResults.set(id, result);
-		this.postSync(method, args, opts).then(complete).catch(error=>Object.assign(result, {error}));
-		return id;
+	async post(method: string, args?: any[], opts?: PostOpts, cb?: ((r: PostResult)=>any)) {
+		return await this._host.contractPostAsync(await this.getAddress(), method, args, opts, cb);
 	}
 
 	async get(method: string, args?: any[]) {
@@ -76,8 +55,8 @@ class StarContract extends CallContract {
 	private _star: string;
 	private _type: ABIType;
 	getAddress() { return getAddressFromType(this._type, this._star) }
-	constructor(_star: string, _type: ABIType, store: Map<string, _PostResult>) {
-		super(store);
+	constructor(_star: string, _type: ABIType, host: Contracts) {
+		super(host);
 		this._star = _star;
 		this._type = _type;
 	}
@@ -86,21 +65,21 @@ class StarContract extends CallContract {
 class CommonContract extends CallContract {
 	private _address: string;
 	async getAddress() {return this._address}
-	constructor(_address: string, store: Map<string, _PostResult>) {
-		super(store);
+	constructor(_address: string, host: Contracts) {
+		super(host);
 		this._address = _address;
 	}
 }
 
 class Contracts {
 	private _contracts = new Map<string, CallContract>();
-	private _postResults = new Map<string, _PostResult>();
+	private _postResults = new Map<string, PostResult>();
 
 	contractFromType(type: ABIType, star_?: string) {
 		var star = star_ || '';
 		var api = this._contracts.get(star + type);
 		if (!api) {
-			api = new StarContract(star, type, this._postResults);
+			api = new StarContract(star, type, this);
 			this._contracts.set(star + type, api);
 		}
 		return api;
@@ -109,7 +88,7 @@ class Contracts {
 	contract(address: string) {
 		var api = this._contracts.get(address);
 		if (!api) {
-			api = new CommonContract(address, this._postResults)
+			api = new CommonContract(address, this)
 			this._contracts.set(address, api);
 		}
 		return api;
@@ -117,7 +96,7 @@ class Contracts {
 
 	review(id: string): PostResult {
 		somes.assert(this._postResults.has(id), errno.ERR_WEB3_API_POST_NON_EXIST);
-		var r = this._postResults.get(id) as _PostResult;
+		var r = this._postResults.get(id) as PostResult;
 		try {
 			somes.assert(!r.error, r.error);
 			somes.assert(r.receipt, errno.ERR_WEB3_API_POST_PENDING);
@@ -129,6 +108,50 @@ class Contracts {
 		} finally {
 			// TODO auto digest this._postResults.delete(id);
 		}
+	}
+
+	private async _sendSignTransactionAsync(send: ()=>Promise<PostResult>, cb?: ((r: PostResult)=>any)): Promise<string> 
+	{
+		var id = String(somes.getId());
+		var result = {} as PostResult;
+		this._postResults.set(id, result);
+
+		send().then(r=>{
+			Object.assign(result, r);
+			cb && cb(result);
+		})
+		.catch(error=>{
+			Object.assign(result, {error})
+			cb && cb(result);
+		});
+		return id;
+	}
+
+	sendSignTransactionAsync(opts: TxOptions, cb?: ((r: PostResult)=>any)): Promise<string> {
+		return this._sendSignTransactionAsync(async ()=>{
+			return {
+				receipt: await web3.txQueue.push(e=>web3.sendSignTransaction({...opts, ...e}), opts),
+			};
+		}, cb);
+	}
+
+	async contractPost(contractAddress: string, method: string, args?: any[], opts?: PostOpts) {
+		var contract = await web3.contract(contractAddress);
+		var fn = contract.methods[method](...(args||[]));
+		// var nonce await web3.txQueue.getNonce();
+		var receipt = await web3.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}), opts);
+		var event: FindEventResult | undefined;
+		if (opts?.event) {
+			event = await contract.findEvent(opts.event,
+				receipt.blockNumber, receipt.transactionHash
+			) as FindEventResult;
+			somes.assert(event, errno.ERR_WEB3_API_POST_EVENT_NON_EXIST);
+		}
+		return { receipt, event } as PostResult;
+	}
+
+	contractPostAsync(contractAddress: string, method: string, args?: any[], opts?: PostOpts, cb?: ((r: PostResult)=>any)) {
+		return this._sendSignTransactionAsync(()=>this.contractPost(contractAddress, method, args, opts), cb);
 	}
 
 }

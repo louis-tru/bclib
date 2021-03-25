@@ -5,8 +5,8 @@
 
 import utils from 'somes';
 import {Options,Params} from 'somes/request';
-import storage from  './storage';
-import {SafeRequest} from './request';
+import storage from './storage';
+import {SafeRequest, post} from './request';
 import cfg from './cfg';
 
 export const prod = cfg.env == 'prod';
@@ -156,6 +156,20 @@ export async function callApi(
 		}
 	}
 	return data;
+}
+
+export async function callbackURI(data: any, url: string) {
+	var sleep = 10;
+	var retry = 10;
+	while (--retry) {
+		try {
+			var r = await post(url, { params: data, urlencoded: false });
+			if (r.statusCode == 200)
+				break;
+		} catch(err) {}
+		await utils.sleep(sleep);
+		sleep *= 1.5;
+	}
 }
 
 export default utils;
