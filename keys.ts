@@ -191,6 +191,10 @@ export class KeychainManager {
 		var keys = (await this._db.select('keys', { address: key.address }))[0];
 		var start: number = keys ? keys.size: 0;
 
+		if (start < size) {
+			this._addresss.delete(name); // clear cache
+		}
+
 		for (var i = start; i < size; i++) {
 			var _key = key.offset(i + 1);
 			if ((await this._db.select('address_table', { address: _key.address })).length === 0) {
@@ -217,7 +221,7 @@ export class KeychainManager {
 			for (var item of await this._db.select('address_table', { name })) {
 				address.push(item.address);
 			}
-			this._addresss.set(name, address);
+			this._addresss.set(name, address); // cache
 			return address;
 		}
 	}
@@ -229,19 +233,28 @@ export class KeychainManager {
 	}
 
 	async getSecretKey(addressOrAddressBtc: string) {
+		var r = await this.getAddressOffset(addressOrAddressBtc);
+		return r ? await this.getSecretKeyByOffset(r.name, r.offset): null;
+	}
+
+	async getAddressOffset(addressOrAddressBtc: string): Promise<{
+		name: string;
+		offset: number;
+	} | null> {
 		var indexed = this._address_indexed.get(addressOrAddressBtc);
 		if (indexed) {
 			var [name,offset] = indexed;
-			return await this.getSecretKeyByOffset(name, offset);
+			return {
+				name, offset,
+			}
 		}
 		var r = (await this._db.select('address_table', { address: addressOrAddressBtc }))[0];
 		if (!r)
 			r =   (await this._db.select('address_table', { addressBtc: addressOrAddressBtc }))[0];
 		if (r) {
-			var key = await this.getSecretKeyByOffset(r.name, r.offset);
 			this._address_indexed.set(r.address, [r.name, r.offset]);
 			this._address_indexed.set(r.addressBtc, [r.name, r.offset]);
-			return key;
+			return r as any;
 		}
 		return null;
 	}
@@ -295,10 +308,9 @@ export class KeychainManager {
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
 		somes.assert(addressOrAddressBtc, errno.ERR_ADDRESS_IS_EMPTY);
-		var k = await this.getSecretKey(addressOrAddressBtc as string);
+		var k = await this.getAddressOffset(addressOrAddressBtc as string);
 		somes.assert(k && k.name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
 	}
-
 }
 
 export class KeysManager {
@@ -404,11 +416,19 @@ export class KeysManager {
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
 		if (this._useSystemPermission) {
-			var {name} = await this.getKey(addressOrAddressBtc);
-			somes.assert(name == '__system' || name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
-		} else {
-			await this.keychain.checkPermission(keychainName, addressOrAddressBtc);
+			var key: SecretKey | undefined;
+			if (addressOrAddressBtc) {
+				if (addressOrAddressBtc.substr(0, 2) == '0x') { // eth address
+					key = this._keys.find(e=>e.address == addressOrAddressBtc);
+				} else {// btc
+					key = this._keys.find(e=>e.addressBtc == addressOrAddressBtc);
+				}
+				// can use system permission
+			} else {
+				key = this._defaultKey; // use default system permission
+			}
 		}
+		await this.keychain.checkPermission(keychainName, addressOrAddressBtc);
 	}
 
 	async has(addressOrAddressBtc: string) {
