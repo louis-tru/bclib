@@ -449,7 +449,7 @@ sendSignTransaction({
 
 ### web3/sendSignTransactionAsync
 
-签名交易数据并发送，挂起http请求直到成功或者失败
+签名交易数据并发送，发送交易立即返回服务查询`review(id)`句柄id
 
 ```ts
 sendSignTransactionAsync({
@@ -466,7 +466,7 @@ sendSignTransactionAsync({
 		data?: string;
 	};
 	callback?: string; // 回调地址url
-}): string;
+}): string; // 返回句柄id
 ```
 
 
