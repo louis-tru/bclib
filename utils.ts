@@ -167,7 +167,7 @@ export async function callbackURI(data: any, url: string) {
 			if (r.statusCode == 200)
 				break;
 		} catch(err) {}
-		await utils.sleep(sleep);
+		await utils.sleep(sleep * 1e3);
 		sleep *= 1.5;
 	}
 }
