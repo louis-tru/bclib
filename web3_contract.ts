@@ -5,7 +5,7 @@
 
 import somes from 'somes';
 import web3 from './web3+';
-import { TransactionReceipt, FindEventResult,STOptions,TxOptions, TransactionPromise } from 'web3z';
+import { TransactionReceipt, FindEventResult,TxOptions } from 'web3z';
 import {ABIType, getAddressFromType} from './abi';
 import errno from './errno';
 
@@ -16,7 +16,7 @@ export interface PostResult {
 	error?: Error;
 }
 
-export interface PostOpts {
+export interface Options {
 	from?: string;
 	value?: string;
 	event?: string;
@@ -31,18 +31,16 @@ export abstract class CallContract {
 
 	abstract getAddress(): Promise<string>;
 
-	async postSync(method: string, args?: any[], opts?: PostOpts) {
+	async postSync(method: string, args?: any[], opts?: Options) {
 		return await this._host.contractPost(await this.getAddress(), method, args, opts);
 	}
 
-	async post(method: string, args?: any[], opts?: PostOpts, cb?: ((r: PostResult)=>any)) {
+	async post(method: string, args?: any[], opts?: Options, cb?: (r: PostResult)=>void) {
 		return await this._host.contractPostAsync(await this.getAddress(), method, args, opts, cb);
 	}
 
-	async get(method: string, args?: any[]) {
-		var contract = await this.contract();
-		var fn = contract.methods[method](...(args||[]));
-		return await fn.call();
+	async get(method: string, args?: any[], opts?: Options) {
+		return await this._host.contractGet(await this.getAddress(), method, args, opts);
 	}
 
 	async contract() {
@@ -110,7 +108,7 @@ class Contracts {
 		}
 	}
 
-	private async _sendSignTransactionAsync(send: ()=>Promise<PostResult>, cb?: ((r: PostResult)=>any)): Promise<string> 
+	private async _sendSignTransactionAsync(send: ()=>Promise<PostResult>, cb?: (r: PostResult)=>void): Promise<string> 
 	{
 		var id = String(somes.getId());
 		var result = {} as PostResult;
@@ -135,9 +133,16 @@ class Contracts {
 		}, cb);
 	}
 
-	async contractPost(contractAddress: string, method: string, args?: any[], opts?: PostOpts) {
+	async contractGet(contractAddress: string, method: string, args?: any[], opts?: Options) {
 		var contract = await web3.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
+		return await fn.call(opts);
+	}
+
+	async contractPost(contractAddress: string, method: string, args?: any[], opts?: Options) {
+		var contract = await web3.contract(contractAddress);
+		var fn = contract.methods[method](...(args||[]));
+		await fn.call(opts); // try call
 		// var nonce await web3.txQueue.getNonce();
 		var receipt = await web3.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}), opts);
 		var event: FindEventResult | undefined;
@@ -150,8 +155,9 @@ class Contracts {
 		return { receipt, event } as PostResult;
 	}
 
-	contractPostAsync(contractAddress: string, method: string, args?: any[], opts?: PostOpts, cb?: ((r: PostResult)=>any)) {
-		return this._sendSignTransactionAsync(()=>this.contractPost(contractAddress, method, args, opts), cb);
+	async contractPostAsync(contractAddress: string, method: string, args?: any[], opts?: Options, cb?: (r: PostResult)=>void) {
+		await this.contractGet(contractAddress, method, args, opts); // try call
+		return await this._sendSignTransactionAsync(()=>this.contractPost(contractAddress, method, args, opts), cb);
 	}
 
 }

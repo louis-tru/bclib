@@ -527,6 +527,7 @@ interface PostResult {
 	receipt: TransactionReceipt;
 	event?: FindEventResult;
 	data?: any;
+	error?: Error;
 }
 ```
 
