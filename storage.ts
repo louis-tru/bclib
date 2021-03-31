@@ -7,10 +7,14 @@ import paths from './paths';
 import {IStorage} from 'somes/storage';
 import {SQLiteTools} from './sqlite';
 
-class Storage implements IStorage {
+export class Storage implements IStorage {
 
-	private _db: SQLiteTools = new SQLiteTools(`${paths.var}/storage.db`);
+	private _db: SQLiteTools;
 	private _data: Dict = {};
+
+	constructor(path?: string) {
+		this._db = new SQLiteTools(path || `${paths.var}/storage.db`);
+	}
 
 	async initialize(): Promise<void> {
 		await this._db.initialize(`
@@ -81,4 +85,4 @@ class Storage implements IStorage {
 
 }
 
-export default new Storage();
+export default new Storage(); // default storage

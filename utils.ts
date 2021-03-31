@@ -53,7 +53,6 @@ export function toWei(ethNum: number): string {
 	return moveDecimalForRight(ethNum, ETH_RATIO);
 }
 
-// const TOKEN_RATIO = 10;
 const create_cache_funcs: Dict = {};
 export const trustCloud: boolean = 'trustCloud' in utils.config ? !!utils.config.trustCloud : false;
 

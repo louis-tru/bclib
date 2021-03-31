@@ -5,7 +5,7 @@
 
 import {ErrnoList as SysErrnoList} from 'somes/errno';
 
-class ErrnoList extends SysErrnoList {
+export class ErrnoList extends SysErrnoList {
 	ERR_PARAMS_ERROR: ErrnoCode = [100102, '参数错误']
 	ERR_USER_FORBIDDEN_ACTION: ErrnoCode = [100105, '请求无响应或被拒绝']
 	ERR_LAST_ACTION_NOT_COMPLETED: ErrnoCode = [100215, '已有用户发起请求，请稍后尝试']
@@ -27,11 +27,12 @@ class ErrnoList extends SysErrnoList {
 	ERR_WEB3_API_POST_EVENT_NON_EXIST: ErrnoCode = [100270, '交易事件不存在']
 	ERR_WEB3_API_POST_NON_EXIST: ErrnoCode = [100268, '交易不存在']
 	ERR_WEB3_API_POST_PENDING: ErrnoCode = [100269, '交易正在处理中']
-	ERR_NO_ADDRESS_IS_CREATED = [100276, '还没有创建过地址']
-	ERR_KEY_NOT_FOUND = [100277, 'ERR_KEY_NOT_FOUND', '找不到KEY']
-	ERR_NO_ACCESS_KEY_PERMISSION = [100278, 'ERR_NO_ACCESS_KEY_PERMISSION']
-	ERR_NO_DEFAULT_SECRET_KEY = [100279, 'ERR_NO_DEFAULT_SECRET_KEY']
-	ERR_ADDRESS_IS_EMPTY = [100280, 'ERR_ADDRESS_IS_EMPTY', 'address or from account is empty']
+	ERR_NO_ADDRESS_IS_CREATED: ErrnoCode = [100276, '还没有创建过地址']
+	ERR_KEY_NOT_FOUND: ErrnoCode = [100277, 'ERR_KEY_NOT_FOUND', '找不到KEY']
+	ERR_NO_ACCESS_KEY_PERMISSION: ErrnoCode = [100278, 'ERR_NO_ACCESS_KEY_PERMISSION']
+	ERR_NO_DEFAULT_SECRET_KEY: ErrnoCode = [100279, 'ERR_NO_DEFAULT_SECRET_KEY']
+	ERR_ADDRESS_IS_EMPTY: ErrnoCode = [100280, 'ERR_ADDRESS_IS_EMPTY', 'address or from account is empty']
+	ERR_APPLICATION_FOUND: ErrnoCode = [100265, '找不到应用程序']
 }
 
 export default new ErrnoList;

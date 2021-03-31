@@ -7,7 +7,7 @@ import utils from './utils';
 import * as crypto from 'crypto';
 import { ViewController } from 'somes/ctr';
 import {RuleResult} from 'somes/router';
-import users, {User} from './users';
+import auth, {User} from './auth';
 import errno from './errno';
 import message, {Events} from './message';
 import cfg from './cfg';
@@ -108,7 +108,7 @@ export default class APIController extends ViewController {
 
 	userWithoutErr() {
 		if (this._user === undefined) {
-			this._user = users.user(this.userName);
+			this._user = auth.user(this.userName);
 		}
 		return this._user;
 	}

@@ -4,8 +4,10 @@
  */
 
 import cfg  from './cfg';
-import * as fs  from 'somes/fs2';
+import * as fs from 'somes/fs2';
+import somes from 'somes';
 import buffer from 'somes/buffer';
+import errno from './errno';
 
 export interface ApplicationInfo {
 	name: string;
@@ -19,7 +21,17 @@ export interface ApplicationInfo {
 }
 
 var _insides: ApplicationInfo[] | null = null;
-var _applications: ApplicationInfo[] | null = null;
+var _applications: ApplicationInfo[] = [];
+var _allApplications: ApplicationInfo[] = [];
+var _applicationsIndexed: Dict<ApplicationInfo> | null = null;
+
+function updateApplicationsIndexed() {
+	_allApplications = insides().concat(_applications);
+	_applicationsIndexed = {};
+	for (var app of _allApplications) {
+		_applicationsIndexed[app.appId] = app;
+	}
+}
 
 export function insides(): ApplicationInfo[] {
 	if (!_insides) {
@@ -40,22 +52,34 @@ export function insides(): ApplicationInfo[] {
 			let app = JSON.parse(fs.readFileSync(dphoto_factory) + '');
 			_insides.push(app);
 		}
+		updateApplicationsIndexed();
 	}
 	return _insides;
 }
 
 export function applications(): ApplicationInfo[] {
-	if (!_applications) {
-		_applications = [];
-	}
-	// TODO ...
 	return _applications;
 }
 
-export function all() {
-	return applications().concat(insides());
+export function setApplications(apps: ApplicationInfo[]) {
+	_applications = apps;
+	updateApplicationsIndexed();
+}
+
+export function allApplications() {
+	return _allApplications;
+}
+
+export function application(appId: string) {
+	var app = applicationWithoutErr(appId);
+	somes.assert(app, errno.ERR_APPLICATION_FOUND);
+	return app;
 }
 
 export function applicationWithoutErr(appId: string): ApplicationInfo | null {
-	return insides().find(e=>e.appId == appId) || null;
+	if (!_applicationsIndexed) {
+		updateApplicationsIndexed();
+	}
+	var indexed = _applicationsIndexed as Dict<ApplicationInfo>;
+	return indexed[appId] || null;
 }

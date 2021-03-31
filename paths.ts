@@ -7,7 +7,7 @@ import * as fs from 'somes/fs';
 import * as path from 'path';
 import cfg from './cfg';
 
-var variable = String(cfg.var) || path.resolve(__dirname, '../../var');
+var variable = String(cfg.var || path.resolve(__dirname, '../../var'));
 
 fs.mkdirpSync(`${variable}/temp`);
 fs.mkdirpSync(`${variable}/res`);

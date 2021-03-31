@@ -23,7 +23,6 @@ export class Console extends ConsoleBase {
 			this.error(e.data.reason);
 			this.reportException(cfg.name, e.data);
 		});
-		
 	}
 
 	async watch(logPaht: string, tty: number) {
@@ -36,30 +35,8 @@ export class Console extends ConsoleBase {
 	}
 
 	reportException(tty: string, err: any): void {
-		// if (err) {
-		// 	var sentry = this._sentry_instances[tty];
-		// 	if (sentry) {
-		// 		sentry.captureException(Error.new(err));
-		// 	}
-		// }
-	}
-
-	async initialize() {
-		// const { NodeClient: SentryClient } = await import('@sentry/node');
-		// const {default: device} = await import('./device')
-		// var releases: Dict<string> = {
-		// 	'dphoto-hw': device. hardwareVersion,
-		// 	'dphoto-magic': device.softwareVersion,
-		// };
-		// // install sentry
-		// Object.entries({ ...utils.config.sentry }).forEach(([tty,dsn])=>{
-		// 	this._sentry_instances[tty] = new SentryClient({
-		// 		dsn: dsn as string,
-		// 		serverName: device.serialNumber,
-		// 		release: releases[tty] || '',
-		// 		environment: utils.config.env,
-		// 	});
-		// });
+		// import {NodeClient as SentryClient} from '@sentry/node';
+		// private _sentry_instances: Dict<SentryClient> = {};
 	}
 
 }

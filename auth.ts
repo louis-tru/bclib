@@ -28,7 +28,7 @@ export interface AuthorizationUser {
 
 export type User = AuthorizationUser;
 
-class UserManager {
+export class AuthorizationManager {
 
 	async initialize() {
 		// fix old key
@@ -54,7 +54,7 @@ class UserManager {
 		for (var name of storage.get('authorizationNames', []) as string[]) {
 			set.add(name);
 		}
-		for (var app of apps.all()) {
+		for (var app of apps.allApplications()) {
 			set.add(app.appId);
 		}
 
@@ -166,4 +166,4 @@ class UserManager {
 
 }
 
-export default new UserManager();
+export default new AuthorizationManager();
