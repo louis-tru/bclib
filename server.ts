@@ -71,5 +71,3 @@ export function initializeApi() {
 	service.del('descriptors'); // delete descriptors service
 	service.set('descriptors', Descriptors); // add descriptors service
 }
-
-export default cfg;

@@ -70,7 +70,7 @@ export class AuthorizationManager {
 	user(name: string): AuthorizationUser | null {
 		var app = apps.applicationWithoutErr(name);
 		if (app) {
-			return UserManager.toAuthorizationUser(app);
+			return AuthorizationManager.toAuthorizationUser(app);
 		}
 		return storage.get(`authorization_${name}`) as AuthorizationUser | null;
 	}

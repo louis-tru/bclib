@@ -4,7 +4,7 @@
  */
 
 import {btc} from './request';
-import keys from './keys';
+import keys from './keys+';
 import * as bitcoin from 'bitcoinjs-lib';
 import {Transaction} from 'bitcoinjs-lib';
 import TxBuild from './btc_tx';
@@ -16,13 +16,13 @@ class SignerIMPL implements bitcoin.SignerAsync {
 		this.publicKey = publicKey;
 	}
 	async sign(message: Buffer) {
-		var signature = await keys.sign(buffer.from(message));
+		var signature = await keys.impl.sign(buffer.from(message));
 		return Buffer.from(signature.signature);
 	}
 }
 
 export async function balance() {
-	var r = await btc.get(`address/${keys.addressBtc}`);
+	var r = await btc.get(`address/${keys.impl.addressBtc}`);
 	return r.data.balance;
 }
 
@@ -30,14 +30,14 @@ export async function transfer(address: string, amount: number) {
 	var {data: {average}} = await btc.get(`txs/fee`, null, {cacheTime: 1e6/*1000s*/});
 
 	var {data: {hex}} = await btc.post(`txs/create`, {
-		inputs: [{ address: keys.addressBtc, value: amount }],
+		inputs: [{ address: keys.impl.addressBtc, value: amount }],
 		outputs: [{ address: address, value: amount }],
-		fee:  { address : keys.addressBtc, value: average },
+		fee:  { address : keys.impl.addressBtc, value: average },
 		// data: `dphotos-${device.serialNumber}`,
 		replaceable: true,
 	});
 
-	var publicKey = Buffer.from(keys.publicKey);
+	var publicKey = Buffer.from(keys.impl.publicKey);
 	var network = bitcoin.networks.bitcoin;
 	var tx = Transaction.fromHex(hex);
 	var txb = TxBuild.fromTransaction(tx, network);
@@ -60,6 +60,6 @@ export async function transfer(address: string, amount: number) {
 
 export async function unconfirmed() {
 	// address/mtz44F24cdUHA44ntwcfNs7mfFdKzZKYAb/unconfirmed-transactions?index=0&limit=50
-	var {data} = await btc.get(`address/${keys.addressBtc}/unconfirmed-transactions`, { index: 0, limit: 50 });
+	var {data} = await btc.get(`address/${keys.impl.addressBtc}/unconfirmed-transactions`, { index: 0, limit: 50 });
 	return data;
 }

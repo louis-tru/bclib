@@ -21,7 +21,19 @@ const btc = require('crypto-tx/btc');
 const keystore = require('crypto-tx/keystore');
 const iv = rng(16);
 
-export class SecretKey {
+export interface ISecretKey {
+	offset(offset: number): ISecretKey;
+	hasUnlock(): boolean;
+	lock(): void;
+	unlock(pwd: string): void;
+	exportKeystore(pwd: string): Promise<object>;
+	readonly publicKey: IBuffer;
+	readonly address: string;
+	readonly addressBtc: string;
+	sign(message: IBuffer): Promise<Signature>;
+}
+
+export class SecretKey implements ISecretKey {
 	private _keystore?: object;
 	private _privKeyCiphertext?: IBuffer;
 	private _publicKey?: IBuffer;
@@ -74,13 +86,13 @@ export class SecretKey {
 		return buffer.concat([firstChunk, secondChunk]);
 	}
 
-	offset(offset: number): SecretKey {
+	offset(offset: number): ISecretKey {
 		somes.assert(offset > 0, errno.ERR_GEN_KEYS_SIZE_LIMIT);
 		somes.assert(offset < 100, errno.ERR_GEN_KEYS_SIZE_LIMIT);
 		var priv = Buffer.from(this.getPrivKey());
 
 		if (this._offsets[offset - 1]) {
-			return this._offsets[offset - 1];
+			return this._offsets[offset - 1] as ISecretKey;
 		}
 
 		for (var i = 0; i < offset; i++) {
@@ -93,7 +105,7 @@ export class SecretKey {
 				priv = Buffer.from(this._offsets[i].getPrivKey());
 			}
 		}
-		return this._offsets[offset - 1];
+		return this._offsets[offset - 1] as ISecretKey;
 	}
 
 	hasUnlock() {
@@ -116,7 +128,7 @@ export class SecretKey {
 		this.setPrivKey(key);
 	}
 
-	exportKeystore(pwd: string): object {
+	async exportKeystore(pwd: string): Promise<object> {
 		return keystore.encryptPrivateKey(Buffer.from(this.getPrivKey()), pwd);
 	}
 
@@ -314,7 +326,7 @@ export class KeychainManager {
 }
 
 export class KeysManager {
-	private _keys: SecretKey[] = [];
+	private _keys: ISecretKey[];
 	private _keychain = new KeychainManager();
 	private _useSystemPermission = true;
 
@@ -325,7 +337,12 @@ export class KeysManager {
 		return this._keychain;
 	}
 
-	constructor() {
+	constructor(keys_?: ISecretKey[]) {
+		this._keys = keys_ || [];
+		this._loadCfgKeys();
+	}
+
+	private _loadCfgKeys() {
 		var path = `${cfg.keys || paths.var}/keys`;
 
 		if (fs.existsSync(path)) {
@@ -391,7 +408,7 @@ export class KeysManager {
 	}
 
 	async getKey(addressOrAddressBtc?: string) {
-		var key: SecretKey | undefined | null;
+		var key: ISecretKey | undefined | null;
 		var name = '__system';
 		if (addressOrAddressBtc) {
 			if (addressOrAddressBtc.substr(0, 2) == '0x') { // eth address
@@ -416,7 +433,7 @@ export class KeysManager {
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
 		if (this._useSystemPermission) {
-			var key: SecretKey | undefined;
+			var key: ISecretKey | undefined;
 			if (addressOrAddressBtc) {
 				if (addressOrAddressBtc.substr(0, 2) == '0x') { // eth address
 					key = this._keys.find(e=>e.address == addressOrAddressBtc);
@@ -482,5 +499,3 @@ export class KeysManager {
 		return this.signRSV(crypto_tx_sign.message(data, types), from);
 	}
 }
-
-export default new KeysManager();

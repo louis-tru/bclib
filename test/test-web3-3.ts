@@ -5,13 +5,13 @@
 
 import web3z from '../web3+';
 import {TransactionReceipt} from 'web3z';
-import keys from '../keys';
+import keys from '../keys+';
 import solidity from './contracts';
 
 export default async function({ num, tx }:{ num: number, tx?:number }) {
 	var blockNumber = Number(num) || 1863;
-	var web3 = web3z.web3;
-	var [address, address1] = keys.addresss;
+	var web3 = web3z.impl.web3;
+	var [address, address1] = keys.impl.addresss;
 
 	var tx1: TransactionReceipt | null = null;
 

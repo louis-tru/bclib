@@ -3,57 +3,34 @@
  * @date 2020-11-29
  */
 
-import {createCache} from './utils';
-import {WatchCat} from './watch';
-import cfg from './cfg';
-import keys from './keys';
-import {IBuffer} from 'somes/buffer';
-import {Signature} from 'web3z';
-import {Web3Z} from 'web3z';
-import { TransactionQueue } from 'web3z/queue';
-import { Contract } from 'web3z';
-import {getAbiFromAddress} from './abi';
+import {IWeb3Z,Web3IMPL} from './web3_impl';
+import {Web3Contracts} from './web3_contract';
 
-class Web3IMPL extends Web3Z implements WatchCat {
+var _web3: IWeb3Z | undefined;
+var _web3_c: Web3Contracts | undefined;
 
-	TRANSACTION_CHECK_TIME = 5e3;
-	private _txQueue: TransactionQueue = new TransactionQueue(this);
-	private _contracts: Dict<Contract> = {};
+export default {
 
-	async contract(address: string) {
-		var contract = this._contracts[address];
-		if (!contract) {
-			var {abi} = await getAbiFromAddress(address);
-			contract = this.createContract(address, abi);
-			this._contracts[address] = contract;
+	get impl() {
+		if (!_web3) {
+			_web3 = new Web3IMPL();
 		}
-		return contract;
-	}
+		return _web3;
+	},
 
-	sign(message: IBuffer, from?: string): Promise<Signature> {
-		return keys.sign(message, from);
-	}
+	set_impl(impl: IWeb3Z) {
+		_web3 = impl;
+	},
 
-	get txQueue() {
-		return this._txQueue;
-	}
+	get web3_c() {
+		if (!_web3_c) {
+			_web3_c = new Web3Contracts();
+		}
+		return _web3_c;
+	},
 
-	getProvider() {
-		this.gasLimit = 1e6;
-		return cfg.web3;
-	}
+	set_web3_c(web3_c: Web3Contracts) {
+		_web3_c = web3_c;
+	},
 
-	getBlockNumber() {
-		var fetch = (): Promise<number>=>this.eth.getBlockNumber();
-		var fn = createCache(fetch, {
-			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber'
-		});
-		return fn();
-	}
-
-	cat() {
-		return true;
-	}
-}
-
-export default new Web3IMPL();
+};

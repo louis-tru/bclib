@@ -11,46 +11,48 @@ const RUN_INTERVAL = 60 * 1000; // 60s
 const [host] = getLocalNetworkHost();
 const pid = process.pid;
 
-export interface WatchCat {
+export interface WatchCat<T = any> {
+	name?: string;
 	catcount?: number;
 	cattime?: number;
 	priv_cattime?: number;
 	run_cating?: boolean;
-	cat(): Promise<boolean> | boolean;
+	cat(data: T): Promise<boolean> | boolean;
 }
-
-var _defauleWatch: Watch | undefined;
 
 /**
  * @class Watch extends Monitor
  */
-export class Watch extends Monitor {
-	private _cat: Map<string, {watch: WatchCat, ok: boolean}> = new Map;
+export abstract class Watch<T = any> extends Monitor {
+	private _cat: Map<string, {watch: WatchCat<T>, ok: boolean}> = new Map;
 	private _mbus?: NotificationCenter;
 
 	constructor(interval = RUN_INTERVAL, maxDuration = -1) {
 		super(interval, maxDuration);
 	}
 
-	seBus(bus: NotificationCenter) {
+	setBus(bus: NotificationCenter) {
 		this._mbus = bus;
 	}
+
+	abstract beforeCat(now: Number): Promise<T> | T;
 
 	/**
 	 * @func cat()
 	 */
-	cat() {
+	async cat(force?: boolean) {
 		var now = Date.now();
+		var data = await this.beforeCat(now);
 		// cats
 		for (var [name,o] of this._cat) {
 			var {watch:w,ok} = o;
-			if (now > (w.priv_cattime as number) + (w.cattime as number) * RUN_INTERVAL && !w.run_cating) {
+			if (force || (now > (w.priv_cattime as number) + (w.cattime as number) * RUN_INTERVAL && !w.run_cating)) {
 				(async ()=>{
 					var _ok = false;
 					try {
 						w.priv_cattime = now;
 						w.run_cating = true;
-						_ok = await w.cat();
+						_ok = await w.cat(data);
 						(w.catcount as number)++;
 					} catch(err) {
 						console.error(err);
@@ -60,7 +62,7 @@ export class Watch extends Monitor {
 					if (_ok != ok) {
 						o.ok = _ok;
 						if (this._mbus) {
-							this._mbus.trigger('WatchStatusChange', {
+							this._mbus.trigger('WatchChange', {
 								id: `${host}:${pid}:${name}`,
 								host: host,
 								pid: pid,
@@ -76,7 +78,7 @@ export class Watch extends Monitor {
 	}
 
 	addWatch(cat: WatchCat) {
-		var name = cat.constructor.name;
+		var name = cat.name || cat.constructor.name;
 		if (!this._cat.has(name)) {
 			cat.catcount = 0;
 			cat.cattime = cat.cattime || 1;
@@ -86,37 +88,27 @@ export class Watch extends Monitor {
 	}
 
 	delWatch(cat: WatchCat) {
-		this._cat.delete(cat.constructor.name);
+		this._cat.delete(cat.name || cat.constructor.name);
 	}
 
 	run() {
-		super.start(()=>{
-			this.cat();
-		});
-	}
-
-	static get defauleWatch() {
-		if (!_defauleWatch) {
-			_defauleWatch = new Watch();
-		}
-		return _defauleWatch;
+		super.start(()=>this.cat());
 	}
 
 }
 
-export default {
+export class WatchDefault extends Watch<number> {
 
-	addWatch(cat: WatchCat) {
-		return Watch.defauleWatch.addWatch(cat);
-	},
+	beforeCat() {
+		return 0;
+	}
 
-	delWatch(cat: WatchCat) {
-		return Watch.defauleWatch.delWatch(cat);
-	},
-
-	runDefault() {
-		if (!Watch.defauleWatch.running) {
-			setTimeout(()=>Watch.defauleWatch.run(), 5e3); // 5s
+	run() {
+		if (!this.running) {
+			setTimeout(()=>super.run(), 5e3); // 5s
 		}
-	},
+	}
+
 }
+
+export default new WatchDefault();

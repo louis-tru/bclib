@@ -5,23 +5,23 @@
 
 import web3z from '../web3+';
 import {TransactionReceipt} from 'web3z';
-import keys from '../keys';
+import keys from '../keys+';
 import solidity from './contracts';
 
 export default async function({ num, from, to, value }: {
 	num: number, from?: string, to?: string, value?: number
 }) {
 	var blockNumber = Number(num) || 1863;
-	var web3 = web3z.web3;
-	var accounts = keys.addresss;
+	var web3 = web3z.impl.web3;
+	var accounts = keys.impl.addresss;
 	var address = accounts[0];
 	var _value = Number(value) || 0;
 
 	var tx1: TransactionReceipt | null = null;
 
 	if (from && to && _value) {
-		tx1 = await web3z.txQueue.push(e=>{
-			return web3z.sendSignTransaction({
+		tx1 = await web3z.impl.txQueue.push(e=>{
+			return web3z.impl.sendSignTransaction({
 				...e,
 				to: to,
 				value: '0x' + (1e18 * Math.abs(_value)).toString(16),

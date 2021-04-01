@@ -8,7 +8,7 @@ import * as crypto from 'crypto';
 import req, {Params,Options, PromiseResult, parseJSON as _parseJSON, Result} from 'somes/request';
 import errno from './errno';
 import buffer, {IBuffer} from 'somes/buffer';
-import keys from './keys';
+import keys from './keys+';
 import cfg from './cfg';
 
 const crypto_tx = require('crypto-tx');
@@ -132,7 +132,7 @@ export abstract class SafeRequest extends req.Request {
 	}
 
 	protected async sign(hash32Hex: string) {
-		var signature = await keys.sign(buffer.from(hash32Hex.slice(2), 'hex'), keys.defauleAddress);
+		var signature = await keys.impl.sign(buffer.from(hash32Hex.slice(2), 'hex'), keys.impl.defauleAddress);
 		return buffer.concat([signature.signature, [signature.recovery]]).toString('base64');
 	}
 

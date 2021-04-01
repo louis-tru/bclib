@@ -12,8 +12,8 @@ import * as Logs from './artifacts/Logs';
 import * as Organizations from './artifacts/Organizations';
 
 export default {
-	get license_types() { return Happy.instance<LicenseTypes.default>(LicenseTypes, web3) },
-	get users() { return Happy.instance<Users.default>(Users, web3) },
-	get logs() { return Happy.instance<Logs.default>(Logs, web3) },
-	get organizations() { return Happy.instance<Organizations.default>(Organizations, web3) },
+	get license_types() { return Happy.instance<LicenseTypes.default>(LicenseTypes, web3.impl) },
+	get users() { return Happy.instance<Users.default>(Users, web3.impl) },
+	get logs() { return Happy.instance<Logs.default>(Logs, web3.impl) },
+	get organizations() { return Happy.instance<Organizations.default>(Organizations, web3.impl) },
 }

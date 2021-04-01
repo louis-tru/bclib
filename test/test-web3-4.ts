@@ -463,9 +463,9 @@ export default async function() {
 
 	// debugger;
 
-	var web3 = web3z.web3;
+	var web3 = ()=>web3z.impl.web3;
 
-	var log = web3.eth.abi.decodeLog([
+	var log = web3().eth.abi.decodeLog([
 		{name: 'identity',  type: "address", "indexed": true },
 		{name: 'proofHash', type: "bytes32", "indexed": false},
 		{name: 'data',      type: "bytes", "indexed": false },
@@ -476,8 +476,8 @@ export default async function() {
 		"0x000000000000000000000000b1dcdcace002e3a441f254985684afe1d3f4d307"
 	]);
 
-	var kun = web3z.createContract('0xd3886dFFB57b4EA654827bC8eE43eA7f3B49Fdf5', kun_abi);
-	var proof = web3z.createContract('0xB1dcdcaCe002e3a441f254985684AfE1D3F4D307', proof_abi);
+	var kun = web3z.impl.createContract('0xd3886dFFB57b4EA654827bC8eE43eA7f3B49Fdf5', kun_abi);
+	var proof = web3z.impl.createContract('0xB1dcdcaCe002e3a441f254985684AfE1D3F4D307', proof_abi);
 
 	// submitProof(address _digital_proof, address _creator, bytes32 _proofHash, bytes _metaData)
 
@@ -495,12 +495,12 @@ export default async function() {
 	
 	// console.log(tx);
 
-	var block = await web3.eth.getBlock(tx.blockNumber);
+	var block = await web3().eth.getBlock(tx.blockNumber);
 	var transactionReceipts = [];
 	var transactions = [];
 	for (var i of block.transactions) {
-		transactionReceipts.push(await web3.eth.getTransactionReceipt(i));
-		transactions.push(await web3.eth.getTransaction(i));
+		transactionReceipts.push(await web3().eth.getTransactionReceipt(i));
+		transactions.push(await web3().eth.getTransaction(i));
 	}
 
 	// find events

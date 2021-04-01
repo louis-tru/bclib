@@ -23,9 +23,9 @@ export interface Options {
 }
 
 export abstract class CallContract {
-	private _host: Contracts;
+	private _host: Web3Contracts;
 
-	constructor(host: Contracts) {
+	constructor(host: Web3Contracts) {
 		this._host = host;
 	}
 
@@ -44,7 +44,7 @@ export abstract class CallContract {
 	}
 
 	async contract() {
-		return await web3.contract(await this.getAddress());
+		return await web3.impl.contract(await this.getAddress());
 	}
 
 }
@@ -53,7 +53,7 @@ class StarContract extends CallContract {
 	private _star: string;
 	private _type: ABIType;
 	getAddress() { return getAddressFromType(this._type, this._star) }
-	constructor(_star: string, _type: ABIType, host: Contracts) {
+	constructor(_star: string, _type: ABIType, host: Web3Contracts) {
 		super(host);
 		this._star = _star;
 		this._type = _type;
@@ -63,13 +63,13 @@ class StarContract extends CallContract {
 class CommonContract extends CallContract {
 	private _address: string;
 	async getAddress() {return this._address}
-	constructor(_address: string, host: Contracts) {
+	constructor(_address: string, host: Web3Contracts) {
 		super(host);
 		this._address = _address;
 	}
 }
 
-class Contracts {
+export class Web3Contracts {
 	private _contracts = new Map<string, CallContract>();
 	private _postResults = new Map<string, PostResult>();
 
@@ -128,23 +128,23 @@ class Contracts {
 	sendSignTransactionAsync(opts: TxOptions, cb?: ((r: PostResult)=>any)): Promise<string> {
 		return this._sendSignTransactionAsync(async ()=>{
 			return {
-				receipt: await web3.txQueue.push(e=>web3.sendSignTransaction({...opts, ...e}), opts),
+				receipt: await web3.impl.txQueue.push(e=>web3.impl.sendSignTransaction({...opts, ...e}), opts),
 			};
 		}, cb);
 	}
 
 	async contractGet(contractAddress: string, method: string, args?: any[], opts?: Options) {
-		var contract = await web3.contract(contractAddress);
+		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
 		return await fn.call(opts);
 	}
 
 	async contractPost(contractAddress: string, method: string, args?: any[], opts?: Options) {
-		var contract = await web3.contract(contractAddress);
+		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
 		await fn.call(opts); // try call
 		// var nonce await web3.txQueue.getNonce();
-		var receipt = await web3.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}), opts);
+		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}), opts);
 		var event: FindEventResult | undefined;
 		if (opts?.event) {
 			event = await contract.findEvent(opts.event,
@@ -161,5 +161,3 @@ class Contracts {
 	}
 
 }
-
-export default new Contracts();
