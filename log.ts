@@ -39,4 +39,6 @@ export class Console extends ConsoleBase {
 		// private _sentry_instances: Dict<SentryClient> = {};
 	}
 
+	async initialize() {}
+
 }

@@ -19,7 +19,7 @@ export interface IWeb3Z extends IWeb3ZBase {
 	contract(address: string): Promise<Contract>;
 }
 
-export class Web3IMPL extends Web3Z implements WatchCat, IWeb3Z {
+export class Web3IMPL extends Web3Z {
 
 	TRANSACTION_CHECK_TIME = 5e3;
 	private _txQueue?: TransactionQueue;
@@ -57,9 +57,5 @@ export class Web3IMPL extends Web3Z implements WatchCat, IWeb3Z {
 			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber'
 		});
 		return fn();
-	}
-
-	cat() {
-		return true;
 	}
 }
