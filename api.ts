@@ -11,6 +11,7 @@ import auth, {User} from './auth';
 import errno from './errno';
 import message, {Events} from './message';
 import cfg from './cfg';
+import {cfg as cfg_s} from './server';
 
 const cryptoTx = require('crypto-tx');
 const port = cfg.server.port;
@@ -64,7 +65,7 @@ export default class APIController extends ViewController {
 		if (this.form) {
 			hash = this.form.hash.update(st + key).digest();
 		} else {
-			hash = crypto.createHash('sha256').update(st + key).digest();
+			hash = crypto.createHash(cfg_s.formHash).update(st + key).digest();
 		}
 
 		var user = this.userWithoutErr();
@@ -77,6 +78,7 @@ export default class APIController extends ViewController {
 			else if (user.keyType == 'secp256k1') { // secp256k1
 				var pkey = Buffer.from(user.key.slice(2), 'hex');
 				var signature = Buffer.from(sign.buffer, sign.byteOffset, 64);
+				hash = cfg_s.formHash == 'md5' ? Buffer.from(hash.toString('hex')): hash;
 				var ok = cryptoTx.verify(hash, signature, pkey, false);
 				return ok;
 			} else {

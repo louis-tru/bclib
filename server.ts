@@ -22,11 +22,12 @@ export const cfg = {
 	maxFileSize:        1024 * 1024 * 1024, // 1024MB
 	maxFormDataSize:    50   * 1024 * 1024, // 50MB
 	maxUploadFileSize:  50   * 1024 * 1024, // 50MB
-	router: [],
+	router: [] as any[],
 	timeout: 180 * 1e3, // 180s
-	...cfg_.server as any,
 	formHash: 'sha256',
 };
+
+Object.assign(cfg, cfg_.server);
 
 // router
 cfg.router.push({
