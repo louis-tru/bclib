@@ -10,5 +10,5 @@
 
 [submodule "web3z"]
 	path = deps/web3z
-	#url = http://gitlab.stars-mine.com/hardware/web3z.git
-	url = https://github.com/louis-tru/web3z.git
+	url = http://gitlab.stars-mine.com/hardware/web3z.git
+	# url = https://github.com/louis-tru/web3z.git
