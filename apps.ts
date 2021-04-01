@@ -47,11 +47,6 @@ export function insides(): ApplicationInfo[] {
 				_insides.push({ icon: '', displayName: '', name: '', version: '', ...app });
 			}
 		}
-		var dphoto_factory = '/mnt/app/software/static/dphoto-factory/app.json';
-		if (fs.existsSync(dphoto_factory)) {
-			let app = JSON.parse(fs.readFileSync(dphoto_factory) + '');
-			_insides.push(app);
-		}
 		updateApplicationsIndexed();
 	}
 	return _insides;
