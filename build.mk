@@ -35,9 +35,9 @@ elif [ -f .cfg_$(1).js ]; then \
 fi
 
 CP = \
-	if [ -f $(1) ]; then \
+	if [ -f "$(1)" ]; then \
 		cp $(1) $(2); \
-		if [ "$(notdir $(2))" == "somes" ]; then \
+		if [ "$(notdir $(2))" = "somes" ]; then \
 			cp $(dir $(1))*.types $(2); \
 		fi; \
 	fi;
