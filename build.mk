@@ -102,4 +102,4 @@ $(R_TARGETS): kill
 	@$(call r_exec,root,$(IP),$(shell echo $@|cut -b 2-10))
 
 init:
-	git submodule update --init --recursive -v
+	git submodule update --init --recursive
