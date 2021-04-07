@@ -4,7 +4,7 @@
  */
 
 import cfg  from './cfg';
-import * as fs from 'somes/fs2';
+// import * as fs from 'somes/fs2';
 import somes from 'somes';
 import buffer from 'somes/buffer';
 import errno from './errno';
@@ -68,7 +68,7 @@ export function allApplications() {
 export function application(appId: string) {
 	var app = applicationWithoutErr(appId);
 	somes.assert(app, errno.ERR_APPLICATION_FOUND);
-	return app;
+	return app as ApplicationInfo;
 }
 
 export function applicationWithoutErr(appId: string): ApplicationInfo | null {
