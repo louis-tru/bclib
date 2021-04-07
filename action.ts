@@ -13,7 +13,7 @@ const DEFAULT_TIMEOUT: number = 30 * 1000; // 30秒
 export default class RequestAction {
 
 	private m_name: string;
-	private m_timeout: number;
+	private m_timeout: number; =
 	private m_timeid: any;
 	private m_Promise_ok: any;
 	private m_Promise_err: any;

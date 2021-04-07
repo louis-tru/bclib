@@ -19,7 +19,7 @@ OUT        ?= out/$(PROJ)
 ENV        ?= dev
 COPYS      += package.json Makefile LICENSE README.md deps/bclib/tools deps/bclib/build.mk
 supervisor= $(shell node -e "console.log(path.resolve(require.resolve('supervisor'), '../../../.bin/supervisor'))")
-######################################################
+#######################################################
 
 ifneq ($(USER),root)
 	SUDO = "sudo"
