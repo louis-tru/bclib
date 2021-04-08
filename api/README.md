@@ -598,9 +598,9 @@ enum ABIType {
 };
 ```
 
-[`TransactionReceipt`]: #TransactionReceipt
-[`FindEventResult`]: #FindEventResult
-[`PostResult`]: #PostResult
-[`EventData`]: #EventData
-[`Transaction`]: #Transaction
-[`ABIType`]: #ABIType
+[`TransactionReceipt`]: #transactionreceipt
+[`FindEventResult`]: #findeventresult
+[`PostResult`]: #postresult
+[`EventData`]: #eventdata
+[`Transaction`]: #transaction
+[`ABIType`]: #abitype
