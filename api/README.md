@@ -2,13 +2,15 @@
 
 ## 访问的基本方式与数据格式
 
-`http://127.0.0.1:8000/service-api` 这是bass服务api前缀，建议使用post方式访问
+`http://127.0.0.1:8000/service-api` 这是bass服务api前缀，建议使用post方式访问，
 
-一般通过 `http://127.0.0.1:8000/service-api/web3/contractGet`这种形式访问
+一般通过 `http://127.0.0.1:8000/service-api/web3/contractGet`这种形式访问，
 
-参数建议以 `post` `json` 方式发送，并在http请求头中加入 `Content-Type: application/json`
+这是测试环境地址 `http://dphoto-bass-release.stars-mine.com/service-api`。
 
-返回数据包含返回错误代码以及异常信息，`errno=0`表示这个请求是正确的非`0`表示错误代码
+参数建议以 `post` `json` 方式发送，并在http请求头中加入 `Content-Type: application/json`，
+
+返回数据包含返回错误代码以及异常信息，`errno=0`表示这个请求是正确的非`0`表示错误代码。
 
 下面给出一个示例，这是一个返回正常返回number数据类型的数据包格式：
 
