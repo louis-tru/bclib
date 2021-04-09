@@ -1,7 +1,7 @@
 Block chain bass libs
 ==============================
 
-Block chain bass libs
+这是一个区块链Baas服务library
 
 
 # 访问的基本方式与数据格式
