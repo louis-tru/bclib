@@ -314,35 +314,35 @@ miningGet({method: string, args: string}): any;
 调用具名的协约方法,发送交易立即返回服务查询`review(id)`句柄id
 
 ```ts
-bankPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
+bankPost({method: string, args: any[], event? string, from?: string, value?: string, callback?: string}): string;
 ```
 
 ```ts
-erc20Post({method: string, args: any[], event? string, from?: string, value?: string}): string;
+erc20Post({method: string, args: any[], event? string, from?: string, value?: string, callback?: string}): string;
 ```
 
 ```ts
-erc721Post({method: string, args: any[], event? string, from?: string, value?: string}): string;
+erc721Post({method: string, args: any[], event? string, from?: string, value?: string, callback?: string}): string;
 ```
 
 ```ts
-proofPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
+proofPost({method: string, args: any[], event? string, from?: string, value?: string, callback?: string}): string;
 ```
 
 ```ts
-casperPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
+casperPost({method: string, args: any[], event? string, from?: string, value?: string, callback?: string}): string;
 ```
 
 ```ts
-starPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
+starPost({method: string, args: any[], event? string, from?: string, value?: string, callback?: string}): string;
 ```
 
 ```ts
-minerPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
+minerPost({method: string, args: any[], event? string, from?: string, value?: string, callback?: string}): string;
 ```
 
 ```ts
-miningPost({method: string, args: any[], event? string, from?: string, value?: string}): string;
+miningPost({method: string, args: any[], event? string, from?: string, value?: string, callback?: string}): string;
 ```
 
 ## web3/review
