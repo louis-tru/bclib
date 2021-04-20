@@ -136,18 +136,20 @@ export class Web3Contracts {
 	async contractGet(contractAddress: string, method: string, args?: any[], opts?: Options) {
 		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
-		return await fn.call(opts);
+		var {event, ..._opts} = opts || {};
+		return await fn.call(_opts);
 	}
 
 	async contractPost(contractAddress: string, method: string, args?: any[], opts?: Options) {
 		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
-		await fn.call(opts); // try call
+		var {event: _event, ..._opts} = opts || {};
+		await fn.call(_opts); // try call
 		// var nonce await web3.txQueue.getNonce();
-		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}), opts);
+		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({..._opts, ...e}), _opts);
 		var event: FindEventResult | undefined;
-		if (opts?.event) {
-			event = await contract.findEvent(opts.event,
+		if (_event) {
+			event = await contract.findEvent(_event,
 				receipt.blockNumber, receipt.transactionHash
 			) as FindEventResult;
 			somes.assert(event, errno.ERR_WEB3_API_POST_EVENT_NON_EXIST);

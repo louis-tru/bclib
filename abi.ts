@@ -70,24 +70,27 @@ export async function getAbiFromNetwork({ address, type, star }: { address?: str
 	return { address: _address, abi: abi } as AbiInterface;
 }
 
-export async function getAbiFromType(type: ABIType, star?: string) {
+async function getAbi(address?: string, type?: ABIType, star?: string) {
 	await fs.mkdirp(`${paths.var}/abis`);
-	var name = String(type) + '_' + (star||'');
-	var path = `${paths.var}/abis/abi_type_${name}.json`;
+	var name = address || ('abi_type_' + String(type) + '_' + (star||''));
+	var path = `${paths.var}/abis/${name}.json`;
 	var abi: AbiInterface|undefined;
 
 	try {
-		abi = await getAbiFromNetwork({type, star});
+		abi = await getAbiFromNetwork({address, type, star});
 	} catch(err) {
 		console.error(err);
 	}
+
 	if (abi) { // save cache file
 		var hash = abi.hashCode();
 		if (hashs[name] != hash) {
 			hashs[name] = hash;
+			hashs[abi.address] = hash;
 			var abi_json = JSON.stringify(abi, null, 2);
 			fs.writeFileSync(path, abi_json);
-			fs.writeFileSync(`${paths.var}/abis/${abi.address}.json`, abi_json);
+			if (!address) // type and star
+				fs.writeFileSync(`${paths.var}/abis/${abi.address}.json`, abi_json);
 		}
 	} else {
 		abi = await getLocalAbi(path); // 读取缓存文件
@@ -98,19 +101,16 @@ export async function getAbiFromType(type: ABIType, star?: string) {
 	return abi as AbiInterface;
 }
 
+export function getAbiFromType(type: ABIType, star?: string) {
+	return getAbi('', type, star);
+}
+
 export async function getAddressFromType(type: ABIType, star?: string) {
 	return (await getAbiFromType(type, star)).address;
 }
 
-export async function getAbiFromAddress(address: string) {
-	await fs.mkdirp(paths.var + '/abis');
-	var path = `${paths.var}/abis/${address}.json`;
-	var abi = await getLocalAbi(path);
-	if (!abi) {
-		abi = await getAbiFromNetwork({address});
-		fs.writeFileSync(path, JSON.stringify(abi, null, 2));
-	}
-	return abi;
+export function getAbiFromAddress(address: string) {
+	return getAbi(address);
 }
 
 export function getCasperAbi() {
