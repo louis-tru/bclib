@@ -144,7 +144,7 @@ export class Web3Contracts {
 		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
 		var {event: _event, ..._opts} = opts || {};
-		await fn.call(_opts); // try call
+		await fn.call({..._opts}); // try call
 		// var nonce await web3.txQueue.getNonce();
 		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({..._opts, ...e}), _opts);
 		var event: FindEventResult | undefined;
