@@ -4,10 +4,13 @@
  */
 
 import utils from 'somes';
-import {Options,Params} from 'somes/request';
+import {Options,Params,Signer} from 'somes/request';
 import storage from './storage';
+import buffer from 'somes/buffer';
 import {SafeRequest, post} from './request';
 import cfg from './cfg';
+import keys from './keys+';
+const crypto_tx = require('crypto-tx');
 
 export const prod = cfg.env == 'prod';
 export const ETH_RATIO = 18;
@@ -157,12 +160,25 @@ export async function callApi(
 	return data;
 }
 
+class SignerIMPL implements Signer {
+	async sign(path: string, data: string) {
+		var st = String(Date.now());
+		var key = 'a4dd53f2fefde37c07ac4824cf7086439633e1a357daacc3aaa16418275a9e48';
+		var hash = crypto_tx.keccak(path + data + st + key).data;
+		var signature = await keys.impl.sign(buffer.from(hash), keys.impl.defauleAddress);
+		var sign = buffer.concat([signature.signature, [signature.recovery]]).toString('base64');
+		return { st, sign };
+	}
+}
+
+var signer = new SignerIMPL();
+
 export async function callbackURI(data: any, url: string) {
 	var sleep = 10;
 	var retry = 10;
 	while (--retry) {
 		try {
-			var r = await post(url, { params: data, urlencoded: false });
+			var r = await post(url, { params: data, urlencoded: false, signer });
 			if (r.statusCode == 200)
 				break;
 		} catch(err) {}

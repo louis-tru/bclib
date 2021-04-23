@@ -320,8 +320,11 @@ export class KeychainManager {
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
 		somes.assert(addressOrAddressBtc, errno.ERR_ADDRESS_IS_EMPTY);
-		var k = await this.getAddressOffset(addressOrAddressBtc as string);
+		var k = await this.getAddressOffset(addressOrAddressBtc as string) as { name: string; offset: number };
 		somes.assert(k && k.name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
+		if (cfg.enable_strict_keys_permission_check) {
+			await this.getSecretKeyByOffset(k.name, k.offset);
+		}
 	}
 }
 
