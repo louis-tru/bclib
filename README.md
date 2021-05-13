@@ -91,6 +91,14 @@ Block chain bass libs
 genSecretKeys({ size: number }): string[];
 ```
 
+## keys/genSecretKeyFromPartKey
+
+通过key生成子钥匙串，返回钥匙串对应的地址列表
+
+```ts
+genSecretKeyFromPartKey({ part_key: string }): string;
+```
+
 ## keys/addressList
 
 获取之前生成的钥匙串地址列表
@@ -101,10 +109,10 @@ addressList(): string[];
 
 ## keys/address
 
-随机从之前生成的钥匙串列表中取出一个并返回对应的地址
+通过key获取对应的密钥地址，如果不传入`part_key`随机从之前生成的钥匙串列表中取出一个并返回对应的地址
 
 ```ts
-address(): string;
+address({ part_key?: string }): string;
 ```
 
 ## keys/unlock
