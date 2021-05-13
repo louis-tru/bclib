@@ -93,7 +93,7 @@ genSecretKeys({ size: number }): string[];
 
 ## keys/genSecretKeyFromPartKey
 
-通过key生成子钥匙串，返回钥匙串对应的地址列表
+通过key生成子钥匙串，返回钥匙串对应的地址
 
 ```ts
 genSecretKeyFromPartKey({ part_key: string }): string;
