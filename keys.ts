@@ -223,6 +223,8 @@ export class KeychainManager {
 
 		size += start;
 
+		somes.assert(size < 10000, errno.ERR_GEN_KEYS_SIZE_LIMIT);
+
 		this._addresss_cache.delete(name); // clear cache
 
 		for (var i = start; i < size; i++) {
