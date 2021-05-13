@@ -33,13 +33,14 @@ export interface ISecretKey {
 	sign(message: IBuffer): Promise<Signature>;
 }
 
+const default_traitKey = 'b4dd53f2fefde37c07ac4824cf7086465633e3a357daacc3adf16418275a9e51';
+
 export class SecretKey implements ISecretKey {
 	private _keystore?: object;
 	private _privKeyCiphertext?: IBuffer;
 	private _publicKey?: IBuffer;
 	private _address?: string;
 	private _addressBtc?: string;
-	private _offsets: SecretKey[] = []; // keys caches
 	private _aes256key = rng(32); // random key
 
 	static keystore(keystore: object) {
@@ -71,41 +72,38 @@ export class SecretKey implements ISecretKey {
 	}
 
 	private setPrivKey(key: IBuffer) {
-		var cipher = crypto.createCipheriv("aes-256-cbc", this._aes256key, iv);
+		var cipher = crypto.createCipheriv('aes-256-cbc', this._aes256key, iv);
 		var firstChunk = cipher.update(key);
 		var secondChunk = cipher.final();
 		this._privKeyCiphertext = buffer.concat([firstChunk, secondChunk]);
 		return this;
 	}
 
-	private getPrivKey() {
+	private privateKey() {
 		somes.assert(this._privKeyCiphertext, errno.ERR_KEY_STORE_UNLOCK);
-		var cipher = crypto.createDecipheriv("aes-256-cbc", this._aes256key, iv);
+		var cipher = crypto.createDecipheriv('aes-256-cbc', this._aes256key, iv);
 		var firstChunk = cipher.update(this._privKeyCiphertext as IBuffer);
 		var secondChunk = cipher.final();
 		return buffer.concat([firstChunk, secondChunk]);
 	}
 
 	offset(offset: number): ISecretKey {
-		somes.assert(offset > 0, errno.ERR_GEN_KEYS_SIZE_LIMIT);
-		somes.assert(offset < 100, errno.ERR_GEN_KEYS_SIZE_LIMIT);
-		var priv = Buffer.from(this.getPrivKey());
+		var key = crypto.createHash('sha256')
+			.update(this.privateKey())
+			.update(default_traitKey)
+			.update(String(offset * offset))
+			.update(String(offset))
+			.digest();
+		return SecretKey.from(buffer.from(key));
+	}
 
-		if (this._offsets[offset - 1]) {
-			return this._offsets[offset - 1] as ISecretKey;
-		}
-
-		for (var i = 0; i < offset; i++) {
-			if (!this._offsets[i]) {
-				priv = crypto.createHash('sha256').update(priv)
-					// .update('b4dd53f2fefde37c07ac4824cf7086465633e3a357daacc3adf16418275a9e51')
-					.digest();
-				this._offsets[i] = SecretKey.from(buffer.from(priv));
-			} else {
-				priv = Buffer.from(this._offsets[i].getPrivKey());
-			}
-		}
-		return this._offsets[offset - 1] as ISecretKey;
+	derive(part_key: string): ISecretKey {
+		var key = crypto.createHash('sha256')
+			.update(this.privateKey())
+			.update(default_traitKey)
+			.update(part_key)
+			.digest();
+		return SecretKey.from(buffer.from(key));
 	}
 
 	hasUnlock() {
@@ -116,10 +114,6 @@ export class SecretKey implements ISecretKey {
 		if (this._privKeyCiphertext) {
 			this._privKeyCiphertext.fill(0, 0, this._privKeyCiphertext.length); // Erase key
 			this._privKeyCiphertext = undefined;
-			for (var i of this._offsets) {
-				i.lock();
-			}
-			this._offsets = [];
 		}
 	}
 
@@ -129,30 +123,30 @@ export class SecretKey implements ISecretKey {
 	}
 
 	async exportKeystore(pwd: string): Promise<object> {
-		return keystore.encryptPrivateKey(Buffer.from(this.getPrivKey()), pwd);
+		return keystore.encryptPrivateKey(Buffer.from(this.privateKey()), pwd);
 	}
 
 	get publicKey() {
 		if (!this._publicKey)
-			this._publicKey = crypto_tx.getPublic(this.getPrivKey());
+			this._publicKey = crypto_tx.getPublic(this.privateKey());
 		return this._publicKey as IBuffer;
 	}
 
 	get address() {
 		if (!this._address)
-			this._address = crypto_tx.getAddress(this.getPrivKey());
+			this._address = crypto_tx.getAddress(this.privateKey());
 		return this._address as string;
 	}
 
 	get addressBtc() {
 		if (!this._addressBtc)
 			this._addressBtc = (btc.getAddressFromPrivateKey(
-				this.getPrivKey(), true, false) as IBuffer).toString('base58');
+				this.privateKey(), true, false) as IBuffer).toString('base58');
 		return this._addressBtc as string;
 	}
 
 	async sign(message: IBuffer): Promise<Signature> {
-		var signature = crypto_tx.sign(message, this.getPrivKey());
+		var signature = crypto_tx.sign(message, this.privateKey());
 		return Promise.resolve({
 			signature: buffer.from(signature.signature),
 			recovery: signature.recovery,
@@ -163,9 +157,10 @@ export class SecretKey implements ISecretKey {
 export class KeychainManager {
 
 	private _key_path: string = `${cfg.keys || paths.var}/keychain`;
-	private _keys: Map<string, SecretKey> = new Map(); // group => key
-	private _address_indexed: Map<string, [string, number]> = new Map(); // address => [group,offset]
-	private _addresss: Map<string, string[]> = new Map(); // group => [address]
+	private _keys: Map<string, SecretKey> = new Map(); // name => key, user root key
+	private _addresss_cache: Map<string, string[]> = new Map(); // name => [address]
+	private _part_key_cache: Map<string, string> = new Map(); // part_key => [address]
+	private _address_indexed: Map<string, [string, number, string]> = new Map(); // address => [name,offset,part_key]
 	private _db: SQLiteTools;
 
 	constructor(path?: string) {
@@ -178,102 +173,183 @@ export class KeychainManager {
 
 	initialize() {
 		return this._db.initialize(`
-			CREATE TABLE if not exists address_table (
+			CREATE TABLE if not exists address_table ( -- 所有的地址列表
 				address     VARCHAR (42) PRIMARY KEY NOT NULL,
 				addressBtc  VARCHAR (42)             NOT NULL,
-				name        VARCHAR (64)             NOT NULL,
-				offset      INTEGER                  NOT NULL
+				name        VARCHAR (64)             NOT NULL, -- 用户名称
+				offset      INTEGER                  NOT NULL, -- 与主key的偏移值，如果为0表示使用key生成密钥
+				part_key    VARCHAR (64)                       -- 密钥相关的部分key
 			);
 			CREATE TABLE if not exists keys (
-				address     VARCHAR (42) PRIMARY KEY NOT NULL,
-				name        VARCHAR (64)             NOT NULL,
-				size        INTEGER                  NOT NULL
+				address     VARCHAR (42) PRIMARY KEY NOT NULL, -- 根key地址
+				name        VARCHAR (64)             NOT NULL, -- 用户名称
+				size        INTEGER                  NOT NULL  -- 通过偏移方式生成的key数量
 			);
-		`, [], [
+		`, [
+			'alter table address_table add part_key VARCHAR (64)',
+		], [
 			'create unique index address_indexed    on address_table (address)',
 			'create unique index addressBtc_indexed on address_table (addressBtc)',
+			'create unique index name_indexed       on address_table (name)',
+			'create unique index part_key_indexed   on address_table (part_key)',
 			'create unique index keys_indexed       on keys          (address)',
 		]);
 	}
 
+	private getPart_key(name: string, part_key: string) {
+		return crypto.createHash('sha256')
+			.update(default_traitKey)
+			.update(name + ':' + part_key)
+			.digest()
+			.toString('hex');
+	}
+
+	/**
+	 * 
+	 * 通过偏移值生成keys
+	 * 
+	 * @func genSecretKeys()
+	 */
 	async genSecretKeys(name: string, size: number) {
 		somes.assert(size < 100, errno.ERR_GEN_KEYS_SIZE_LIMIT);
-		var key = await this.root(name);
+
+		if (!size) {
+			return [];
+		}
+		var root = await this.root(name);
 		var address: string[] = [];
-		var keys = (await this._db.select('keys', { address: key.address }))[0];
+		var keys = (await this._db.select('keys', { address: root.address }))[0];
 		var start: number = keys ? keys.size: 0;
 
-		if (start < size) {
-			this._addresss.delete(name); // clear cache
-		}
+		size += start;
+
+		this._addresss_cache.delete(name); // clear cache
 
 		for (var i = start; i < size; i++) {
-			var _key = key.offset(i + 1);
-			if ((await this._db.select('address_table', { address: _key.address })).length === 0) {
-				await this._db.insert('address_table', 
-					{ address: _key.address, addressBtc: _key.addressBtc, name, offset: i + 1 });
+			var key = root.offset(i + 1);
+			var t = await this._db.select('address_table', { address: key.address });
+			if (t.length === 0) {
+				await this._db.insert('address_table', {
+					address: key.address,
+					addressBtc: key.addressBtc,
+					name: name,
+					offset: i + 1,
+				});
 			}
-			address.push(_key.address);
+			address.push(key.address);
 		}
 
 		if (keys) {
-			await this._db.update('keys', { size, name }, {address: key.address});
+			await this._db.update('keys', { size, name }, {address: root.address});
 		} else {
-			await this._db.insert('keys', { address: key.address, size, name });
+			await this._db.insert('keys', { address: root.address, size, name });
 		}
 
 		return address;
 	}
 
+	/**
+	 * 
+	 * 通过part_key生成key
+	 * 
+	 * @func genSecretKeyFromPartKey()
+	*/
+	async genSecretKeyFromPartKey(name: string, part_key: string): Promise<string> {
+		part_key = this.getPart_key(name, part_key);
+
+		var addr = this._part_key_cache.get(part_key);
+		if (addr) {
+			return addr;
+		}
+
+		var address = '';
+		var [data] = await this._db.select('address_table', { part_key });
+		if (data) {
+			address = data.address;
+		} else {
+			var root = await this.root(name);
+			var key = root.derive(part_key);
+			await this._db.insert('address_table', {
+				address: key.address,
+				addressBtc: key.addressBtc,
+				name: name,
+				offset: 0,
+				part_key: part_key,
+			});
+			address = key.address;
+		}
+
+		// set cache
+		var list = this._addresss_cache.get(name);
+		if (list) {
+			list.push(address);
+		} else {
+			this._addresss_cache.set(name, [address])
+		}
+		this._part_key_cache.set(part_key, address);
+
+		return address;
+	}
+
 	async addressList(name: string) {
-		if (this._addresss.has(name)) {
-			return this._addresss.get(name) as string[];
+		if (this._addresss_cache.has(name)) {
+			return this._addresss_cache.get(name) as string[];
 		} else {
 			var address = [] as string[];
 			for (var item of await this._db.select('address_table', { name })) {
 				address.push(item.address);
 			}
-			this._addresss.set(name, address); // cache
+			this._addresss_cache.set(name, address); // cache
 			return address;
 		}
 	}
 
-	async address(name: string) { // get random address
-		var addresss = await this.addressList(name);
-		somes.assert(addresss.length, errno.ERR_NO_ADDRESS_IS_CREATED);
-		return addresss[somes.random(0, addresss.length - 1)];
+	async address(name: string, part_key?: string) { // get random address
+		if (part_key) {
+			return await this.genSecretKeyFromPartKey(name, part_key);
+		} else {
+			var addresss = await this.addressList(name);
+			somes.assert(addresss.length, errno.ERR_NO_ADDRESS_IS_CREATED);
+			return addresss[somes.random(0, addresss.length - 1)];
+		}
 	}
 
 	async getSecretKey(addressOrAddressBtc: string) {
-		var r = await this.getAddressOffset(addressOrAddressBtc);
-		return r ? await this.getSecretKeyByOffset(r.name, r.offset): null;
+		var r = await this.getAddressIndexed(addressOrAddressBtc);
+		return r ? await this._getSecretKeyByIndexed(r.name, r.offset): null;
 	}
 
-	async getAddressOffset(addressOrAddressBtc: string): Promise<{
+	async getAddressIndexed(addressOrAddressBtc: string): Promise<{
 		name: string;
 		offset: number;
+		part_key: string;
 	} | null> {
 		var indexed = this._address_indexed.get(addressOrAddressBtc);
 		if (indexed) {
-			var [name,offset] = indexed;
+			var [name,offset,part_key] = indexed;
 			return {
-				name, offset,
+				name, offset, part_key: part_key || '',
 			}
 		}
 		var r = (await this._db.select('address_table', { address: addressOrAddressBtc }))[0];
 		if (!r)
 			r =   (await this._db.select('address_table', { addressBtc: addressOrAddressBtc }))[0];
 		if (r) {
-			this._address_indexed.set(r.address, [r.name, r.offset]);
-			this._address_indexed.set(r.addressBtc, [r.name, r.offset]);
+			this._address_indexed.set(r.address, [r.name, r.offset, r.part_key || '']);
+			this._address_indexed.set(r.addressBtc, [r.name, r.offset, r.part_key || '']);
 			return r as any;
 		}
 		return null;
 	}
 
-	async getSecretKeyByOffset(name: string, offset: number) {
+	private async _getSecretKeyByIndexed(name: string, offset: number, part_key?: string) {
 		var root = await this.root(name);
-		return { name, key: root.offset(offset) };
+		if (offset) {
+			return { name, key: root.offset(offset) };
+		} else {
+			somes.assert(part_key, '_getSecretKeyByOffset(), part_ Key cannot be empty ');
+			return { name, key: root.derive(part_key as string) };
+		}
 	}
 
 	private async backupKeystore(name: string) {
@@ -320,10 +396,10 @@ export class KeychainManager {
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
 		somes.assert(addressOrAddressBtc, errno.ERR_ADDRESS_IS_EMPTY);
-		var k = await this.getAddressOffset(addressOrAddressBtc as string) as { name: string; offset: number };
+		var k = await this.getAddressIndexed(addressOrAddressBtc as string) as { name: string; offset: number, part_key: string };
 		somes.assert(k && k.name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
 		if (cfg.enable_strict_keys_permission_check) {
-			await this.getSecretKeyByOffset(k.name, k.offset);
+			await this._getSecretKeyByIndexed(k.name, k.offset, k.part_key);
 		}
 	}
 }

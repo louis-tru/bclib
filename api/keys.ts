@@ -12,12 +12,16 @@ export default class extends ApiController {
 		return keys.impl.keychain.genSecretKeys(this.userName, size);
 	}
 
+	genSecretKeyFromPartKey({ part_key }: { part_key: string }) {
+		return keys.impl.keychain.genSecretKeyFromPartKey(this.userName, part_key);
+	}
+
 	addressList() {
 		return keys.impl.keychain.addressList(this.userName);
 	}
 
-	address() {
-		return keys.impl.keychain.address(this.userName);
+	address(part_key?: string) {
+		return keys.impl.keychain.address(this.userName, part_key);
 	}
 
 	async unlock({pwd}:{pwd: string}) {
