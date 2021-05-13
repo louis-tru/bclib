@@ -197,6 +197,7 @@ export class KeychainManager {
 	}
 
 	private getPart_key(name: string, part_key: string) {
+		somes.assert(part_key, 'part_ Key cannot be empty');
 		return crypto.createHash('sha256')
 			.update(default_traitKey)
 			.update(name + ':' + part_key)
