@@ -173,26 +173,25 @@ export class KeychainManager {
 
 	initialize() {
 		return this._db.initialize(`
-			CREATE TABLE if not exists address_table ( -- 所有的地址列表
+			CREATE TABLE if not exists address_list ( -- 所有的地址列表
 				address     VARCHAR (42) PRIMARY KEY NOT NULL,
 				addressBtc  VARCHAR (42)             NOT NULL,
 				name        VARCHAR (64)             NOT NULL, -- 用户名称
 				offset      INTEGER                  NOT NULL, -- 与主key的偏移值，如果为0表示使用key生成密钥
-				part_key    VARCHAR (64)                       -- 密钥相关的部分key
+				part_key    VARCHAR (64)             NOT NULL  -- 密钥相关的部分key
 			);
-			CREATE TABLE if not exists keys (
+			CREATE TABLE if not exists root_keys (
 				address     VARCHAR (42) PRIMARY KEY NOT NULL, -- 根key地址
 				name        VARCHAR (64)             NOT NULL, -- 用户名称
-				size        INTEGER                  NOT NULL  -- 通过偏移方式生成的key数量
+				offset_size INTEGER                  NOT NULL  -- 通过偏移方式生成的key数量
 			);
 		`, [
-			'alter table address_table add part_key VARCHAR (64)',
+			'alter table address_list add part_key VARCHAR (64) NOT NULL',
 		], [
-			'create unique index address_indexed    on address_table (address)',
-			'create unique index addressBtc_indexed on address_table (addressBtc)',
-			'create unique index name_indexed       on address_table (name)',
-			'create unique index part_key_indexed   on address_table (part_key)',
-			'create unique index keys_indexed       on keys          (address)',
+			'create unique index address_list_address    on address_list (address)',
+			'create unique index address_list_addressBtc on address_list (addressBtc)',
+			'create unique index address_list_part_key   on address_list (part_key)',
+			'create unique index root_keys_address       on root_keys (address)',
 		]);
 	}
 
@@ -219,8 +218,8 @@ export class KeychainManager {
 		}
 		var root = await this.root(name);
 		var address: string[] = [];
-		var keys = (await this._db.select('keys', { address: root.address }))[0];
-		var start: number = keys ? keys.size: 0;
+		var keys = (await this._db.select('root_keys', { address: root.address }))[0];
+		var start: number = keys ? keys.offset_size: 0;
 
 		size += start;
 
@@ -230,22 +229,23 @@ export class KeychainManager {
 
 		for (var i = start; i < size; i++) {
 			var key = root.offset(i + 1);
-			var t = await this._db.select('address_table', { address: key.address });
+			var t = await this._db.select('address_list', { address: key.address });
 			if (t.length === 0) {
-				await this._db.insert('address_table', {
+				await this._db.insert('address_list', {
 					address: key.address,
 					addressBtc: key.addressBtc,
 					name: name,
 					offset: i + 1,
+					part_key: this.getPart_key(name, 'offset:' + i + 1)
 				});
 			}
 			address.push(key.address);
 		}
 
 		if (keys) {
-			await this._db.update('keys', { size, name }, {address: root.address});
+			await this._db.update('root_keys', { offset_size: size, name }, {address: root.address});
 		} else {
-			await this._db.insert('keys', { address: root.address, size, name });
+			await this._db.insert('root_keys', { address: root.address, offset_size: size, name });
 		}
 
 		return address;
@@ -266,13 +266,13 @@ export class KeychainManager {
 		}
 
 		var address = '';
-		var [data] = await this._db.select('address_table', { part_key });
+		var [data] = await this._db.select('address_list', { part_key });
 		if (data) {
 			address = data.address;
 		} else {
 			var root = await this.root(name);
 			var key = root.derive(part_key);
-			await this._db.insert('address_table', {
+			await this._db.insert('address_list', {
 				address: key.address,
 				addressBtc: key.addressBtc,
 				name: name,
@@ -299,7 +299,7 @@ export class KeychainManager {
 			return this._addresss_cache.get(name) as string[];
 		} else {
 			var address = [] as string[];
-			for (var item of await this._db.select('address_table', { name })) {
+			for (var item of await this._db.select('address_list', { name })) {
 				address.push(item.address);
 			}
 			this._addresss_cache.set(name, address); // cache
@@ -331,15 +331,15 @@ export class KeychainManager {
 		if (indexed) {
 			var [name,offset,part_key] = indexed;
 			return {
-				name, offset, part_key: part_key || '',
+				name, offset, part_key,
 			}
 		}
-		var r = (await this._db.select('address_table', { address: addressOrAddressBtc }))[0];
+		var r = (await this._db.select('address_list', { address: addressOrAddressBtc }))[0];
 		if (!r)
-			r =   (await this._db.select('address_table', { addressBtc: addressOrAddressBtc }))[0];
+			r =   (await this._db.select('address_list', { addressBtc: addressOrAddressBtc }))[0];
 		if (r) {
-			this._address_indexed.set(r.address, [r.name, r.offset, r.part_key || '']);
-			this._address_indexed.set(r.addressBtc, [r.name, r.offset, r.part_key || '']);
+			this._address_indexed.set(r.address, [r.name, r.offset, r.part_key]);
+			this._address_indexed.set(r.addressBtc, [r.name, r.offset, r.part_key]);
 			return r as any;
 		}
 		return null;
