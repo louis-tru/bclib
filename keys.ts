@@ -319,7 +319,7 @@ export class KeychainManager {
 
 	async getSecretKey(addressOrAddressBtc: string) {
 		var r = await this.getAddressIndexed(addressOrAddressBtc);
-		return r ? await this._getSecretKeyByIndexed(r.name, r.offset): null;
+		return r ? await this._getSecretKeyByIndexed(r.name, r.offset, r.part_key): null;
 	}
 
 	async getAddressIndexed(addressOrAddressBtc: string): Promise<{
@@ -345,12 +345,12 @@ export class KeychainManager {
 		return null;
 	}
 
-	private async _getSecretKeyByIndexed(name: string, offset: number, part_key?: string) {
+	private async _getSecretKeyByIndexed(name: string, offset: number, part_key: string) {
 		var root = await this.root(name);
 		if (offset) {
 			return { name, key: root.offset(offset) };
 		} else {
-			somes.assert(part_key, '_getSecretKeyByOffset(), part_ Key cannot be empty ');
+			somes.assert(part_key, '_getSecretKeyByOffset(), part_key cannot be empty ');
 			return { name, key: root.derive(part_key as string) };
 		}
 	}
