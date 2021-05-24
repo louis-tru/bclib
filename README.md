@@ -286,35 +286,35 @@ contractPostSync({
 调用具名的协约方法
 
 ```ts
-bankGet({method: string, args: string}): any;
+bankGet({method: string, args: any[]}): any;
 ```
 
 ```ts
-erc20Get({method: string, args: string}): any;
+erc20Get({method: string, args: any[]}): any;
 ```
 
 ```ts
-erc721Get({method: string, args: string}): any;
+erc721Get({method: string, args: any[]}): any;
 ```
 
 ```ts
-proofGet({method: string, args: string}): any;
+proofGet({method: string, args: any[]}): any;
 ```
 
 ```ts
-casperGet({method: string, args: string}): any;
+casperGet({method: string, args: any[]}): any;
 ```
 
 ```ts
-starGet({method: string, args: string}): any;
+starGet({method: string, args: any[]}): any;
 ```
 
 ```ts
-minerGet({method: string, args: string}): any;
+minerGet({method: string, args: any[]}): any;
 ```
 
 ```ts
-miningGet({method: string, args: string}): any;
+miningGet({method: string, args: any[]}): any;
 ```
 
 ### web3/*Post
