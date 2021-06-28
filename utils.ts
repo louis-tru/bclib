@@ -197,7 +197,7 @@ export async function callbackURI(data: any, url: string) {
 	await callbackURL_impl(data, url, id);
 }
 
-export async function callbackURITask() {
+export async function initialize() {
 	var items = await db.select('callback_url', { status: 0 });
 	for (var item of items) {
 		try {
