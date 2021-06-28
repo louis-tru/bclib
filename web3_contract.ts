@@ -113,7 +113,7 @@ export class Web3Contracts {
 
 		if (row.status == 1) {
 			// TODO ... if row.tx
-			// ...
+			// ... check txid
 		}
 
 		try {
@@ -130,17 +130,6 @@ export class Web3Contracts {
 				callbackURI(result, cb);
 			} else {
 				cb(result);
-			}
-		}
-	}
-
-	async initialize() {
-		var items = await db.select('tx_async', { status: 1 });
-		for (var item of items) {
-			if (item.contract) {
-				this._contractPostAsync(item.id);
-			} else {
-				this._sendSignTransactionAsync(item.id);
 			}
 		}
 	}
@@ -198,7 +187,7 @@ export class Web3Contracts {
 	async contractPostAsync(contractAddress: string, method: string, args?: any[], opts?: Options, cb?: Callback) {
 		await this.contractGet(contractAddress, method, args, opts); // try call
 		var id = await db.insert('tx_async', {
-			from: opts?.from,
+			account: opts?.from,
 			contract: contractAddress, method: method,
 			args: JSON.stringify(args || []),
 			opts: JSON.stringify(opts || {}),
@@ -210,12 +199,23 @@ export class Web3Contracts {
 
 	async sendSignTransactionAsync(opts: TxOptions, cb?: Callback) {
 		var id = await db.insert('tx_async', {
-			from: opts.from,
+			account: opts.from,
 			opts: JSON.stringify(opts),
 			cb: typeof cb == 'string' ? cb: null,
 		});
 		await this._sendSignTransactionAsync(id, cb);
 		return String(id);
+	}
+
+	async initialize() {
+		var items = await db.select('tx_async', { status: 1 });
+		for (var item of items) {
+			if (item.contract) {
+				this._contractPostAsync(item.id);
+			} else {
+				this._sendSignTransactionAsync(item.id);
+			}
+		}
 	}
 
 }

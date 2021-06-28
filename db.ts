@@ -18,7 +18,7 @@ export function initialize() {
 		);
 		CREATE TABLE if not exists tx_async (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			from       VARCHAR (128),
+			account    VARCHAR (128),
 			contract   VARCHAR (128),
 			method     VARCHAR (64),
 			args       TEXT,
