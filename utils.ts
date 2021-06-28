@@ -177,7 +177,7 @@ var signer = new SignerIMPL();
 
 async function callbackURL_impl(data: any, url: string, id: number) {
 	var sleep = 10;
-	var retry = 48;
+	var retry = 24;
 	while (--retry) {
 		try {
 			var r = await post(url, { params: data, urlencoded: false, signer });
@@ -193,8 +193,19 @@ async function callbackURL_impl(data: any, url: string, id: number) {
 }
 
 export async function callbackURI(data: any, url: string) {
-	var id = await db.insert('callback_url', { url, data }, 'id') as number;
+	var id = await db.insert('callback_url', { url, data: JSON.stringify(data) }) as number;
 	await callbackURL_impl(data, url, id);
+}
+
+export async function callbackURITask() {
+	var items = await db.select('callback_url', { status: 0 });
+	for (var item of items) {
+		try {
+			callbackURL_impl(JSON.parse(item.data), item.url, item.id);
+		} catch(err) {
+			await db.update('callback_url', { status: 3 }, { id: item.id });
+		}
+	}
 }
 
 export default utils;

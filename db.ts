@@ -24,7 +24,7 @@ export function initialize() {
 	`, [
 	], [
 		'create unique index callback_url_id on callback_url (id)',
-		'create unique index callback_url_status on callback_url (status)',
+		'create        index callback_url_status on callback_url (status)',
 	]);
 }
 

@@ -175,16 +175,18 @@ export class SQLiteTools {
 	close(): Promise<any> { return this.m_db.close2() }
 	run(sql: string, values?: Dict): Promise<any> { return this.m_db.run2(sql, values) }
 	exec(sql: string): Promise<any> { return this.m_db.exec2(sql) }
+	all(sql: string, values?: Dict): Promise<any[]> { return this.m_db.all2(sql, values) }
 	hasTable(table: string): boolean { return table in this.dbStruct }
 
-	async insert(table: string, row: Object, id?: string): Promise<any> {
-		var struct = this.check(table);
-		var { keys, $keys, values } = get_sql_params(struct, row, true);
-		var sql = `insert into ${table} (${keys.join(',')}) values (${$keys.join(',')})`;
-		if (id) {
-			sql += '; select last_insert_rowid();'
-		}
-		return await this.run(sql, values);
+	async insert(table: string, row: Object): Promise<number> {
+		return await utils.scopeLock(this.m_db, async ()=>{
+			var struct = this.check(table);
+			var { keys, $keys, values } = get_sql_params(struct, row, true);
+			var sql = `insert into ${table} (${keys.join(',')}) values (${$keys.join(',')})`;
+			await this.run(sql, values);
+			var r = await this.all('select last_insert_rowid() as id');
+			return r[0].id as number;
+		});
 	}
 
 	async update(table: string, row: Dict, where: Dict | string = ''): Promise<any> {
@@ -237,14 +239,14 @@ export class SQLiteTools {
 			if (typeof where == 'object') {
 				var { exp, values } = get_sql_params(struct, where);
 				sql = `select * from ${table} where ${exp.join('and')}${limit_str}`;
-				ls = await this.m_db.all2(sql, values);
+				ls = await this.all(sql, values);
 			} else {
 				sql = `select * from ${table} where ${where}${limit_str}`
-				ls = await this.m_db.all2(sql);
+				ls = await this.all(sql);
 			}
 		} else {
 			sql = `select * from ${table}${limit_str}`;
-			ls = await this.m_db.all2(sql);
+			ls = await this.all(sql);
 		}
 		return selectAfter(struct, ls);
 	}
@@ -268,7 +270,7 @@ export class SQLiteTools {
 
 	async gets(sql: string, table: string = ''): Promise<Result[]> {
 		table = get_select_table_name(sql, table);
-		return selectAfter(this.check(table), await this.m_db.all2(sql));
+		return selectAfter(this.check(table), await this.all(sql));
 	}
 
 	async clear() {
