@@ -9,12 +9,14 @@ import { TransactionReceipt, FindEventResult,TxOptions } from 'web3z';
 import {ABIType, getAddressFromType} from './abi';
 import errno from './errno';
 import {callbackURI} from './utils';
+import db from './db';
 
 export interface PostResult {
 	receipt: TransactionReceipt;
 	event?: FindEventResult;
-	data?: any;
+	// data?: any;
 	error?: Error;
+	id?: string;
 }
 
 export interface Options {
@@ -95,53 +97,52 @@ export class Web3Contracts {
 		return api;
 	}
 
-	review(id: string): PostResult {
-		somes.assert(this._postResults.has(id), errno.ERR_WEB3_API_POST_NON_EXIST);
-		var r = this._postResults.get(id) as PostResult;
+	async review(id: string): Promise<PostResult> {
+		var row = await db.getById('tx_async', Number(id)) as { status: number; data: string };
+		somes.assert(row, errno.ERR_WEB3_API_POST_NON_EXIST);
+		somes.assert(row.status == 2 || row.status == 3, errno.ERR_WEB3_API_POST_PENDING);
+		var data = JSON.parse(row.data) as PostResult;
+		return data;
+	}
+
+	private async _sendTransactionAsync(id: number,
+		row: {status: number}, 
+		send: (id?: number)=>Promise<PostResult>, cb?: Callback)
+	{
+		var result = { id: String(id) } as PostResult;
+
+		if (row.status == 1) {
+			// TODO ... if row.tx
+			// ...
+		}
+
 		try {
-			somes.assert(!r.error, r.error);
-			somes.assert(r.receipt, errno.ERR_WEB3_API_POST_PENDING);
-			return {
-				receipt: r.receipt as TransactionReceipt,
-				event: r.event,
-				data: r.data,
-			};
-		} finally {
-			// TODO auto digest this._postResults.delete(id);
+			await db.update('tx_async', { status: 1, txid: '?' }, { id }); // TODO 标记进行中，这里应该把`txid`记录下来
+			Object.assign(result, await send(id));
+			await db.update('tx_async', { status: 2, data: JSON.stringify(result), txid: result.receipt.transactionHash }, { id });
+		} catch(error) {
+			Object.assign(result, {error});
+			await db.update('tx_async', { status: 3, data: JSON.stringify(result) }, { id });
+		}
+
+		if (cb) {
+			if (typeof cb == 'string') { // callback url
+				callbackURI(result, cb);
+			} else {
+				cb(result);
+			}
 		}
 	}
 
-	private async _sendSignTransactionAsync(send: ()=>Promise<PostResult>, cb?: Callback): Promise<string> 
-	{
-		var id = String(somes.getId());
-		var result = {} as PostResult;
-		this._postResults.set(id, result);
-
-		var callback = (result: PostResult)=>{
-			if (cb) {
-				if (typeof cb == 'string') { // callback url
-					callbackURI(result, cb);
-				} else {
-					cb(result);
-				}
+	async initialize() {
+		var items = await db.select('tx_async', { status: 1 });
+		for (var item of items) {
+			if (item.contract) {
+				this._contractPostAsync(item.id);
+			} else {
+				this._sendSignTransactionAsync(item.id);
 			}
-		};
-
-		send().then(r=>{
-			callback(Object.assign(result, r));
-		})
-		.catch(error=>{
-			callback(Object.assign(result, {error}));
-		});
-		return id;
-	}
-
-	sendSignTransactionAsync(opts: TxOptions, cb?: Callback): Promise<string> {
-		return this._sendSignTransactionAsync(async ()=>{
-			return {
-				receipt: await web3.impl.txQueue.push(e=>web3.impl.sendSignTransaction({...opts, ...e}), opts),
-			};
-		}, cb);
+		}
 	}
 
 	async contractGet(contractAddress: string, method: string, args?: any[], opts?: Options) {
@@ -151,7 +152,7 @@ export class Web3Contracts {
 		return await fn.call(_opts);
 	}
 
-	async contractPost(contractAddress: string, method: string, args?: any[], opts?: Options) {
+	async contractPost(contractAddress: string, method: string, args?: any[], opts?: Options, async_id?: number) {
 		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
 		var {event: _event, ..._opts} = opts || {};
@@ -168,10 +169,53 @@ export class Web3Contracts {
 		return { receipt, event } as PostResult;
 	}
 
+	async _contractPostAsync(id: number/*, contractAddress: string, method: string, args?: any[], opts?: Options*/, cb_?: Callback) {
+		var row = await db.getById('tx_async', id) as {
+			contract: string; method: string;
+			args: string; opts: string; cb?: string; status: number;
+		}; somes.assert(row);
+		var {contract,method} = row;
+		var args: any[] = JSON.parse(row.args);
+		var opts: Options = JSON.parse(row.opts);
+		await this.contractGet(contract, method, args, opts); // try call
+		this._sendTransactionAsync(id, row, async (id?: number)=>{
+			return await this.contractPost(contract, method, args, opts, id);
+		}, cb_ || row.cb);
+	}
+
+	async _sendSignTransactionAsync(id: number, cb_?: Callback) {
+		var row = await db.getById('tx_async', id) as {
+			opts: string; cb?: string; status: number;
+		}; somes.assert(row);
+		var opts: TxOptions = JSON.parse(row.opts);
+		this._sendTransactionAsync(id, row, async (id?: number)=>{
+			return {
+				receipt: await web3.impl.txQueue.push(e=>web3.impl.sendSignTransaction({...opts, ...e}), opts),
+			};
+		}, cb_ || row.cb);
+	}
+
 	async contractPostAsync(contractAddress: string, method: string, args?: any[], opts?: Options, cb?: Callback) {
 		await this.contractGet(contractAddress, method, args, opts); // try call
-		// TODO ...
-		return await this._sendSignTransactionAsync(()=>this.contractPost(contractAddress, method, args, opts), cb);
+		var id = await db.insert('tx_async', {
+			from: opts?.from,
+			contract: contractAddress, method: method,
+			args: JSON.stringify(args || []),
+			opts: JSON.stringify(opts || {}),
+			cb: typeof cb == 'string' ? cb: null,
+		});
+		await this._contractPostAsync(id, cb);
+		return String(id);
+	}
+
+	async sendSignTransactionAsync(opts: TxOptions, cb?: Callback) {
+		var id = await db.insert('tx_async', {
+			from: opts.from,
+			opts: JSON.stringify(opts),
+			cb: typeof cb == 'string' ? cb: null,
+		});
+		await this._sendSignTransactionAsync(id, cb);
+		return String(id);
 	}
 
 }
