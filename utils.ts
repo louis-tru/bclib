@@ -10,6 +10,8 @@ import buffer from 'somes/buffer';
 import {SafeRequest, post} from './request';
 import cfg from './cfg';
 import keys from './keys+';
+import db from './db';
+
 const crypto_tx = require('crypto-tx');
 
 export const prod = cfg.env == 'prod';
@@ -173,18 +175,26 @@ class SignerIMPL implements Signer {
 
 var signer = new SignerIMPL();
 
-export async function callbackURI(data: any, url: string) {
+async function callbackURL_impl(data: any, url: string, id: number) {
 	var sleep = 10;
-	var retry = 10;
+	var retry = 48;
 	while (--retry) {
 		try {
 			var r = await post(url, { params: data, urlencoded: false, signer });
-			if (r.statusCode == 200)
-				break;
+			if (r.statusCode == 200) {
+				await db.deleteById('callback_url', id);
+				return;
+			}
 		} catch(err) {}
 		await utils.sleep(sleep * 1e3);
-		sleep *= 1.5;
+		sleep = Math.min(3600, sleep * 1.5);
 	}
+	await db.update('callback_url', { status: 3 }, { id });
+}
+
+export async function callbackURI(data: any, url: string) {
+	var id = await db.insert('callback_url', { url, data }, 'id') as number;
+	await callbackURL_impl(data, url, id);
 }
 
 export default utils;

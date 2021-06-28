@@ -177,10 +177,13 @@ export class SQLiteTools {
 	exec(sql: string): Promise<any> { return this.m_db.exec2(sql) }
 	hasTable(table: string): boolean { return table in this.dbStruct }
 
-	async insert(table: string, row: Object): Promise<any> {
+	async insert(table: string, row: Object, id?: string): Promise<any> {
 		var struct = this.check(table);
 		var { keys, $keys, values } = get_sql_params(struct, row, true);
 		var sql = `insert into ${table} (${keys.join(',')}) values (${$keys.join(',')})`;
+		if (id) {
+			sql += '; select last_insert_rowid();'
+		}
 		return await this.run(sql, values);
 	}
 

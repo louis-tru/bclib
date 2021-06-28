@@ -8,6 +8,7 @@ import web3 from './web3+';
 import { TransactionReceipt, FindEventResult,TxOptions } from 'web3z';
 import {ABIType, getAddressFromType} from './abi';
 import errno from './errno';
+import {callbackURI} from './utils';
 
 export interface PostResult {
 	receipt: TransactionReceipt;
@@ -22,7 +23,9 @@ export interface Options {
 	event?: string;
 }
 
-export abstract class CallContract {
+export type Callback = ((r: PostResult)=>void) | string;
+
+export abstract class ContractCall {
 	private _host: Web3Contracts;
 
 	constructor(host: Web3Contracts) {
@@ -35,7 +38,7 @@ export abstract class CallContract {
 		return await this._host.contractPost(await this.getAddress(), method, args, opts);
 	}
 
-	async post(method: string, args?: any[], opts?: Options, cb?: (r: PostResult)=>void) {
+	async post(method: string, args?: any[], opts?: Options, cb?: Callback) {
 		return await this._host.contractPostAsync(await this.getAddress(), method, args, opts, cb);
 	}
 
@@ -49,7 +52,7 @@ export abstract class CallContract {
 
 }
 
-class StarContract extends CallContract {
+class TypeContract extends ContractCall {
 	private _star: string;
 	private _type: ABIType;
 	getAddress() { return getAddressFromType(this._type, this._star) }
@@ -60,7 +63,7 @@ class StarContract extends CallContract {
 	}
 }
 
-class CommonContract extends CallContract {
+class AddressContract extends ContractCall {
 	private _address: string;
 	async getAddress() {return this._address}
 	constructor(_address: string, host: Web3Contracts) {
@@ -70,14 +73,14 @@ class CommonContract extends CallContract {
 }
 
 export class Web3Contracts {
-	private _contracts = new Map<string, CallContract>();
+	private _contracts = new Map<string, ContractCall>();
 	private _postResults = new Map<string, PostResult>();
 
 	contractFromType(type: ABIType, star_?: string) {
 		var star = star_ || '';
 		var api = this._contracts.get(star + type);
 		if (!api) {
-			api = new StarContract(star, type, this);
+			api = new TypeContract(star, type, this);
 			this._contracts.set(star + type, api);
 		}
 		return api;
@@ -86,7 +89,7 @@ export class Web3Contracts {
 	contract(address: string) {
 		var api = this._contracts.get(address);
 		if (!api) {
-			api = new CommonContract(address, this)
+			api = new AddressContract(address, this)
 			this._contracts.set(address, api);
 		}
 		return api;
@@ -108,24 +111,32 @@ export class Web3Contracts {
 		}
 	}
 
-	private async _sendSignTransactionAsync(send: ()=>Promise<PostResult>, cb?: (r: PostResult)=>void): Promise<string> 
+	private async _sendSignTransactionAsync(send: ()=>Promise<PostResult>, cb?: Callback): Promise<string> 
 	{
 		var id = String(somes.getId());
 		var result = {} as PostResult;
 		this._postResults.set(id, result);
 
+		var callback = (result: PostResult)=>{
+			if (cb) {
+				if (typeof cb == 'string') { // callback url
+					callbackURI(result, cb);
+				} else {
+					cb(result);
+				}
+			}
+		};
+
 		send().then(r=>{
-			Object.assign(result, r);
-			cb && cb(result);
+			callback(Object.assign(result, r));
 		})
 		.catch(error=>{
-			Object.assign(result, {error})
-			cb && cb(result);
+			callback(Object.assign(result, {error}));
 		});
 		return id;
 	}
 
-	sendSignTransactionAsync(opts: TxOptions, cb?: ((r: PostResult)=>any)): Promise<string> {
+	sendSignTransactionAsync(opts: TxOptions, cb?: Callback): Promise<string> {
 		return this._sendSignTransactionAsync(async ()=>{
 			return {
 				receipt: await web3.impl.txQueue.push(e=>web3.impl.sendSignTransaction({...opts, ...e}), opts),
@@ -157,8 +168,9 @@ export class Web3Contracts {
 		return { receipt, event } as PostResult;
 	}
 
-	async contractPostAsync(contractAddress: string, method: string, args?: any[], opts?: Options, cb?: (r: PostResult)=>void) {
+	async contractPostAsync(contractAddress: string, method: string, args?: any[], opts?: Options, cb?: Callback) {
 		await this.contractGet(contractAddress, method, args, opts); // try call
+		// TODO ...
 		return await this._sendSignTransactionAsync(()=>this.contractPost(contractAddress, method, args, opts), cb);
 	}
 
