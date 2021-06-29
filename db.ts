@@ -26,9 +26,11 @@ export function initialize() {
 			data       TEXT,
 			cb         VARCHAR (255),
 			txid       VARCHAR (255),
-			status     INTEGER DEFAULT (0) NOT NULL -- 0init,1进行中,2完成,3失败
+			status     INTEGER DEFAULT (0) NOT NULL, -- 0init,1进行中,2完成,3失败
+			time       INTEGER DEFAULT (0) NOT NULL
 		);
 	`, [
+		'alter table tx_async add time INTEGER DEFAULT (0) NOT NULL',
 	], [
 		'create unique index callback_url_id     on callback_url (id)',
 		'create        index callback_url_status on callback_url (status)',
