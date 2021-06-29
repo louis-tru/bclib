@@ -150,6 +150,8 @@ export class Web3Contracts implements WatchCat {
 			} catch(error) {
 				Object.assign(result, {error});
 			}
+		} else {
+			return; // ignore
 		}
 		
 		var r = await db.getById('tx_async', id) as TxAsync;
