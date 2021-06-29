@@ -17,7 +17,7 @@ import {WatchCat} from './watch';
 
 export interface PostResult {
 	receipt: TransactionReceipt;
-	event?: FindEventResult;
+	// event?: FindEventResult;
 	data?: any;
 	error?: Error;
 	id?: string;
