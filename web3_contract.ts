@@ -14,7 +14,7 @@ import db from './db';
 export interface PostResult {
 	receipt: TransactionReceipt;
 	event?: FindEventResult;
-	// data?: any;
+	data?: any;
 	error?: Error;
 	id?: string;
 }
