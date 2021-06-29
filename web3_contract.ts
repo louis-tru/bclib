@@ -163,11 +163,10 @@ export class Web3Contracts {
 			contract: string; method: string;
 			args: string; opts: string; cb?: string; status: number;
 		}; somes.assert(row);
-		var {contract,method} = row;
-		var args: any[] = JSON.parse(row.args);
-		var opts: Options = JSON.parse(row.opts);
-		await this.contractGet(contract, method, args, opts); // try call
 		this._sendTransactionAsync(id, row, async (id?: number)=>{
+			var {contract,method} = row;
+			var args: any[] = JSON.parse(row.args);
+			var opts: Options = JSON.parse(row.opts);
 			return await this.contractPost(contract, method, args, opts, id);
 		}, cb_ || row.cb);
 	}
@@ -176,8 +175,8 @@ export class Web3Contracts {
 		var row = await db.getById('tx_async', id) as {
 			opts: string; cb?: string; status: number;
 		}; somes.assert(row);
-		var opts: TxOptions = JSON.parse(row.opts);
 		this._sendTransactionAsync(id, row, async (id?: number)=>{
+			var opts: TxOptions = JSON.parse(row.opts);
 			return {
 				receipt: await web3.impl.txQueue.push(e=>web3.impl.sendSignTransaction({...opts, ...e}), opts),
 			};
