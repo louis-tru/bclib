@@ -4,8 +4,9 @@
  */
 
 import APIController from '../api';
-import {TxOptions,STOptions} from 'web3z';
+import {STOptions} from 'web3z';
 import web3 from '../web3+';
+import {TxOptions} from '../web3_contract';
 import {ABIType} from '../abi';
 import buffer from 'somes/buffer';
 import keys from '../keys+';
@@ -13,10 +14,13 @@ import keys from '../keys+';
 interface Args_ {
 	method: string;
 	args?: any[];
-	event?: string;
+	// event?: string;
 	from?: string;
 	value?: string;
+	timeout?: number;
+	retry?: number;
 	callback?: string;
+	blockRange?: number;
 }
 
 interface Args extends Args_ {
@@ -32,13 +36,13 @@ export default class extends APIController {
 	contractGet({address, method, args}: Args) {
 		return web3.web3_c.contract(address).get(method, args);
 	}
-	async contractPost({address, method, args,event,from,value,callback}: Args) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contract(address).post(method, args,{event,from,value}, callback);
+	async contractPost({address, method, args,callback,...opts}: Args) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contract(address).post(method, args,opts, callback);
 	}
-	async contractPostSync({address, method, args, event,from,value}: Args) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contract(address).postSync(method, args, {event,from,value});
+	async contractPostSync({address, method, args, callback, ...opts}: Args) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contract(address).postSync(method, args, opts);
 	}
 
 	review({id}: { id: string }) {
@@ -129,37 +133,37 @@ export default class extends APIController {
 	}
 	
 	// post
-	async bankPost({star, method, args, event,from,value,callback}: StarArgs) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contractFromType(ABIType.BANK, star).post(method, args, {event,from,value}, callback);
+	async bankPost({star, method, args,callback,...opts}: StarArgs) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contractFromType(ABIType.BANK, star).post(method, args, opts, callback);
 	}
-	async erc20Post({star, method, args, event,from,value,callback}: StarArgs) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contractFromType(ABIType.ERC20, star).post(method, args, {event,from,value}, callback);
+	async erc20Post({star, method, args,callback,...opts}: StarArgs) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contractFromType(ABIType.ERC20, star).post(method, args, opts, callback);
 	}
-	async erc721Post({ star, method, args, event,from,value,callback}: StarArgs) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contractFromType(ABIType.ERC20, star).post(method, args, {event,from,value}, callback);
+	async erc721Post({ star, method, args, callback,...opts}: StarArgs) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contractFromType(ABIType.ERC20, star).post(method, args, opts, callback);
 	}
-	async proofPost({star, method, args, event,from,value,callback}: StarArgs) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contractFromType(ABIType.PROOF, star).post(method, args, {event,from,value}, callback);
+	async proofPost({star, method, args,callback,...opts}: StarArgs) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contractFromType(ABIType.PROOF, star).post(method, args, opts, callback);
 	}
-	async casperPost({star, method, args, event,from,value,callback}: StarArgs) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contractFromType(ABIType.CASPER, star).post(method, args, {event,from,value}, callback);
+	async casperPost({star, method, args,callback,...opts}: StarArgs) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contractFromType(ABIType.CASPER, star).post(method, args, opts, callback);
 	}
-	async starPost({star, method, args, event,from,value,callback}: StarArgs) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contractFromType(ABIType.STAR, star).post(method, args, {event,from,value}, callback);
+	async starPost({star, method, args,callback,...opts}: StarArgs) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contractFromType(ABIType.STAR, star).post(method, args, opts, callback);
 	}
-	async minerPost({star, method, args, event,from,value,callback}: StarArgs) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contractFromType(ABIType.MINING, star).post(method, args, {event,from,value}, callback);
+	async minerPost({star, method, args,callback,...opts}: StarArgs) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contractFromType(ABIType.MINING, star).post(method, args, opts, callback);
 	}
-	async miningPost({star, method, args, event,from,value,callback}: StarArgs) {
-		await keys.impl.checkPermission(this.userName, from);
-		return await web3.web3_c.contractFromType(ABIType.MINING, star).post(method, args, {event,from,value}, callback);
+	async miningPost({star, method, args,callback,...opts}: StarArgs) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3.web3_c.contractFromType(ABIType.MINING, star).post(method, args, opts, callback);
 	}
 
 }

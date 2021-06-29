@@ -263,6 +263,9 @@ contractPost({
 	from?: string; // 账户
 	value?: string;
 	callback?: string; // 回调地址,只有异步方法才生效
+	retry?: number; // 发送上链错误后重试的次数，错误后加入到队列尾部等待
+	timeout?: number; // 0表示不超时
+	blockRange?: number; // 允许最大区块范围超时，超过区块后放弃交易视为失败，默认为32个区块
 }): string; // 返回句柄id
 ```
 
@@ -276,6 +279,9 @@ contractPostSync({
 	event:? string; // 发送交易成功后需要检查的event
 	from?: string; // 账户
 	value?: string;
+	retry?: number; // 发送上链错误后重试的次数，错误后加入到队列尾部等待
+	timeout?: number; // 0表示不超时
+	blockRange?: number; // 允许最大区块范围超时，超过区块后放弃交易视为失败，默认为32个区块
 }): TransactionReceipt;
 ```
 
@@ -370,7 +376,7 @@ serializedTxForContract({
 sendSignTransaction({
 	tx: {
 		timeout?: number; // 超时放弃交易
-		blockRange?: number; // 超过区块后放弃交易视为失败，默认为32个区块
+		blockRange?: number; // 允许最大区块范围超时，超过区块后放弃交易视为失败，默认为32个区块
 		chainId?: number;
 		from?: string;
 		nonce?: number;
@@ -379,6 +385,7 @@ sendSignTransaction({
 		gasPrice?: number;
 		value?: string;
 		data?: string;
+		retry?: number; // 发送上链错误后重试的次数，错误后加入到队列尾部等待
 	}
 }): TransactionReceipt;
 ```
@@ -394,8 +401,11 @@ sendSignTransaction({
 ```ts
 sendSignTransactionAsync({
 	tx: {
-		timeout?: number; // 超时放弃交易
-		blockRange?: number; // 超过区块后放弃交易视为失败，默认为32个区块
+		// timeout: 这个属性有两层意义，web3中所有的`timeout`都有同样的性质
+		// 1.发送上链请求超时后丢弃这次发送的交易，如果还有重试次数会加入到队列尾部等待重新发送上链请求。
+		// 2.上链之前在队列中允许等待的最长时间，timeout等于0时表示在队列等待中不超时。
+		timeout?: number; 
+		blockRange?: number; // 一次上链条请求中超过区块后放弃交易，默认为32个区块，如果一还有重度次数加入到队列尾部
 		chainId?: number;
 		from?: string;
 		nonce?: number;
@@ -404,6 +414,7 @@ sendSignTransactionAsync({
 		gasPrice?: number;
 		value?: string;
 		data?: string;
+		retry?: number; // 发送上链错误后重试的次数，错误后加入到队列尾部等待
 	};
 	callback?: string; // 回调地址url
 }): string; // 返回句柄id
@@ -420,6 +431,7 @@ sendSignedTransaction({
 	opts?: {
 		timeout?: number; // 超时放弃交易
 		blockRange?: number; // 超过区块后放弃交易视为失败，默认为32个区块
+		retry?: number; // 发送上链错误后重试的次数，错误后加入到队列尾部等待
 	}
 }): TransactionReceipt;
 ```

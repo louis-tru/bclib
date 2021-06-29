@@ -6,7 +6,7 @@
 import somes from 'somes';
 import web3 from './web3+';
 import { TransactionReceipt, 
-	FindEventResult,TxOptions,
+	FindEventResult,TxOptions as RawTxOptions,
 	SAFE_TRANSACTION_MAX_TIMEOUT } from 'web3z';
 import errno_web3z from 'web3z/errno';
 import {ABIType, getAddressFromType} from './abi';
@@ -24,10 +24,15 @@ export interface PostResult {
 }
 
 export interface Options {
-	from?: string;
 	value?: string;
-	event?: string;
+	from?: string;
+	retry?: number;
+	timeout?: number;
+	blockRange?: number;
+	// event?: string;
 }
+
+export type TxOptions = Options & RawTxOptions;
 
 export type Callback = ((r: PostResult)=>void) | string;
 
@@ -175,17 +180,18 @@ export class Web3Contracts implements WatchCat {
 	async contractGet(contractAddress: string, method: string, args?: any[], opts?: Options) {
 		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
-		var {event, ..._opts} = opts || {};
+		var { /*event, */retry, timeout, blockRange, ..._opts } = opts || {};
 		return await fn.call(_opts);
 	}
 
 	async contractPost(contractAddress: string, method: string, args?: any[], opts?: Options, hash?: (hash: string)=>void) {
 		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
-		var {event: _event, ..._opts} = opts || {};
+		var { /*event, */ retry, ..._opts } = opts || {};
 		await fn.call({..._opts}); // try call
-		// var nonce await web3.txQueue.getNonce();
-		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({..._opts, ...e}, hash), _opts);
+		// var nonce = await web3.txQueue.getNonce();
+
+		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({..._opts, ...e}, hash), opts);
 
 		// discard:
 		// var event: FindEventResult | undefined;
@@ -199,7 +205,7 @@ export class Web3Contracts implements WatchCat {
 		return { receipt } as PostResult;
 	}
 
-	async _contractPostAsync(id: number/*, contractAddress: string, method: string, args?: any[], opts?: Options*/, cb_?: Callback) {
+	async _contractPostAsync(id: number, cb_?: Callback) {
 		var row = await db.getById('tx_async', id) as TxAsync; somes.assert(row);
 		this._sendTransactionAsync(id, row, async (hash)=>{
 			var {contract,method} = row;
@@ -213,8 +219,9 @@ export class Web3Contracts implements WatchCat {
 		var row = await db.getById('tx_async', id) as TxAsync; somes.assert(row);
 		this._sendTransactionAsync(id, row, async (hash)=>{
 			var opts: TxOptions = JSON.parse(row.opts);
+			var { retry, ..._opts } = opts;
 			return {
-				receipt: await web3.impl.txQueue.push(e=>web3.impl.sendSignTransaction({...opts, ...e}, hash), opts),
+				receipt: await web3.impl.txQueue.push(e=>web3.impl.sendSignTransaction({..._opts, ...e}, hash), opts),
 			};
 		}, cb_ || row.cb);
 	}
