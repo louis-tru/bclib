@@ -5,12 +5,15 @@
 
 import somes from 'somes';
 import web3 from './web3+';
-import { TransactionReceipt, FindEventResult,TxOptions,SAFE_TRANSACTION_MAX_TIMEOUT } from 'web3z';
+import { TransactionReceipt, 
+	FindEventResult,TxOptions,
+	SAFE_TRANSACTION_MAX_TIMEOUT } from 'web3z';
 import errno_web3z from 'web3z/errno';
 import {ABIType, getAddressFromType} from './abi';
 import errno from './errno';
 import {callbackURI} from './utils';
 import db from './db';
+import {WatchCat} from './watch';
 
 export interface PostResult {
 	receipt: TransactionReceipt;
@@ -89,7 +92,7 @@ class AddressContract extends ContractCall {
 	}
 }
 
-export class Web3Contracts {
+export class Web3Contracts implements WatchCat {
 	private _contracts = new Map<string, ContractCall>();
 
 	contractFromType(type: ABIType, star_?: string) {
@@ -239,7 +242,9 @@ export class Web3Contracts {
 		return String(id);
 	}
 
-	async initialize() {
+	cattime = 5; // 5 minute call cat()
+
+	async cat() {
 		var items = await db.select('tx_async', { status: 1 });
 		for (var item of items) {
 			if (item.contract) {
@@ -248,6 +253,7 @@ export class Web3Contracts {
 				this._sendSignTransactionAsync(item.id);
 			}
 		}
+		return true;
 	}
 
 }
