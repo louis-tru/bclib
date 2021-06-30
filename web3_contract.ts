@@ -161,7 +161,7 @@ export class Web3Contracts implements WatchCat {
 		
 		var r = await db.getById('tx_async', id) as TxAsync;
 		if (r.status == 1) {
-			var u = { status: 2, data: JSON.stringify(result) } as Dict;
+			var u = { status: result.error ? 3: 2, data: JSON.stringify(result) } as Dict;
 			if (result.receipt) {
 				u.txid = result.receipt.transactionHash;
 			}
@@ -180,18 +180,16 @@ export class Web3Contracts implements WatchCat {
 	async contractGet(contractAddress: string, method: string, args?: any[], opts?: Options) {
 		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
-		var { /*event, */retry, timeout, blockRange, ..._opts } = opts || {};
-		return await fn.call(_opts);
+		return await fn.call(opts);
 	}
 
 	async contractPost(contractAddress: string, method: string, args?: any[], opts?: Options, hash?: (hash: string)=>void) {
 		var contract = await web3.impl.contract(contractAddress);
 		var fn = contract.methods[method](...(args||[]));
-		var { /*event, */ retry, ..._opts } = opts || {};
-		await fn.call({..._opts}); // try call
+		await fn.call(opts); // try call
 		// var nonce = await web3.txQueue.getNonce();
 
-		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({..._opts, ...e}, hash), opts);
+		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}, hash), opts);
 
 		// discard:
 		// var event: FindEventResult | undefined;
@@ -219,9 +217,8 @@ export class Web3Contracts implements WatchCat {
 		var row = await db.getById('tx_async', id) as TxAsync; somes.assert(row);
 		this._sendTransactionAsync(id, row, async (hash)=>{
 			var opts: TxOptions = JSON.parse(row.opts);
-			var { retry, ..._opts } = opts;
 			return {
-				receipt: await web3.impl.txQueue.push(e=>web3.impl.sendSignTransaction({..._opts, ...e}, hash), opts),
+				receipt: await web3.impl.txQueue.push(e=>web3.impl.sendSignTransaction({...opts, ...e}, hash), opts),
 			};
 		}, cb_ || row.cb);
 	}
