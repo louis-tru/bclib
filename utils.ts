@@ -189,7 +189,7 @@ async function callbackURL_impl(data: any, url: string, id: number) {
 		await utils.sleep(sleep * 1e3);
 		sleep = Math.min(3600, sleep * 1.5);
 	}
-	await db.update('callback_url', { status: 3 }, { id });
+	await db.update('callback_url', { status: 2 }, { id });
 }
 
 export async function callbackURI(data: any, url: string) {
@@ -203,7 +203,7 @@ export async function initialize() {
 		try {
 			callbackURL_impl(JSON.parse(item.data), item.url, item.id);
 		} catch(err) {
-			await db.update('callback_url', { status: 3 }, { id: item.id });
+			await db.update('callback_url', { status: 2 }, { id: item.id });
 		}
 	}
 }
