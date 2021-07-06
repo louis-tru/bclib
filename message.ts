@@ -55,6 +55,10 @@ export class MessageCenter<T = any> extends Notification implements WatchCat<T>,
 
 	private _mbus?: Mbus;
 
+	getBus() {
+		return this._mbus || null;
+	}
+
 	constructor(_cfg?: {mbus: string; mbus_topic: string}) {
 		super();
 		var config = _cfg || cfg;
