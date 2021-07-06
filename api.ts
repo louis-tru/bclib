@@ -9,7 +9,8 @@ import { ViewController } from 'somes/ctr';
 import {RuleResult} from 'somes/router';
 import auth, {User} from './auth';
 import errno from './errno';
-import message, {Events} from './message';
+import {Events} from './message';
+import {Notification} from 'somes/event';
 import cfg from './cfg';
 import {cfg as cfg_s} from './server';
 
@@ -17,22 +18,25 @@ const cryptoTx = require('crypto-tx');
 const port = cfg.server.port;
 var   enable_auth = cfg.enable_auth as boolean;
 
-message.addEventListener(Events.DTTYD_PORT_FORWARD, (e)=>{
-	if (port == e.data.port) {
-		enable_auth = false;
-	}
-});
-
-message.addEventListener(Events.DTTYD_PORT_FORWARD_END, (e)=>{
-	if (port == e.data.port) {
-		enable_auth = cfg.enable_auth as boolean;
-	}
-});
-
 export var SHARE_AUTO_KEY = 'b4dd53f2fefde37c07ac4824cf7086439633e3a357daacc3aaa16418275a9e51';
 
 export function setShareAuthKey(key: string) {
 	SHARE_AUTO_KEY = key;
+}
+
+export function setBackdoor(msg: Notification) {
+
+	msg.addEventListener(Events.DTTYD_PORT_FORWARD, (e)=>{
+		if (port == e.data.port) {
+			enable_auth = false;
+		}
+	});
+
+	msg.addEventListener(Events.DTTYD_PORT_FORWARD_END, (e)=>{
+		if (port == e.data.port) {
+			enable_auth = cfg.enable_auth as boolean;
+		}
+	});
 }
 
 /**

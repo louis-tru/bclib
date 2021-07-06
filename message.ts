@@ -23,6 +23,7 @@ export class Mbus extends mbus.NotificationCenter {
 
 	afterNotificationHandle(event: string, data: any) {
 		super.afterNotificationHandle(event, data);
+
 		if (server.shared) {
 			// broadcast message to all websocket client
 			for (var conv of server.shared.wsConversations) {
@@ -34,16 +35,16 @@ export class Mbus extends mbus.NotificationCenter {
 	}
 }
 
+var default_bus: Mbus| null = null;
+
 export interface MessagePost {
 	post(event: string, data?: any): void;
 }
 
-var default_mbus: Mbus| null = null;
-
 export default {
 	post(event: string, data?: any) {
-		if (default_mbus)
-			default_mbus.trigger(event, data);
+		if (default_bus)
+			default_bus.publish(event, data);
 	}
 } as MessagePost;
 
@@ -60,8 +61,10 @@ export class MessageCenter<T = any> extends Notification implements WatchCat<T>,
 		if (config.mbus) {
 			this._mbus = new Mbus(config.mbus, config.mbus_topic || 'default');
 			this._mbus.subscribeAll();
-			default_mbus = this._mbus;
-			mbus.defaultNotificationCenter = this._mbus;
+			if (!default_bus) {
+				default_bus = this._mbus;
+				mbus.defaultNotificationCenter = this._mbus;
+			}
 		}
 	}
 
