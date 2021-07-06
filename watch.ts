@@ -5,7 +5,7 @@
 
 import {getLocalNetworkHost} from 'somes/network_host';
 import {Monitor} from 'somes/monitor';
-import {NotificationCenter} from 'somes/mbus';
+import {MessagePost} from 'bclib/message';
 
 const RUN_INTERVAL = 60 * 1000; // 60s
 const [host] = getLocalNetworkHost();
@@ -25,14 +25,14 @@ export interface WatchCat<T = any> {
  */
 export abstract class Watch<T = any> extends Monitor {
 	private _cat: Map<string, {watch: WatchCat<T>, ok: boolean}> = new Map;
-	private _mbus?: NotificationCenter;
+	private _msg?: MessagePost;
 
 	constructor(interval = RUN_INTERVAL, maxDuration = -1) {
 		super(interval, maxDuration);
 	}
 
-	setBus(bus: NotificationCenter) {
-		this._mbus = bus;
+	setMessage(msg: MessagePost) {
+		this._msg = msg;
 	}
 
 	abstract beforeCat(now: Number): Promise<T> | T;
@@ -61,8 +61,8 @@ export abstract class Watch<T = any> extends Monitor {
 					}
 					if (_ok != ok) {
 						o.ok = _ok;
-						if (this._mbus) {
-							this._mbus.trigger('WatchChange', {
+						if (this._msg) {
+							this._msg.post('WatchChange', {
 								id: `${host}:${pid}:${name}`,
 								host: host,
 								pid: pid,

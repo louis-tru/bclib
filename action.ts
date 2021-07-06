@@ -35,7 +35,7 @@ export default class RequestAction {
 			this.m_Promise_err = reject;
 			this.m_timeid = setTimeout(()=>this._agree(false), this.m_timeout); 
 			// 广播动作请求
-			message.send(this.m_name, data);
+			message.post(this.m_name, data);
 		});
 	}
 

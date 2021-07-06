@@ -34,22 +34,38 @@ export class Mbus extends mbus.NotificationCenter {
 	}
 }
 
+export interface MessagePost {
+	post(event: string, data?: any): void;
+}
+
+var default_mbus: Mbus| null = null;
+
+export default {
+	post(event: string, data?: any) {
+		if (default_mbus)
+			default_mbus.trigger(event, data);
+	}
+} as MessagePost;
+
 /**
- * @class MessageCenter
- */
-export class MessageCenter extends Notification implements WatchCat {
+* @class MessageCenter
+*/
+export class MessageCenter<T = any> extends Notification implements WatchCat<T>, MessagePost {
 
 	private _mbus?: Mbus;
 
-	constructor() {
+	constructor(_cfg?: {mbus: string; mbus_topic: string}) {
 		super();
-		if (cfg.mbus) {
-			this._mbus = new Mbus(cfg.mbus, cfg.mbus_topic || 'default');
+		var config = _cfg || cfg;
+		if (config.mbus) {
+			this._mbus = new Mbus(config.mbus, config.mbus_topic || 'default');
 			this._mbus.subscribeAll();
+			default_mbus = this._mbus;
+			mbus.defaultNotificationCenter = this._mbus;
 		}
 	}
 
-	send(event: string, data?: any): void {
+	post(event: string, data?: any): void {
 		this.trigger(event, data);
 	}
 
@@ -74,9 +90,7 @@ export class MessageCenter extends Notification implements WatchCat {
 		}
 	}
 
-	async cat() {
+	async cat(t: T) {
 		return true;
 	}
 }
-
-export default new MessageCenter();
