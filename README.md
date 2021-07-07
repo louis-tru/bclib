@@ -139,6 +139,14 @@ lock(): void;
 setPassword({oldPwd: string, newPwd: string}): void;
 ```
 
+## keys/setUnlock
+
+设置自动解锁key的密码，如果设置了解锁密码并且服务启动配置为可以自动解锁key，当key被锁定时服务会尝试会自动解锁
+
+```ts
+setUnlock({pwd: string}): void;
+```
+
 ## keys/keychainKeystore
 
 以Keystore形式导出钥匙串根密钥，这个`pwd`非解锁密码，导出前先解锁钥匙串

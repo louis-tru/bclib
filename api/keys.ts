@@ -36,6 +36,10 @@ export default class extends ApiController {
 		return keys.impl.keychain.setPassword(this.userName, oldPwd, newPwd);
 	}
 
+	setUnlock({pwd}: {pwd: string}) {
+		return keys.impl.keychain.setUnlock(this.userName, pwd);
+	}
+
 	async keychainKeystore({pwd}: {pwd: string}) {
 		return (await keys.impl.keychain.root(this.userName)).exportKeystore(pwd);
 	}

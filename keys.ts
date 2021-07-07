@@ -392,6 +392,18 @@ export class KeychainManager {
 		this._keys.delete(name);
 	}
 
+	/**
+	 * @func setUnlock(pwd) setting auto unlock
+	 * */
+	async setUnlock(name: string, pwd: string) {
+		var [row] = await this._db.select('unlock_pwd', { name });
+		if (row) {
+			await this._db.update('unlock_pwd', { pwd }, { name });
+		} else {
+			await this._db.insert('unlock_pwd', { pwd, name });
+		}
+	}
+
 	async root(name: string) {
 		var key = this._keys.get(name);
 		if (!key) {
