@@ -179,6 +179,8 @@ async function callbackURL_impl(data: any, url: string, id: number) {
 	var sleep = 10;
 	var retry = 144;
 	while (--retry) {
+		if (!url.match(/^https?:\/\//i))
+			break;
 		try {
 			var r = await post(url, { params: data, urlencoded: false, signer });
 			if (r.statusCode == 200) {
