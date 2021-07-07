@@ -22,7 +22,7 @@ function find_deps_lib(name, dir) {
 try {
 	require('somes');
 } catch(e) {
-	[`${__dirname}/../out/dist`, `${__dirname}/..`].some(e=>{
+	[`${__dirname}/../../../out/dist`, `${__dirname}/..`].some(e=>{
 		var lib = find_deps_lib('somes', e);
 		if (lib) {
 			// fs.symlinkSync(e, `${__dirname}/node_modules`);

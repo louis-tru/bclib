@@ -6,7 +6,7 @@
 
 // compile solidity
 
-require('./_');
+require('./load_somes');
 
 var somes = require('somes').default;
 var syscall = require('somes/syscall');

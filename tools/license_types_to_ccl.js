@@ -6,7 +6,7 @@
 
 // 导入数据到 license_types ccl 链是
 
-require('./_');
+require('./load_somes');
 
 var somes = require('somes').default;
 var request = require('somes/request');
