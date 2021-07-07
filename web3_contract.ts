@@ -127,13 +127,30 @@ export class Web3Contracts implements WatchCat {
 		return data;
 	}
 
-	private async _sendTransactionAsync(id: number, row: TxAsync,
-		send: (hash?: (hash: string)=>void)=>Promise<PostResult>, cb?: Callback)
+	private async _sendTransactionAsyncAfter(id: number, result: PostResult, cb?: Callback) {
+		var r = await db.getById('tx_async', id) as TxAsync;
+		if (r.status != 1) {
+			return;
+		}
+		var u = { status: result.error ? 3: 2, data: JSON.stringify(result) } as Dict;
+		if (result.receipt) {
+			u.txid = result.receipt.transactionHash;
+		}
+		await db.update('tx_async', u, { id }); // 
+		if (cb) {
+			if (typeof cb == 'string') { // callback url
+				callbackURI(result, cb);
+			} else {
+				cb(result);
+			}
+		}
+	}
+
+	private async _sendTransactionAsyncExec(id: number, row: TxAsync,
+		sendQueue: (hash?: (hash: string)=>void)=>Promise<PostResult>, cb?: Callback)
 	{
 		var result = { id: String(id) } as PostResult;
-
-		if (row.status == 1 && row.txid) {
-			// ... check txid
+		if (row.txid) { // ... check txid
 			var receipt = await web3.impl.web3.eth.getTransactionReceipt(row.txid);
 			if (receipt) {
 				if (receipt.status) {
@@ -141,39 +158,37 @@ export class Web3Contracts implements WatchCat {
 				} else {
 					result.error = Error.new(errno_web3z.ERR_ETH_TRANSACTION_FAIL);
 				}
-			} else if ( Date.now() > row.time + SAFE_TRANSACTION_MAX_TIMEOUT ) {
-				result.error = Error.new(errno_web3z.ERR_ETH_TRANSACTION_FAIL);
-			} else {
-				return; // wait
+				await this._sendTransactionAsyncAfter(id, result, cb);
 			}
-		} else if (row.status <= 1) {
+		} else {
 			try {
-				await db.update('tx_async', { status: 1 }, { id }); // TODO 标记进行中
-				Object.assign(result, await send(txid=>{
-					db.update('tx_async', { txid }, { id }); // 这里把`txid`记录下来
-				}));
+				var r = await sendQueue(txid=>{
+					db.update('tx_async', { txid }, { id }); // TODO 这个地方txid肯定是要发送到链上，把`txid`记录下来
+				});
+				Object.assign(result, r);
 			} catch(error) {
 				Object.assign(result, {error});
 			}
-		} else {
-			return; // ignore
+			await this._sendTransactionAsyncAfter(id, result, cb);
 		}
-		
-		var r = await db.getById('tx_async', id) as TxAsync;
-		if (r.status == 1) {
-			var u = { status: result.error ? 3: 2, data: JSON.stringify(result) } as Dict;
-			if (result.receipt) {
-				u.txid = result.receipt.transactionHash;
-			}
-			await db.update('tx_async', u, { id }); // 
+	}
 
-			if (cb) {
-				if (typeof cb == 'string') { // callback url
-					callbackURI(result, cb);
-				} else {
-					cb(result);
-				}
-			}
+	private _sendTransactionAsyncExecuting = new Set<number>();
+
+	private async _sendTransactionAsync(id: number, row: TxAsync,
+		sendQueue: (hash?: (hash: string)=>void)=>Promise<PostResult>, cb?: Callback)
+	{
+		if (row.status != 1) {
+			return;
+		}
+		if (!this._sendTransactionAsyncExecuting.has(id)) {
+			return;
+		}
+		try {
+			this._sendTransactionAsyncExecuting.add(id);
+			await this._sendTransactionAsyncExec(id, row, sendQueue, cb);
+		} finally {
+			this._sendTransactionAsyncExecuting.delete(id);
 		}
 	}
 
@@ -188,18 +203,7 @@ export class Web3Contracts implements WatchCat {
 		var fn = contract.methods[method](...(args||[]));
 		await fn.call(opts); // try call
 		// var nonce = await web3.txQueue.getNonce();
-
 		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}, hash), opts);
-
-		// discard:
-		// var event: FindEventResult | undefined;
-		// if (_event) {
-		// 	event = await contract.findEvent(_event,
-		// 		receipt.blockNumber, receipt.transactionHash
-		// 	) as FindEventResult;
-		// 	somes.assert(event, errno.ERR_WEB3_API_POST_EVENT_NON_EXIST);
-		// }
-
 		return { receipt } as PostResult;
 	}
 
@@ -232,6 +236,7 @@ export class Web3Contracts implements WatchCat {
 			opts: JSON.stringify(opts || {}),
 			cb: typeof cb == 'string' ? cb: null,
 			time: Date.now(),
+			status: 1,
 		});
 		await this._contractPostAsync(id, cb);
 		return String(id);
@@ -243,6 +248,7 @@ export class Web3Contracts implements WatchCat {
 			opts: JSON.stringify(opts),
 			cb: typeof cb == 'string' ? cb: null,
 			time: Date.now(),
+			status: 1,
 		});
 		await this._sendSignTransactionAsync(id, cb);
 		return String(id);

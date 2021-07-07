@@ -26,7 +26,7 @@ export function initialize() {
 			data       TEXT,
 			cb         VARCHAR (255),
 			txid       VARCHAR (255),
-			status     INTEGER DEFAULT (0) NOT NULL, -- 0init,1进行中,2完成,3失败
+			status     INTEGER DEFAULT (0) NOT NULL, -- 1进行中,2完成,3失败
 			time       INTEGER DEFAULT (0) NOT NULL
 		);
 	`, [
