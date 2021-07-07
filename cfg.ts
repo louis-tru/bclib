@@ -19,6 +19,7 @@ const cfg = {
 	mbus_topic: 'default',
 	env: 'dev',
 	keys: '',
+	keys_auto_unlock: false,
 	amqp: 'amqp://127.0.0.1',
 	apis: [] as string[],
 	tests: [] as string[],

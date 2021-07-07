@@ -118,6 +118,7 @@ export class SecretKey implements ISecretKey {
 	}
 
 	unlock(pwd: string) {
+		somes.assert(this._keystore, 'keystore cannot be empty');
 		var key = buffer.from(keystore.decryptPrivateKey(this._keystore, pwd));
 		this.setPrivKey(key);
 	}
@@ -168,7 +169,10 @@ export class KeychainManager {
 			this._key_path = path;
 		fs.mkdirpSync(this._key_path)
 		// somes.assert(fs.statSync(this._key_path).isDirectory(), 'This is not a user key directory');
-		this._db = new SQLiteTools(`${this._key_path}/address_indexed.db`);
+		if (fs.existsSync(`${this._key_path}/address_indexed.db`)) {
+			fs.renameSync(`${this._key_path}/address_indexed.db`, `${this._key_path}/keys.db`);
+		}
+		this._db = new SQLiteTools(`${this._key_path}/keys.db`);
 	}
 
 	initialize() {
@@ -185,6 +189,10 @@ export class KeychainManager {
 				name        VARCHAR (64)             NOT NULL, -- 用户名称
 				offset_size INTEGER                  NOT NULL  -- 通过偏移方式生成的key数量
 			);
+			CREATE TABLE if not exists unlock_pwd ( -- 自动 unlock keys
+				name       VARCHAR (64) PRIMARY KEY NOT NULL, -- 用户名称 appid user
+				pwd        VARCHAR (64)                       -- unlock pwd
+			);
 		`, [
 			'alter table address_list add part_key VARCHAR (64) NOT NULL',
 		], [
@@ -192,6 +200,7 @@ export class KeychainManager {
 			'create unique index address_list_addressBtc on address_list (addressBtc)',
 			'create unique index address_list_part_key   on address_list (part_key)',
 			'create unique index root_keys_address       on root_keys (address)',
+			'create unique index unlock_pwd_name         on unlock_pwd (name)',
 		]);
 	}
 
@@ -347,6 +356,12 @@ export class KeychainManager {
 
 	private async _getSecretKeyByIndexed(name: string, offset: number, part_key: string) {
 		var root = await this.root(name);
+		if (!root.hasUnlock() && cfg.keys_auto_unlock) {
+			var [row] = await this._db.select('unlock_pwd', { name });
+			if (row && row.pwd) {
+				root.unlock(row.pwd);
+			}
+		}
 		if (offset) {
 			return { name, key: root.offset(offset) };
 		} else {
