@@ -181,7 +181,7 @@ export class Web3Contracts implements WatchCat {
 		if (row.status != 1) {
 			return;
 		}
-		if (!this._sendTransactionAsyncExecuting.has(id)) {
+		if (this._sendTransactionAsyncExecuting.has(id)) {
 			return;
 		}
 		try {
