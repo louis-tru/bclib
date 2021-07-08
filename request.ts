@@ -239,6 +239,7 @@ class Dasset extends SafeRequest {
 			if (err.errno != errno.ERR_REQ_DASSET_ERR[0] || err.state != 'C-10005') {
 				throw err;
 			}
+			this._token = undefined;
 		}
 		// use new token retry
 		options.headers.token = await this._getToken();
