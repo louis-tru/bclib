@@ -24,7 +24,7 @@ export interface WatchCat<T = any> {
  * @class Watch extends Monitor
  */
 export abstract class Watch<T = any> extends Monitor {
-	private _cat: Map<string, {watch: WatchCat<T>, ok: boolean}> = new Map;
+	private _cat: Map<WatchCat, {watch: WatchCat<T>, ok: boolean}> = new Map;
 	private _msg?: MessagePost;
 
 	constructor(interval = RUN_INTERVAL, maxDuration = -1) {
@@ -78,17 +78,16 @@ export abstract class Watch<T = any> extends Monitor {
 	}
 
 	addWatch(cat: WatchCat) {
-		var name = cat.name || cat.constructor.name;
-		if (!this._cat.has(name)) {
+		if (!this._cat.has(cat)) {
 			cat.catcount = 0;
 			cat.cattime = cat.cattime || 1;
 			cat.priv_cattime = 0;
-			this._cat.set(name, {watch:cat, ok: true});
+			this._cat.set(cat, {watch:cat, ok: true});
 		}
 	}
 
 	delWatch(cat: WatchCat) {
-		this._cat.delete(cat.name || cat.constructor.name);
+		this._cat.delete(cat);
 	}
 
 	run() {
