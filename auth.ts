@@ -93,16 +93,17 @@ export class AuthorizationManager {
 			}
 		}
 
-		var user = this.user(username);
+		var user = this.user(username) as User;
 		if (user) {
 			// 不允许外部授权更改内部授权
 			utils.assert(user.mode == AuthorizationMode.OUTER, errno.ERR_AUTHORIZATION_FAIL);
 		}
-
+		user = { name: username, key, keyType: type, mode: AuthorizationMode.OUTER };
+		
 		var names = storage.get('authorizationNames', []) as string[];
 		names.deleteOf(username).push(username);
 		storage.set('authorizationNames', names);
-		storage.set(`authorization_${username}`, { name: username, key, type, mode: AuthorizationMode.OUTER });
+		storage.set(`authorization_${username}`, user);
 	}
 
 	/**
