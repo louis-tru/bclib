@@ -64,7 +64,8 @@ export default class APIController extends ViewController {
 
 		// auto current system time
 		if (Math.abs(st - Date.now()) > 6e5) {// within 10 minutes 
-			console.warn('Auth fail, st not match, user:', this.userName, 'st:', st, 'ser st:', Date.now());
+			if (cfg.moreLog)
+				console.warn('Auth fail, st not match, user:', this.userName, 'st:', st, 'ser st:', Date.now());
 			return false;
 		}
 
@@ -87,7 +88,8 @@ export default class APIController extends ViewController {
 				hash = cfg_s.formHash == 'md5' ? Buffer.from(hash.toString('hex')): hash;
 				var ok = cryptoTx.verify(hash, signature, pkey, false);
 				if (!ok)
-					console.warn('Auth fail, user:', this.userName, 'hash:', hash);
+					if (cfg.moreLog)
+						console.warn('Auth fail, user:', this.userName, 'hash:', hash);
 				return ok;
 			} else {
 				console.warn('Authentication mode is not supported', user.keyType);
