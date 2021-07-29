@@ -9,6 +9,7 @@ import req, {Params,Options, PromiseResult, parseJSON as _parseJSON, Result} fro
 import errno from './errno';
 import buffer, {IBuffer} from 'somes/buffer';
 import keys from './keys+';
+import {SecretKey} from 'bclib/keys';
 import cfg from './cfg';
 
 const crypto_tx = require('crypto-tx');
@@ -120,6 +121,7 @@ var CHECK = new CheckInternet();
 export abstract class SafeRequest extends req.Request {
 
 	private _chack = CHECK;
+	protected shareKey = 'a4dd53f2fefde37c07ac4824cf7086439633e1a357daacc3aaa16418275a9e40';
 
 	abstract parseResponseData(buf: IBuffer, r: Result): any;
 
@@ -147,7 +149,7 @@ export abstract class SafeRequest extends req.Request {
 
 		// sign request
 		var st = Date.now();
-		var key = 'a4dd53f2fefde37c07ac4824cf7086439633e1a357daacc3aaa16418275a9e40';
+		var key = this.shareKey;
 		if (method == 'POST') {
 			var hash32Hex = crypto_tx.keccak(JSON.stringify(params) + st + key).hex;
 		} else {
@@ -279,6 +281,37 @@ class XApi extends SafeRequest {
 
 }
 
+class Baas extends SafeRequest {
+	protected shareKey = 'b4dd53f2fefde37c07ac4824cf7086439633e3a357daacc3aaa16418275a9e51';
+	// privateKey: 0x1594e3262ff748d55ac6d220b01f28f9c878760708f1f67d294614e41182deb5
+	// publicKey: 0x037be384f878f0d4adeb2e71adc446357e3cc8cdb782a36ddfafc630331c98f717
+	private _secretKey = SecretKey.from(buffer.from(
+		'1594e3262ff748d55ac6d220b01f28f9c878760708f1f67d294614e41182deb5', 'hex'
+	));
+
+	protected async sign(hash32Hex: string) {
+		var signature = await this._secretKey.sign(buffer.from(hash32Hex.slice(2), 'hex'))
+		return buffer.concat([signature.signature, [signature.recovery]]).toString('base64');
+	}
+
+	parseResponseData(buf: IBuffer, r: Result): any {
+		if (r.statusCode != 200) {
+			throw Error.new(errno.ERR_HTTP_STATUS_NO_200);
+		}
+		var json = buf.toString('utf8');
+		var res = parseJSON(json);
+		if (res.errno === 0) {
+			return res.data;
+		} else {
+			throw Error.new(res);
+		}
+	}
+
+	getRequestHeaders(): Dict {
+		return { 'auth-user': 'dphotos' };
+	}
+}
+
 export const get = req.get;
 export const post = req.post;
 export const request = req.request;
@@ -286,6 +319,7 @@ export const request = req.request;
 export const chain = new Chain(cfg.chain);
 export const dasset = new Dasset(cfg.dasset);
 export const btc = new XApi(cfg.x_api + '/btc/mainnet');
+export const baas = new Baas(cfg.baas);
 
 dasset.urlencoded = false;
 dasset.timeout = 5e4; // 50s
@@ -293,5 +327,7 @@ chain.urlencoded = false;
 chain.timeout = 5e4; // 50s
 btc.urlencoded = false;
 btc.timeout = 5e4;
+baas.urlencoded = false;
+baas.timeout = 5e4; // 50s
 
 export default chain;

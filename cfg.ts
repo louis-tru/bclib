@@ -9,6 +9,7 @@ const cfg = {
 	dasset: 'http://dasset-develop.stars-mine.com/api',
 	dasset_appid: 'dAd26cd9145835537b',
 	dasset_secret_key: '17e72914502530026917103952b6e010',
+	baas: 'http://dphoto-bass-release.stars-mine.com/service-api',
 	x_api: 'https://api.cryptoapis.io/v1/bc',
 	x_api_key: '6ca420ec851339a7589675bc06afff846957bb6a',
 	web3: 'http://127.0.0.1:7777',
