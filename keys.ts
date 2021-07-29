@@ -112,15 +112,21 @@ export class SecretKey implements ISecretKey {
 
 	lock() {
 		if (this._privKeyCiphertext) {
-			this._privKeyCiphertext.fill(0, 0, this._privKeyCiphertext.length); // Erase key
-			this._privKeyCiphertext = undefined;
+			if (this._keystore) {
+				this._privKeyCiphertext.fill(0, 0, this._privKeyCiphertext.length); // Erase key
+				this._privKeyCiphertext = undefined;
+			} else {
+				console.warn('Cannot lock SecretKey');
+			}
 		}
 	}
 
 	unlock(pwd: string) {
-		somes.assert(this._keystore, 'keystore cannot be empty');
-		var key = buffer.from(keystore.decryptPrivateKey(this._keystore, pwd));
-		this.setPrivKey(key);
+		if (!this._privKeyCiphertext) {
+			somes.assert(this._keystore, 'keystore cannot be empty');
+			var key = buffer.from(keystore.decryptPrivateKey(this._keystore, pwd));
+			this.setPrivKey(key);
+		}
 	}
 
 	async exportKeystore(pwd: string): Promise<object> {
@@ -411,13 +417,11 @@ export class KeychainManager {
 			if (!await fs.exists(path)) {
 				// gen root key
 				var privkey = buffer.from(crypto_tx.genPrivateKey());
-				key = SecretKey.from(privkey);
-				var keystore = JSON.stringify(key.exportKeystore('0000'), null, 2); // default
+				var keystore = JSON.stringify(SecretKey.from(privkey).exportKeystore('0000'), null, 2); // default
 				await fs.writeFile(path, keystore);
-			} else {
-				var keystore_bin = await fs.readFile(path);
-				key = SecretKey.keystore(JSON.parse(keystore_bin.toString()));
 			}
+			var keystore_bin = await fs.readFile(path);
+			key = SecretKey.keystore(JSON.parse(keystore_bin.toString()));
 			await this.backupKeystore(name);
 			this._keys.set(name, key);
 		}
