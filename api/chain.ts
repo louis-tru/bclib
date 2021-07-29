@@ -13,6 +13,7 @@ export default class extends ApiController {
 	
 	isSyncing = ()=>web3().eth.isSyncing();
 	blockNumber = ()=>web3().eth.getBlockNumber();
+	blockNumberCache = ()=>web3z.impl.getBlockNumber();
 	isListening = ()=>web3().eth.net.isListening();
 	getNetworkType = ()=>web3().eth.net.getNetworkType();
 	getPeerCount = ()=>web3().eth.net.getPeerCount();
