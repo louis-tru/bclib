@@ -138,6 +138,16 @@ export abstract class SafeRequest extends req.Request {
 		return buffer.concat([signature.signature, [signature.recovery]]).toString('base64');
 	}
 
+	protected hash(st: number, params: Params, method?: string) {
+		var key = this.shareKey;
+		if (method == 'POST') {
+			var hash = crypto_tx.keccak(JSON.stringify(params) + st + key).hex;
+		} else {
+			var hash = crypto_tx.keccak(st + key).hex;
+		}
+		return hash;
+	}
+
 	async sendSignRequest<T>(
 		name: string, 
 		method?: string,
@@ -149,15 +159,9 @@ export abstract class SafeRequest extends req.Request {
 
 		// sign request
 		var st = Date.now();
-		var key = this.shareKey;
-		if (method == 'POST') {
-			var hash32Hex = crypto_tx.keccak(JSON.stringify(params) + st + key).hex;
-		} else {
-			var hash32Hex = crypto_tx.keccak(st + key).hex;
-		}
 		var headers = Object.assign({
 			st: st,
-			sign: await this.sign(hash32Hex),
+			sign: await this.sign(this.hash(st, params, method)),
 		}, options.headers);
 
 		options.headers = headers;
@@ -288,6 +292,16 @@ class Baas extends SafeRequest {
 	private _secretKey = SecretKey.from(buffer.from(
 		'1594e3262ff748d55ac6d220b01f28f9c878760708f1f67d294614e41182deb5', 'hex'
 	));
+
+	protected hash(st: number, params: Params, method?: string) {
+		var key = this.shareKey;
+		if (method == 'POST') {
+			var hash = crypto.createHash('sha256').update(JSON.stringify(params) + st + key).digest('hex');
+		} else {
+			var hash = crypto.createHash('sha256').update(st + key).digest('hex');
+		}
+		return '0x' + hash;
+	}
 
 	protected async sign(hash32Hex: string) {
 		var signature = await this._secretKey.sign(buffer.from(hash32Hex.slice(2), 'hex'))
