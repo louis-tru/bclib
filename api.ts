@@ -59,12 +59,15 @@ export default class APIController extends ViewController {
 		var key = SHARE_AUTO_KEY;
 		var hash: Buffer;
 
-		if (!st)
+		if (!st) 
 			return false;
 
 		// auto current system time
-		if (Math.abs(st - Date.now()) > 6e5) // within 10 minutes
+		if (Math.abs(st - Date.now()) > 6e5) {// within 10 minutes 
+			if (cfg.moreLog)
+				console.warn(`Auth fail, st not match, user: ${this.userName}, st: ${st}, ser st: ${Date.now()}`);
 			return false;
+		}
 
 		if (this.form) {
 			hash = this.form.hash.update(st + key).digest();
@@ -84,6 +87,8 @@ export default class APIController extends ViewController {
 				var signature = Buffer.from(sign.buffer, sign.byteOffset, 64);
 				hash = cfg_s.formHash == 'md5' ? Buffer.from(hash.toString('hex')): hash;
 				var ok = cryptoTx.verify(hash, signature, pkey, false);
+				if (!ok && cfg.moreLog)
+					console.warn(`Auth fail, user: ${this.userName}, hash: 0x${hash.toString('hex')}`);
 				return ok;
 			} else {
 				console.warn('Authentication mode is not supported', user.keyType);
