@@ -11,19 +11,19 @@ const web3 = ()=>web3z.impl.web3;
 
 export default class extends ApiController {
 	
-	isSyncing = ()=>web3().eth.isSyncing();
-	blockNumber = ()=>web3().eth.getBlockNumber();
-	blockNumberCache = ()=>web3z.impl.getBlockNumber();
-	isListening = ()=>web3().eth.net.isListening();
-	getNetworkType = ()=>web3().eth.net.getNetworkType();
-	getPeerCount = ()=>web3().eth.net.getPeerCount();
-	getId = ()=>web3().eth.net.getId();
-	getChainId = ()=>web3().eth.getChainId();
-	getNodeInfo = ()=>web3().eth.getNodeInfo();
-	version = ()=>web3().version;
-	isMining = ()=>web3().eth.isMining();
-	getHashrate = ()=>web3().eth.getHashrate();
-	getGasPrice = ()=>web3().eth.getGasPrice();
+	isSyncing() { return web3().eth.isSyncing(); }
+	blockNumber() { return web3().eth.getBlockNumber(); }
+	blockNumberCache() { return web3z.impl.getBlockNumber(); }
+	isListening() { return web3().eth.net.isListening(); }
+	getNetworkType() { return web3().eth.net.getNetworkType(); }
+	getPeerCount() { return web3().eth.net.getPeerCount(); }
+	getId() { return web3().eth.net.getId(); }
+	getChainId() { return web3().eth.getChainId(); }
+	getNodeInfo() { return web3().eth.getNodeInfo(); }
+	version() { return web3().version; }
+	isMining() { return web3().eth.isMining(); }
+	getHashrate() { return web3().eth.getHashrate(); }
+	getGasPrice() { return web3().eth.getGasPrice(); }
 
 	async getBalance({address}:{address:string}) {
 		return web3().eth.getBalance(address);
@@ -38,30 +38,30 @@ export default class extends ApiController {
 		}
 	}
 
-	getBlock = (
+	getBlock(
 		{blockNumber, returnTransactionObjects = false}: 
 		{blockNumber: BlockNumber, returnTransactionObjects?: boolean}
-	)=>web3().eth.getBlock(blockNumber, returnTransactionObjects);
+	) { return web3().eth.getBlock(blockNumber, returnTransactionObjects); }
 
-	getBlockUncleCount = (
+	getBlockUncleCount(
 		{blockNumber}: {blockNumber: BlockNumber}
-	)=>web3().eth.getBlockUncleCount(blockNumber);
+	) { return web3().eth.getBlockUncleCount(blockNumber); }
 
-	getTransaction = (
+	getTransaction(
 		{transactionHash }: {transactionHash: string }
-	)=>web3().eth.getTransaction(transactionHash);
+	) { web3().eth.getTransaction(transactionHash); }
 
-	getPendingTransactions = ()=>web3().eth.getPendingTransactions();
+	getPendingTransactions() { return web3().eth.getPendingTransactions(); }
 
-	getTransactionFromBlock = (
+	getTransactionFromBlock(
 		{blockHashOrBlockNumber, index}: {blockHashOrBlockNumber: BlockNumber, index: number}
-	)=>web3().eth.getTransactionFromBlock(blockHashOrBlockNumber, index);
+	) { return web3().eth.getTransactionFromBlock(blockHashOrBlockNumber, index); }
 
-	getTransactionReceipt = (
+	getTransactionReceipt(
 		{hash}: {hash: string}
-	)=>web3().eth.getTransactionReceipt(hash);
+	) { return web3().eth.getTransactionReceipt(hash); }
 
-	getCoinbase = ()=>web3().eth.getCoinbase();
-	getProtocolVersion = ()=>web3().eth.getProtocolVersion();
-	getCode = ({address}:{address:string})=>web3().eth.getCode(address);
+	getCoinbase() { return web3().eth.getCoinbase(); }
+	getProtocolVersion() { return web3().eth.getProtocolVersion(); }
+	getCode({address}:{address:string}) { return web3().eth.getCode(address); }
 }
