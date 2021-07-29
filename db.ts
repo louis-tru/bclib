@@ -14,7 +14,7 @@ export function initialize() {
 			id           INTEGER PRIMARY KEY AUTOINCREMENT,
 			url          VARCHAR (255) NOT NULL,
 			data         TEXT NOT NULL,
-			status       INTEGER DEFAULT (0) NOT NULL -- 0没完成,1完成,2丢弃
+			status       INTEGER DEFAULT (0) NOT NULL -- 0没完成,1完成,2丢弃 
 		);
 		CREATE TABLE if not exists tx_async (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,
