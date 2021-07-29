@@ -5,12 +5,12 @@
 
 import utils from 'somes';
 import {Options,Params,Signer} from 'somes/request';
-import storage from './storage';
 import buffer from 'somes/buffer';
-import {SafeRequest, post} from './request';
 import cfg from './cfg';
-import keys from './keys+';
 import db from './db';
+import storage from './storage';
+import keys from './keys+';
+import {SafeRequest, post} from './request';
 
 const crypto_tx = require('crypto-tx');
 

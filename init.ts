@@ -10,13 +10,9 @@ import auth from './auth';
 
 export async function initialize () {
 	console.time('bclib init');
-	await db.initialize();
-	console.timeLog('bclib/db init');
-	await utils.initialize();
-	console.timeLog('bclib/utils init');
-	await storage.initialize();
-	console.timeLog('bclib/storage init');
-	await auth.initialize();
-	console.timeLog('bclib/auth init');
+	await db.initialize(); console.timeLog('bclib/db init');
+	await utils.initialize(); console.timeLog('bclib/utils init');
+	await storage.initialize(); console.timeLog('bclib/storage init');
+	await auth.initialize(); console.timeLog('bclib/auth init');
 	console.timeEnd('bclib init ok');
 }

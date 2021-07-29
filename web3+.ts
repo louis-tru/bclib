@@ -13,6 +13,7 @@ import {Web3Z, IWeb3Z as IWeb3ZBase} from 'web3z';
 import { TransactionQueue } from 'web3z/queue';
 import { Contract } from 'web3z';
 import {getAbiFromAddress} from './abi';
+import {StaticObject} from './obj';
 
 export interface IWeb3Z extends IWeb3ZBase {
 	readonly txQueue: TransactionQueue;
@@ -60,31 +61,14 @@ export class Web3IMPL extends Web3Z {
 	}
 }
 
-var _web3: IWeb3Z | undefined;
-var _web3_c: Web3Contracts | undefined;
-
-export default {
-
-	get impl() {
-		if (!_web3) {
-			_web3 = new Web3IMPL();
-		}
-		return _web3;
-	},
-
-	set_impl(impl: IWeb3Z) {
-		_web3 = impl;
-	},
-
+class ExportDefault extends StaticObject<IWeb3Z> {
+	private _web3_c = new StaticObject(Web3Contracts);
 	get web3_c() {
-		if (!_web3_c) {
-			_web3_c = new Web3Contracts();
-		}
-		return _web3_c;
-	},
-
+		return this._web3_c.impl;
+	}
 	set_web3_c(web3_c: Web3Contracts) {
-		_web3_c = web3_c;
-	},
+		this._web3_c.set_impl(web3_c);
+	}
+}
 
-};
+export default new ExportDefault(Web3IMPL);

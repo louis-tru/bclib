@@ -4,7 +4,7 @@
  */
 
 import cfg  from './cfg';
-import * as fs from 'somes/fs2';
+// import * as fs from 'somes/fs2';
 import somes from 'somes';
 import buffer from 'somes/buffer';
 import errno from './errno';
