@@ -9,7 +9,7 @@ import { TransactionReceipt,
 	FindEventResult,TxOptions as RawTxOptions,
 	SAFE_TRANSACTION_MAX_TIMEOUT } from 'web3z';
 import errno_web3z from 'web3z/errno';
-import {ABIType, getAddressFromType} from './abi';
+import {ABIType, getAddressByType} from './abi';
 import errno from './errno';
 import {callbackURI} from './utils';
 import db from './db';
@@ -80,7 +80,7 @@ export abstract class ContractCall {
 class TypeContract extends ContractCall {
 	private _star: string;
 	private _type: ABIType;
-	getAddress() { return getAddressFromType(this._type, this._star) }
+	getAddress() { return getAddressByType(this._type, this._star) }
 	constructor(_star: string, _type: ABIType, host: Web3Contracts) {
 		super(host);
 		this._star = _star;

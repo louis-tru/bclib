@@ -9,13 +9,13 @@ import cfg from './cfg';
 import keys from './keys+';
 import {IBuffer} from 'somes/buffer';
 import {Signature} from 'web3z';
-import {Web3Z, IWeb3Z as IWeb3ZBase} from 'web3z';
+import {Web3Z, IWeb3Z as IWeb3Z_} from 'web3z';
 import { TransactionQueue } from 'web3z/queue';
 import { Contract } from 'web3z';
-import {getAbiFromAddress} from './abi';
+import {getAbiByAddress} from './abi';
 import {StaticObject} from './obj';
 
-export interface IWeb3Z extends IWeb3ZBase {
+export interface IWeb3Z extends IWeb3Z_ {
 	readonly txQueue: TransactionQueue;
 	contract(address: string): Promise<Contract>;
 }
@@ -29,7 +29,7 @@ export class Web3IMPL extends Web3Z {
 	async contract(address: string) {
 		var contract = this._contracts[address];
 		if (!contract) {
-			var {abi} = await getAbiFromAddress(address);
+			var {abi} = await getAbiByAddress(address);
 			contract = this.createContract(address, abi);
 			this._contracts[address] = contract;
 		}

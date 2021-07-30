@@ -29,9 +29,9 @@ type RequestArgs = [string, string?, Params?, Options?];
 type RequestItem = [ SafeRequest, RequestArgs, (any: any)=>void, (any: any)=>void ];
 
 /**
- * @class CheckInternet
+ * @class CheckNetwork
  */
-class CheckInternet {
+class CheckNetwork {
 
 	private m_internet_available: number = 0;
 	private m_check_internet_flag: number = 0;
@@ -72,7 +72,7 @@ class CheckInternet {
 		self.resolve_request_list();
 	}
 	
-	checkInternet(): Promise<void> {
+	check(): Promise<void> {
 		this.m_check_internet_flag = 1;
 		return this.check_internet(internet_test.slice());
 	}
@@ -88,7 +88,7 @@ class CheckInternet {
 					// auto check internet
 					if (Date.now() - this.m_check_internet_time > 3e5/*300s*/) {
 						this.m_request_list.push([safe, args, ok, err]);
-						this.checkInternet();
+						this.check();
 					} else {
 						safe.sendSignRequest<T>(...args).then(ok).catch(err);
 					}
@@ -96,7 +96,7 @@ class CheckInternet {
 					// auto check internet
 					if (Date.now() - this.m_check_internet_time > 3e4/*30s*/) {
 						this.m_request_list.push([safe, args, ok, err]);
-						this.checkInternet();
+						this.check();
 					} else {
 						// Error.prototype
 						err(Error.new(errno.ERR_INTRRNET_NOT_AVAILABLE));
@@ -106,14 +106,14 @@ class CheckInternet {
 				this.m_request_list.push([safe, args, ok, err]);
 			} else {
 				this.m_request_list.push([safe, args, ok, err]);
-				this.checkInternet();
+				this.check();
 			}
 		});
 	}
 
 }
 
-var CHECK = new CheckInternet();
+var CHECK = new CheckNetwork();
 
 /**
  * @class SafeRequest
@@ -125,8 +125,8 @@ export abstract class SafeRequest extends req.Request {
 
 	abstract parseResponseData(buf: IBuffer, r: Result): any;
 
-	checkInternet(): Promise<void> {
-		return this._chack.checkInternet();
+	checkNetwork(): Promise<void> {
+		return this._chack.check();
 	}
 
 	get internetAvailable(): boolean {
@@ -335,13 +335,9 @@ export const dasset = new Dasset(cfg.dasset);
 export const btc = new XApi(cfg.x_api + '/btc/mainnet');
 export const baas = new Baas(cfg.baas);
 
-dasset.urlencoded = false;
-dasset.timeout = 5e4; // 50s
-chain.urlencoded = false;
-chain.timeout = 5e4; // 50s
-btc.urlencoded = false;
-btc.timeout = 5e4;
-baas.urlencoded = false;
-baas.timeout = 5e4; // 50s
-
 export default chain;
+
+for (var _req of [chain, dasset, btc, baas]) {
+	_req.urlencoded = false;
+	_req.timeout = 5e4; // 50s
+}

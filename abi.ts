@@ -47,10 +47,30 @@ export async function getLocalAbi(path: string) {
 	}
 }
 
-export async function getAbiFromNetwork({ address, type, star }: { address?: string, type?: ABIType, star?: string }) {
-	var opts = {cacheTime: utils2.prod ? 24*3600*1000/*1d*/ : 2e5/*200s*/};
-	if (address) {
+type FetchAbiFun = (address: string)=>Promise<AbiInterface>;
+
+export const fetchAbiFunList: FetchAbiFun[] = [
+	async function(address: string) {
+		var opts = {cacheTime: utils2.prod ? 24*3600*1000/*1d*/ : 2e5/*200s*/};
 		var {data} = await dasset.post('contract/getAbiByAddress', { address }, opts);
+		utils.assert(data, errno.ERR_GET_ABI_NOT_FOUND);
+		return { ...data, abi: JSON.parse(data.abi) } as AbiInterface;
+	}
+];
+
+export async function getAbiFromExternal({ address, type, star }: { address?: string, type?: ABIType, star?: string }) {
+	var opts = {cacheTime: utils2.prod ? 24*3600*1000/*1d*/ : 2e5/*200s*/};
+	var data: AbiInterface | undefined;
+	if (address) {
+		for (var fetch of fetchAbiFunList) {
+			try {
+				if (data = await fetch(address)) {
+					break;
+				}
+			} catch(err) {
+				console.error(err);
+			}
+		}
 	} else if (type) {
 		var types: Dict<number> = {
 			[ABIType.PROOF]: 1, // 1-proof
@@ -60,14 +80,13 @@ export async function getAbiFromNetwork({ address, type, star }: { address?: str
 			[ABIType.CASPER]: 5, // 4-casper
 		};
 		var tpye_ = types[type] || 1; // default 1-proof
-		var {data} = await dasset.post('contract/getAbiByType', { type: tpye_, id: star, star  }, opts);
+		var {data: data_} = await dasset.post('contract/getAbiByType', { type: tpye_, id: star, star }, opts);
+		utils.assert(data_, errno.ERR_GET_ABI_NOT_FOUND);
+		data = { ...data_, abi: JSON.parse(data_.abi) };
 	}
-	utils.assert(data, errno.ERR_GET_ABI_NOT_FOUND);
-	var { address: _address, abi} = data;
-	utils.assert(_address && abi, errno.ERR_GET_ABI_NOT_FOUND);
-	abi = JSON.parse(abi);
 
-	return { address: _address, abi: abi } as AbiInterface;
+	utils.assert(data && data.address == address, errno.ERR_GET_ABI_NOT_FOUND);
+	return data as AbiInterface;
 }
 
 async function getAbi(address?: string, type?: ABIType, star?: string) {
@@ -77,7 +96,7 @@ async function getAbi(address?: string, type?: ABIType, star?: string) {
 	var abi: AbiInterface|undefined;
 
 	try {
-		abi = await getAbiFromNetwork({address, type, star});
+		abi = await getAbiFromExternal({address, type, star});
 	} catch(err) {
 		console.error(err);
 	}
@@ -101,18 +120,18 @@ async function getAbi(address?: string, type?: ABIType, star?: string) {
 	return abi as AbiInterface;
 }
 
-export function getAbiFromType(type: ABIType, star?: string) {
+export function getAbiByType(type: ABIType, star?: string) {
 	return getAbi('', type, star);
 }
 
-export async function getAddressFromType(type: ABIType, star?: string) {
-	return (await getAbiFromType(type, star)).address;
-}
-
-export function getAbiFromAddress(address: string) {
+export function getAbiByAddress(address: string) {
 	return getAbi(address);
 }
 
 export function getCasperAbi() {
-	return getAbiFromType(ABIType.CASPER);
+	return getAbiByType(ABIType.CASPER);
+}
+
+export async function getAddressByType(type: ABIType, star?: string) {
+	return (await getAbiByType(type, star)).address;
 }
