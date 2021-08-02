@@ -199,7 +199,7 @@ export class SQLiteTools {
 		if (json) {
 			var r;
 			if (is_where_object) {
-				r = await this.m_db.get2(`select _json from ${table} where ${exp2.join('and')}`, values2);
+				r = await this.m_db.get2(`select _json from ${table} where ${exp2.join(' and ')}`, values2);
 			} else {
 				r = await this.m_db.get2(`select _json from ${table} where ${where}`);
 			}
@@ -213,7 +213,7 @@ export class SQLiteTools {
 			}
 		}
 		if (is_where_object) {
-			var sql = `update ${table} set ${exp.join(',')} where ${exp2.join('and')}`;
+			var sql = `update ${table} set ${exp.join(',')} where ${exp2.join(' and ')}`;
 			return await this.run(sql, Object.assign(values, values2));
 		} else {
 			var sql = `update ${table} set ${exp.join(',')} where ${where}`;
@@ -225,7 +225,7 @@ export class SQLiteTools {
 		var struct = this.check(table);
 		if (typeof where == 'object') {
 			var { values, exp } = get_sql_params(struct, where);
-			return await this.run(`delete from ${table} where ${exp.join('and')}`, values);
+			return await this.run(`delete from ${table} where ${exp.join(' and ')}`, values);
 		} else {
 			return await this.run(`delete from ${table} ${where ? 'where ' + where: ''}`);
 		}
@@ -238,7 +238,8 @@ export class SQLiteTools {
 		if (where) {
 			if (typeof where == 'object') {
 				var { exp, values } = get_sql_params(struct, where);
-				sql = `select * from ${table} where ${exp.join('and')}${limit_str}`;
+				sql = `select * from ${table} where ${exp.join(' and ')}${limit_str}`;
+				// console.log(sql, values)
 				ls = await this.all(sql, values);
 			} else {
 				sql = `select * from ${table} where ${where}${limit_str}`

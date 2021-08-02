@@ -50,7 +50,7 @@ interface TxAsync {
 	time: number;
 };
 
-export abstract class ContractCall {
+export abstract class ContractWrap {
 	private _host: Web3Contracts;
 
 	constructor(host: Web3Contracts) {
@@ -77,7 +77,7 @@ export abstract class ContractCall {
 
 }
 
-class TypeContract extends ContractCall {
+class TypeContract extends ContractWrap {
 	private _star: string;
 	private _type: ABIType;
 	getAddress() { return getAddressByType(this._type, this._star) }
@@ -88,7 +88,7 @@ class TypeContract extends ContractCall {
 	}
 }
 
-class AddressContract extends ContractCall {
+class AddressContract extends ContractWrap {
 	private _address: string;
 	async getAddress() {return this._address}
 	constructor(_address: string, host: Web3Contracts) {
@@ -98,7 +98,7 @@ class AddressContract extends ContractCall {
 }
 
 export class Web3Contracts implements WatchCat {
-	private _contracts = new Map<string, ContractCall>();
+	private _contracts = new Map<string, ContractWrap>();
 
 	contractFromType(type: ABIType, star_?: string) {
 		var star = star_ || '';
