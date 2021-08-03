@@ -29,6 +29,14 @@ export function initialize() {
 			status     INTEGER DEFAULT (0) NOT NULL, -- 1进行中,2完成,3失败
 			time       INTEGER DEFAULT (0) NOT NULL
 		);
+		create table if not exists auth_user(
+			id         integer PRIMARY KEY AUTOINCREMENT,
+			name       varchar (64)         not null,
+			key        text    default ('') not null,
+			mode       integer default (0)  not null,
+			interfaces text,
+			time       integer not null
+		);
 	`, [
 		'alter table tx_async add time INTEGER DEFAULT (0) NOT NULL',
 	], [
@@ -36,6 +44,8 @@ export function initialize() {
 		'create        index callback_url_status on callback_url (status)',
 		'create unique index tx_async_id     on tx_async (id)',
 		'create        index tx_async_status on tx_async (status)',
+		'create unique index auth_user_name on auth_user (name)',
+		'create        index auth_user_mode on auth_user (mode)',
 	]);
 }
 

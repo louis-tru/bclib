@@ -13,6 +13,6 @@ export async function initialize () {
 	await db.initialize(); console.timeLog('bclib/db init');
 	await utils.initialize(); console.timeLog('bclib/utils init');
 	await storage.initialize(); console.timeLog('bclib/storage init');
-	await auth.initialize(); console.timeLog('bclib/auth init');
+	await auth.impl.initialize(); console.timeLog('bclib/auth init');
 	console.timeEnd('bclib init ok');
 }

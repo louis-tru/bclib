@@ -46,7 +46,7 @@ export default class APIController extends ViewController {
 
 	private _user?: User | null;
 
-	private _auth(_: RuleResult): boolean {
+	private async _auth(_: RuleResult) {
 		if (!enable_auth) {
 			return true;
 		}
@@ -75,7 +75,7 @@ export default class APIController extends ViewController {
 			hash = crypto.createHash(cfg_s.formHash).update(st + key).digest();
 		}
 
-		var user = this.userWithoutErr();
+		var user = await this.userNotErr();
 		if (user) {
 			if (user.keyType == 'rsa') {
 				sign = crypto.publicDecrypt(user.key, sign);
@@ -98,8 +98,8 @@ export default class APIController extends ViewController {
 		return false;
 	}
 
-	auth(_: RuleResult) {
-		var r = this._auth(_);
+	async auth(_: RuleResult) {
+		var r = await this._auth(_);
 
 		if (utils.debug) {
 			console.log(...(r ? []: ['ILLEGAL ACCESS']), this.pathname, this.headers, this.params, this.data);
@@ -111,15 +111,15 @@ export default class APIController extends ViewController {
 		return (this.headers['auth-user'] || this.headers['auth-name']) as string || 'default';
 	}
 
-	get authorizationUser() {
-		var user = this.userWithoutErr() as User;
+	async user() {
+		var user = await this.userNotErr() as User;
 		utils.assert(user, errno.ERR_AUTH_USER_NON_EXIST);
 		return user;
 	}
 
-	userWithoutErr() {
-		if (this._user === undefined) {
-			this._user = auth.user(this.userName);
+	async userNotErr() {
+		if (!this._user) {
+			this._user = await auth.impl.user(this.userName);
 		}
 		return this._user;
 	}

@@ -3,40 +3,70 @@
  * @date 2020-07-18
  */
 
-import storage from './storage';
 import utils from './utils';
 import errno from './errno';
 import action from './action';
 import * as apps from './apps';
 import buffer from 'somes/buffer';
+import db from './db';
+import {StaticObject} from './obj';
 
 export enum AuthorizationKeyType {
 	rsa = 'rsa', secp256k1 = 'secp256k1'
 }
 
-export enum AuthorizationMode {
-	OUTER, INLINE,
+export enum AuthorizationMode { // mode or role
+	INLINE, OUTER, OTHER,
 }
 
 export interface AuthorizationUser {
 	name: string;
 	key: string;
 	keyType: AuthorizationKeyType;
-	mode: AuthorizationMode;
-	interfaces?: string[]; // 允许访问的接口名列表
+	mode: AuthorizationMode; // mode or role
+	interfaces?: string; // 允许访问的接口名列表
 }
 
 export type User = AuthorizationUser;
 
+export interface Cache {
+	get(name: string): Promise<User | null>;
+	set(name: string, user: User | null): void;
+	clear(): void;
+};
+
+class DefaultCacheIMPL implements Cache {
+	private _value: Map<string, User> = new Map();
+	get(name: string): Promise<User | null> {
+		return Promise.resolve(this._value.get(name) || null);
+	}
+	set(name: string, user: User | null): void {
+		if (user) {
+			this._value.set(name, user);
+		} else {
+			this._value.delete(name);
+		}
+	}
+	clear(): void {
+		this._value.clear();
+	}
+}
+
 export class AuthorizationManager {
+
+	private _cache: Cache = new DefaultCacheIMPL();
+
+	setCache(cache: Cache) {
+		this._cache = cache;
+	}
 
 	async initialize() {
 		// fix old key
-		var old_key = storage.get('auth_public_key', '');
-		if (old_key) { // 兼容旧的验证方式
-			storage.delete('auth_public_key');
-			this.setAuthorizationUser_('default', old_key, AuthorizationKeyType.rsa);
-		}
+		// var old_key = storage.get('auth_public_key', '');
+		// if (old_key) { // 兼容旧的验证方式
+		// 	storage.delete('auth_public_key');
+		// 	this.setAuthorizationUserNoCheck('default', old_key, AuthorizationKeyType.rsa);
+		// }
 	}
 
 	static toAuthorizationUser(app: apps.ApplicationInfo): AuthorizationUser {
@@ -48,37 +78,28 @@ export class AuthorizationManager {
 		};
 	}
 
-	users(): string[] {
-		var set = new Set<string>();
-
-		for (var name of storage.get('authorizationNames', []) as string[]) {
-			set.add(name);
-		}
-		for (var app of apps.allApplications()) {
-			set.add(app.appId);
-		}
-
-		var users = [] as string[];
-
-		for (var user of set) {
-			users.push(user);
-		}
-
-		return users;
-	}
-
-	user(name: string): AuthorizationUser | null {
+	async user(name: string): Promise<AuthorizationUser | null> {
 		var app = apps.applicationWithoutErr(name);
 		if (app) {
 			return AuthorizationManager.toAuthorizationUser(app);
 		}
-		return storage.get(`authorization_${name}`) as AuthorizationUser | null;
+		var user = await this._cache.get(name);
+		if (user) {
+			return user;
+		}
+		var [_user] = await db.select('auto_user', { name }) as AuthorizationUser[];
+		if (_user) {
+			this._cache.set(name, _user);
+			return _user;
+		}
+		return null;
 	}
 
-	private setAuthorizationUser_(name: string, key: string, type?: AuthorizationKeyType): void {
+	async setAuthorizationUserNoCheck(name: string, key: string, type?: AuthorizationKeyType, mode?: number) {
 		key = String(key).trim();
 		type = type || AuthorizationKeyType.secp256k1;
-		var username = name || 'default'; // utils.hash(utils.random());
+		name = name || 'default';
+		mode = mode || AuthorizationMode.OUTER;
 
 		if (type == AuthorizationKeyType.rsa) {
 			if (!/BEGIN PUBLIC KEY/.test(key)) {
@@ -92,46 +113,42 @@ export class AuthorizationManager {
 				key = '0x' + key;
 			}
 		}
+		var user: AuthorizationUser = { name, key, keyType: type, mode };
 
-		var user = this.user(username) as User;
-		if (user) {
+		utils.assert(mode != AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE);
+
+		if (await this.user(name)) {
 			// 不允许外部授权更改内部授权
-			utils.assert(user.mode == AuthorizationMode.OUTER, errno.ERR_AUTHORIZATION_FAIL);
+			utils.assert(user.mode != AuthorizationMode.INLINE, errno.ERR_AUTHORIZATION_FAIL);
+			await db.update('auto_user', user, {name});
+		} else {
+			await db.insert('auto_user', { ...user, time: Date.now() });
 		}
-		user = { name: username, key, keyType: type, mode: AuthorizationMode.OUTER };
-		
-		var names = storage.get('authorizationNames', []) as string[];
-		names.deleteOf(username).push(username);
-		storage.set('authorizationNames', names);
-		storage.set(`authorization_${username}`, user);
+		this._cache.set(name, user);
 	}
 
 	/**
 	 * 设置外部授权
 	 */
-	setAuthorizationUser(request_auth_key: string, name: string, key: string, type?: AuthorizationKeyType) {
+	async setAuthorizationUser(request_auth_key: string, name: string, key: string, type?: AuthorizationKeyType, mode?: number) {
 		this.checkRequestAuthorizationKey(request_auth_key);
-		this.setAuthorizationUser_(name, key, type);
+		await this.setAuthorizationUserNoCheck(name, key, type, mode);
 	}
 
 	/**
-	 * 删除全部外部授权
+	 * 通过mode删除全部外部授权
 	 */
-	removeAuthorizationUsers() {
-		var users = this.users();
-		for (var user of users) {
-			storage.delete(`authorization_${user}`);
-		}
-		storage.set('authorizationNames', []);
+	 async removeAuthorizationUsers(mode: number) {
+		await db.delete('auto_user', {mode});
+		this._cache.clear();
 	}
 
 	/**
 	 * 删除外部授权
 	 */
-	removeAuthorizationUser(name: string) {
-		var names = (storage.get('authorizationNames', []) as string[]);
-		storage.set(`authorizationNames`, names.deleteOf(name));
-		storage.delete(`authorization_${name}`);
+	async removeAuthorizationUser(name: string) {
+		await db.delete('auto_user', {name});
+		this._cache.set(name, null);
 	}
 
 	// ---- Authorization auth ----
@@ -167,4 +184,4 @@ export class AuthorizationManager {
 
 }
 
-export default new AuthorizationManager();
+export default new StaticObject(AuthorizationManager);

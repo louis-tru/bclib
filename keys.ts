@@ -459,9 +459,12 @@ export class KeysManager {
 		var path = `${cfg.keys || paths.var}/keys`;
 
 		if (fs.existsSync(path)) {
-			var strs = keys.parseFile(path);
+			var strs = keys.parseFile(path) as string[];
 			if (Array.isArray(strs)) {
 				for (var priv of strs) {
+					if (priv.substr(0,2) == '0x') {
+						priv = priv.slice(2); // slice 0x
+					}
 					// add key
 					var privKey = buffer.from(priv, 'hex');
 					var address = crypto_tx.getAddress(privKey);
