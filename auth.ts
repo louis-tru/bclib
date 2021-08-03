@@ -20,11 +20,13 @@ export enum AuthorizationMode { // mode or role
 }
 
 export interface AuthorizationUser {
+	id: number;
 	name: string;
 	key: string;
 	keyType: AuthorizationKeyType;
 	mode: AuthorizationMode; // mode or role
 	interfaces?: string; // 允许访问的接口名列表
+	time: number;
 }
 
 export type User = AuthorizationUser;
@@ -71,10 +73,12 @@ export class AuthorizationManager {
 
 	static toAuthorizationUser(app: apps.ApplicationInfo): AuthorizationUser {
 		return {
+			id: -1,
 			name: app.appId,
 			key: app.appKey,
 			keyType: app.keyType as AuthorizationKeyType || AuthorizationKeyType.secp256k1,
 			mode: AuthorizationMode.INLINE,
+			time: 0,
 		};
 	}
 
@@ -113,16 +117,19 @@ export class AuthorizationManager {
 				key = '0x' + key;
 			}
 		}
-		var user: AuthorizationUser = { name, key, keyType: type, mode };
+		var row: Dict = { name, key, keyType: type, mode };
+		var user = await this.user(name) as User;
 
 		utils.assert(mode != AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE);
 
-		if (await this.user(name)) {
+		if (user) {
 			// 不允许外部授权更改内部授权
-			utils.assert(user.mode != AuthorizationMode.INLINE, errno.ERR_AUTHORIZATION_FAIL);
-			await db.update('auto_user', user, {name});
+			utils.assert(row.mode != AuthorizationMode.INLINE, errno.ERR_AUTHORIZATION_FAIL);
+			await db.update('auto_user', row, {name});
+			Object.assign(user, row);
 		} else {
-			await db.insert('auto_user', { ...user, time: Date.now() });
+			user = Object.assign(row, { time: Date.now() }) as User;
+			user.id = await db.insert('auto_user', user);
 		}
 		this._cache.set(name, user);
 	}
