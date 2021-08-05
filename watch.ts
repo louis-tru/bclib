@@ -6,6 +6,7 @@
 import {getLocalNetworkHost} from 'somes/network_host';
 import {Monitor} from 'somes/monitor';
 import {MessagePost} from 'bclib/message';
+import {StaticObject} from './obj';
 
 const RUN_INTERVAL = 60 * 1000; // 60s
 const [host] = getLocalNetworkHost();
@@ -46,7 +47,7 @@ export abstract class Watch<T = any> extends Monitor {
 		// cats
 		for (var [name,o] of this._cat) {
 			let {watch:w,ok} = o;
-			if (force || (now > (w.priv_cattime as number) + (w.cattime as number) * RUN_INTERVAL && !w.run_cating)) {
+			if (force || (now > (w.priv_cattime as number) + (w.cattime as number) * this.interval && !w.run_cating)) {
 				(async ()=>{
 					var _ok = false;
 					try {
@@ -110,4 +111,4 @@ export class WatchDefault extends Watch<number> {
 
 }
 
-export default new WatchDefault();
+export default new StaticObject(WatchDefault);
