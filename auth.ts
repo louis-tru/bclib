@@ -91,7 +91,7 @@ export class AuthorizationManager {
 		if (user) {
 			return user;
 		}
-		var [_user] = await db.select('auto_user', { name }) as AuthorizationUser[];
+		var [_user] = await db.select('auth_user', { name }) as AuthorizationUser[];
 		if (_user) {
 			this._cache.set(name, _user);
 			return _user;
@@ -125,11 +125,11 @@ export class AuthorizationManager {
 		if (user) {
 			// 不允许外部授权更改内部授权
 			utils.assert(row.mode != AuthorizationMode.INLINE, errno.ERR_AUTHORIZATION_FAIL);
-			await db.update('auto_user', row, {name});
+			await db.update('auth_user', row, {name});
 			Object.assign(user, row);
 		} else {
 			user = Object.assign(row, { time: Date.now() }) as User;
-			user.id = await db.insert('auto_user', user);
+			user.id = await db.insert('auth_user', user);
 		}
 		this._cache.set(name, user);
 	}
@@ -146,7 +146,7 @@ export class AuthorizationManager {
 	 * 通过mode删除全部外部授权
 	 */
 	 async removeAuthorizationUsers(mode: number) {
-		await db.delete('auto_user', {mode});
+		await db.delete('auth_user', {mode});
 		this._cache.clear();
 	}
 
@@ -154,7 +154,7 @@ export class AuthorizationManager {
 	 * 删除外部授权
 	 */
 	async removeAuthorizationUser(name: string) {
-		await db.delete('auto_user', {name});
+		await db.delete('auth_user', {name});
 		this._cache.set(name, null);
 	}
 

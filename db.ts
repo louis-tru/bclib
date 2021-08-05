@@ -33,12 +33,14 @@ export function initialize() {
 			id         integer PRIMARY KEY AUTOINCREMENT,
 			name       varchar (64)         not null,
 			key        text    default ('') not null,
+			keyType    varchar (32) default ('') not null,
 			mode       integer default (0)  not null,
 			interfaces text,
 			time       integer not null
 		);
 	`, [
-		'alter table tx_async add time INTEGER DEFAULT (0) NOT NULL',
+		`alter table tx_async add time INTEGER DEFAULT (0) NOT NULL`,
+		`alter table auth_user add keyType varchar (32) default ('') not null`,
 	], [
 		'create unique index callback_url_id     on callback_url (id)',
 		'create        index callback_url_status on callback_url (status)',
