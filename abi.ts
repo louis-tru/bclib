@@ -4,6 +4,7 @@
  */
 
 import * as fs from 'somes/fs2';
+import * as path from 'path';
 import paths from './paths';
 import {dasset} from './request';
 import utils, * as utils2 from './utils';
@@ -31,14 +32,19 @@ export interface AbiInterface {
 	abi: AbiItem[],
 }
 
-export async function getLocalAbi(path: string) {
+export async function getLocalAbi(pathname: string) {
 	// var data = await dasset.post('device/getDeviceBySN', { device_sn: device.serialNumber });
 
-	if (fs.existsSync(path)) {
+	if (fs.existsSync(pathname)) {
 		try {
-			var b = await fs.readFile(path);
+			var b = await fs.readFile(pathname);
 			var abi = JSON.parse(b.toString('utf-8')) as AbiInterface;
-			if (abi.abi.length) {
+			if (Array.isArray(abi)) {
+				var basename = path.basename(pathname);
+				var extname = path.extname(pathname);
+				var address = basename.substring(0, basename.length - extname.length);
+				return { abi: abi as AbiItem[], address };
+			} else if (abi.abi.length) {
 				return abi;
 			}
 		} catch(err) { // 可能文件损坏
