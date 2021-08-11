@@ -39,12 +39,16 @@ export async function getLocalAbi(pathname: string) {
 		try {
 			var b = await fs.readFile(pathname);
 			var abi = JSON.parse(b.toString('utf-8')) as AbiInterface;
+
 			if (Array.isArray(abi)) {
-				var basename = path.basename(pathname);
-				var extname = path.extname(pathname);
-				var address = basename.substring(0, basename.length - extname.length);
-				return { abi: abi as AbiItem[], address };
-			} else if (abi.abi.length) {
+				abi = { abi: abi as AbiItem[] } as AbiInterface;
+			}
+			if (abi.abi.length) {
+				if (!abi.address) {
+					var basename = path.basename(pathname);
+					var extname = path.extname(pathname);
+					abi.address = basename.substring(0, basename.length - extname.length);
+				}
 				return abi;
 			}
 		} catch(err) { // 可能文件损坏
