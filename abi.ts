@@ -57,7 +57,7 @@ export async function getLocalAbi(pathname: string) {
 	}
 }
 
-type FetchAbiFun = (address: string)=>Promise<AbiInterface>;
+type FetchAbiFun = (address: string)=>Promise<AbiInterface|undefined>;
 
 export const fetchAbiFunList: FetchAbiFun[] = [
 	async function(address: string) {
