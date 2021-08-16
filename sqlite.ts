@@ -43,7 +43,7 @@ function get_sql_params(
 	var raw = {...row};
 
 	Object.entries(row)
-	.filter(([k])=>k in columns && k!='_json')
+	.filter(([k,v])=>k in columns && k!='_json' && v!==undefined)
 	.forEach(([k,v])=>{
 		keys.push(k);
 		$keys.push($ + k);

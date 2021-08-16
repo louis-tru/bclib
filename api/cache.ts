@@ -16,8 +16,13 @@ export default class extends ViewController {
 		return this.request.method == 'GET';
 	}
 
-	res({ pathname }: { pathname: string }) {
-		this.returnFile(paths.tmp_res_dir + '/' + pathname);
+	async res({ pathname }: { pathname: string }) {
+		pathname = paths.tmp_res_dir + '/' + pathname; 
+		if (await fs.exists(`${pathname}.mime`)) {
+			this.returnFile(pathname, await fs.readFile(`${pathname}.mime`) + '');
+		} else {
+			this.returnFile(pathname);
+		}
 	}
 
 	async get({ pathname }: { pathname: string }) {
@@ -26,7 +31,6 @@ export default class extends ViewController {
 		if (!url.match(/https?:\/\//i)) {
 			return this.returnFile(pathname);
 		}
-
 		var mime = '';
 		var extname = path.extname(url);
 		var save = `${paths.tmp_res_dir}/${utils.hash(url)}${extname}`;
