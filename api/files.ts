@@ -12,6 +12,43 @@ import path from 'somes/path';
 import hash from 'somes/hash';
 import * as http from 'http';
 import * as https from 'https';
+import buffer, {IBuffer} from 'somes/buffer';
+import * as events from 'events';
+import cfg from '../cfg';
+import * as crypto from 'crypto';
+
+class SecurityEncryption extends events.EventEmitter implements NodeJS.WritableStream {
+	private _res: http.ServerResponse;
+	private _cipher: crypto.Cipher;
+	get writable() { return  this._res.writable };
+	constructor(msg: http.IncomingMessage, res: http.ServerResponse, key?: IBuffer) {
+		super();
+		this._res = res;
+		this._cipher = crypto.createCipheriv('aes-256-cbc', 
+			key || buffer.from(cfg.filesSecurityKey.slice(2), 'hex'), 
+			buffer.from(cfg.filesSecurityVi.slice(2), 'hex')
+		);
+		delete msg.headers['content-length'];
+		res.writeHead(msg.statusCode as number, msg.headers);
+		res
+			.on('close', ()=>this.emit('close'))
+			.on('finish', ()=>this.emit('finish'))
+			.on('drain', ()=>this.emit('drain'))
+			.on('error', (e)=>this.emit('error', e))
+			.on('unpipe', (e)=>this.emit('unpipe', e));
+		msg.on('error', ()=>this._res.destroy());
+	}
+	write(arg: any, ...args: any[]): boolean {
+		return this._res.write(this._cipher.update(arg), ...args);
+	}
+	end(arg: any, ...args: any[]): void {
+		if (Buffer.isBuffer(arg)) {
+			this._res.end(Buffer.concat([this._cipher.update(arg), this._cipher.final()]), ...args);
+		} else {
+			this._res.end(this._cipher.final(), arg, ...args);
+		}
+	}
+}
 
 export default class extends ViewController {
 
@@ -30,59 +67,59 @@ export default class extends ViewController {
 		}
 	}
 
-	get({ pathname }: { pathname: string }) {
-		return this._read(pathname, true);
-	}
-
-	read({ pathname }: { pathname: string }) {
-		return this._read(pathname);
-	}
-
-	private async _read(pathname: string, cache?: boolean) {
-
+	async get({ pathname }: { pathname: string }) {
 		var url = decodeURIComponent(pathname);
 		if (!url.match(/https?:\/\//i)) {
 			return this.returnFile(pathname);
 		}
-
 		var mime = '';
 		var ext = path.extname(url);
 		var basename = hash.md5(url).toString('hex');
 		var pathname = `${paths.tmp_res_dir}/${basename}`;
 		var save = `${pathname}${ext}`;
 
-		if (cache) {
-			if (await fs.exists(save) && (await fs.stat(save)).size) {
-				try {
-					mime = (await fs.readFile(`${pathname}.mime`)).toString('utf-8');
-				} catch(err) {}
-				return this.returnFile(save, mime);
-			}
-
-			await utils.scopeLock(`_mutex_files_read_${save}`, async ()=>{
-				try {
-					mime = (await wget(url, `${save}~`)).mime;
-				} catch(err) {
-					if (err.statusCode != 416)
-						throw err;
-				}
-				await fs.rename(`${save}~`, save);
-				await fs.writeFile(`${pathname}.mime`, mime);
-			});
-
-			this.returnFile(save, mime);
-		} else {
-			var isSSL = !!url.match(/^https:\/\//i);
-			var lib = isSSL ? https: http;
-			this.markCompleteResponse();
-
-			var headers = {...this.headers};
-			delete headers['connection'];
-
-			lib.request(url, {
-				method: 'GET', headers, rejectUnauthorized: false,
-			}).pipe(this.response).end();
+		if (await fs.exists(save) && (await fs.stat(save)).size) {
+			try {
+				mime = (await fs.readFile(`${pathname}.mime`)).toString('utf-8');
+			} catch(err) {}
+			return this.returnFile(save, mime);
 		}
+		await utils.scopeLock(`_mutex_files_read_${save}`, async ()=>{
+			try {
+				mime = (await wget(url, `${save}~`)).mime;
+			} catch(err) {
+				if (err.statusCode != 416)
+					throw err;
+			}
+			await fs.rename(`${save}~`, save);
+			await fs.writeFile(`${pathname}.mime`, mime);
+		});
+
+		this.returnFile(save, mime);
+	}
+
+	security({ pathname, noCrypt }: { pathname: string, noCrypt?: boolean }) {
+		var url = buffer.from(pathname, 'base58').toString('utf-8');
+		var isSSL = !!url.match(/^https:\/\//i);
+		var lib = isSSL ? https: http;
+		this.markCompleteResponse();
+
+		var res = this.response;
+		var {connection,host,port,...headers} = this.headers;
+		var opts = { method: 'GET', headers, rejectUnauthorized: false };
+
+		lib.request(url, opts, (msg) => {
+			if (noCrypt) {
+				res.writeHead(msg.statusCode as number, msg.headers);
+				msg.pipe(res);
+			} else {
+				msg.pipe(new SecurityEncryption(msg, res));
+			}
+		})
+		.on('abort', ()=>res.destroy())
+		.on('error', ()=>res.destroy())
+		.on('timeout', ()=>res.destroy())
+		.end();
 	}
 
 };

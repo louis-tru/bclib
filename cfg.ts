@@ -27,6 +27,8 @@ const cfg = {
 	chainId: 64,
 	auhorizationtApps: [] as ({ appId: string; appKey: string; keyType?: 'rsa'| 'secp256k1' }[] | undefined),
 	internetTest: [] as string[] | undefined,
+	filesSecurityVi: '0xc84a565d48ec73b79b984e4508196d66',
+	filesSecurityKey: '0xedc86f52e40fb6f031dd429e24c42a1901ee522654cb23a3b51e98aabe7d2d3b',
 };
 
 export default cfg;
