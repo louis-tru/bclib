@@ -231,14 +231,21 @@ export class SQLiteTools {
 		}
 	}
 
-	async select(table: string, where: object | string = '', limit: number = 0): Promise<Result[]> {
+	async select(table: string, where: object | string = '', limit: number | number[] = 0): Promise<Result[]> {
 		var struct = this.check(table);
 		var sql, ls;
-		var limit_str = limit ? ' limit ' + limit: '';
+		var limit_str = '';
+		if (limit) {
+			limit_str = Array.isArray(limit) ? ' limit ' + limit.join(','): ' limit ' + limit;
+		}
 		if (where) {
 			if (typeof where == 'object') {
 				var { exp, values } = get_sql_params(struct, where);
-				sql = `select * from ${table} where ${exp.join(' and ')}${limit_str}`;
+				if (exp.length) {
+					sql = `select * from ${table} where ${exp.join(' and ')}${limit_str}`;
+				} else {
+					sql = `select * from ${table} ${limit_str}`;
+				}
 				// console.log(sql, values)
 				ls = await this.all(sql, values);
 			} else {
