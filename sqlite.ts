@@ -173,9 +173,9 @@ export class SQLiteTools {
 	}
 
 	close(): Promise<any> { return this.m_db.close2() }
-	run(sql: string, values?: Dict): Promise<any> { return this.m_db.run2(sql, values) }
-	exec(sql: string): Promise<any> { return this.m_db.exec2(sql) }
-	all(sql: string, values?: Dict): Promise<any[]> { return this.m_db.all2(sql, values) }
+	// private _exec(sql: string): Promise<any> { return this.m_db.exec2(sql) }
+	exec(sql: string, values?: Dict): Promise<any> { return this.m_db.run2(sql, values) } // no result
+	queue(sql: string, values?: Dict): Promise<any[]> { return this.m_db.all2(sql, values) } // get result
 	hasTable(table: string): boolean { return table in this.dbStruct }
 
 	async insert(table: string, row: Object): Promise<number> {
@@ -183,8 +183,8 @@ export class SQLiteTools {
 			var struct = this.check(table);
 			var { keys, $keys, values } = get_sql_params(struct, row, true);
 			var sql = `insert into ${table} (${keys.join(',')}) values (${$keys.join(',')})`;
-			await this.run(sql, values);
-			var r = await this.all('select last_insert_rowid() as id');
+			await this.exec(sql, values);
+			var r = await this.queue('select last_insert_rowid() as id');
 			return r[0].id as number;
 		});
 	}
@@ -214,10 +214,10 @@ export class SQLiteTools {
 		}
 		if (is_where_object) {
 			var sql = `update ${table} set ${exp.join(',')} where ${exp2.join(' and ')}`;
-			return await this.run(sql, Object.assign(values, values2));
+			return await this.exec(sql, Object.assign(values, values2));
 		} else {
 			var sql = `update ${table} set ${exp.join(',')} where ${where}`;
-			return await this.run(sql, values);
+			return await this.exec(sql, values);
 		}
 	}
 
@@ -225,9 +225,9 @@ export class SQLiteTools {
 		var struct = this.check(table);
 		if (typeof where == 'object') {
 			var { values, exp } = get_sql_params(struct, where);
-			return await this.run(`delete from ${table} where ${exp.join(' and ')}`, values);
+			return await this.exec(`delete from ${table} where ${exp.join(' and ')}`, values);
 		} else {
-			return await this.run(`delete from ${table} ${where ? 'where ' + where: ''}`);
+			return await this.exec(`delete from ${table} ${where ? 'where ' + where: ''}`);
 		}
 	}
 
@@ -247,16 +247,21 @@ export class SQLiteTools {
 					sql = `select * from ${table} ${limit_str}`;
 				}
 				// console.log(sql, values)
-				ls = await this.all(sql, values);
+				ls = await this.queue(sql, values);
 			} else {
 				sql = `select * from ${table} where ${where}${limit_str}`
-				ls = await this.all(sql);
+				ls = await this.queue(sql);
 			}
 		} else {
 			sql = `select * from ${table}${limit_str}`;
-			ls = await this.all(sql);
+			ls = await this.queue(sql);
 		}
 		return selectAfter(struct, ls);
+	}
+
+	async selectFrom(sql: string, table: string = ''): Promise<Result[]> {
+		table = get_select_table_name(sql, table);
+		return selectAfter(this.check(table), await this.queue(sql));
 	}
 
 	async deleteById(table: string, id: number): Promise<any> {
@@ -267,23 +272,20 @@ export class SQLiteTools {
 		return (await this.select(table, { id }, 1))[0] || null;
 	}
 
+	// @obsolete
 	async get(sql: string, table: string = ''): Promise<Result | null> {
-		table = get_select_table_name(sql, table);
-		var data = await this.m_db.get2(sql);
-		if (data) {
-			return selectAfter(this.check(table), [data])[0];
-		}
-		return null;
+		// this.m_db.get2(`select _json from ${table} where ${exp2.join(' and ')}`, values2);
+		return (await this.gets(sql, table))[0] || null;
 	}
 
-	async gets(sql: string, table: string = ''): Promise<Result[]> {
-		table = get_select_table_name(sql, table);
-		return selectAfter(this.check(table), await this.all(sql));
+	// @obsolete
+	gets(sql: string, table: string = '') {
+		return this.selectFrom(sql, table);
 	}
 
 	async clear() {
 		for (var table of Object.keys(this.dbStruct)) {
-			await this.run(`delete from ${table}`);
+			await this.exec(`delete from ${table}`);
 		}
 	}
 
