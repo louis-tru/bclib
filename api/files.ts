@@ -87,7 +87,7 @@ export default class extends ViewController {
 		await utils.scopeLock(`_mutex_files_read_${save}`, async ()=>{
 			try {
 				mime = (await wget(url, `${save}~`)).mime;
-			} catch(err) {
+			} catch(err: any) {
 				if (err.statusCode != 416)
 					throw err;
 			}
