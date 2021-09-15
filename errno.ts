@@ -34,6 +34,7 @@ export class ErrnoList extends SysErrnoList {
 	ERR_ADDRESS_IS_EMPTY: ErrnoCode = [100280, 'ERR_ADDRESS_IS_EMPTY', 'address or from account is empty']
 	ERR_APPLICATION_FOUND: ErrnoCode = [100265, '找不到应用程序']
 	ERR_BAD_AUTH_USER_MODE: ErrnoCode = [100266, 'ERR_AUTH_USER_MODE_BAD']
+	ERR_QINIU_UPLOAD_ERR: ErrnoCode = [100267, 'ERR_QINIU_UPLOAD_ERR']
 }
 
 export default new ErrnoList;
