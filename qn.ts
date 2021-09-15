@@ -37,7 +37,7 @@ export default function upload(src: string, dest?: string) {
 			if (respErr) {
 				reject(Error.new(errno.ERR_QINIU_UPLOAD_ERR).ext(respErr));
 			} else if (respInfo.statusCode == 200) {
-				console.log('Qiniu', respBody, respInfo);
+				console.log('Qiniu', respBody/*, respInfo*/);
 				resolve(key);
 				// {"key":"qiniu.jpg","hash":"Ftgm-CkWePC9fzMBTRNmPMhGBcSV","bucket":"if-bc","fsize":39335,"name":"qiniu"}
 			} else {
