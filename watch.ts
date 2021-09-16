@@ -16,6 +16,7 @@ export interface WatchCat<T = any> {
 	name?: string;
 	catcount?: number;
 	cattime?: number;
+	tryTime?: number;
 	priv_cattime?: number;
 	run_cating?: boolean;
 	cat(data: T): Promise<boolean> | boolean;
@@ -47,7 +48,8 @@ export abstract class Watch<T = any> extends Monitor {
 		// cats
 		for (let [name,o] of this._cat) {
 			let {watch:w,ok} = o;
-			if (force || !ok || (now > (w.priv_cattime as number) + (w.cattime as number) * this.interval && !w.run_cating)) {
+			let cattime = (ok ? w.cattime: w.tryTime || w.cattime) as number;
+			if (force || (now > (w.priv_cattime as number) + cattime * this.interval && !w.run_cating)) {
 				(async ()=>{
 					var _ok = false;
 					try {
