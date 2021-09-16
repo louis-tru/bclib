@@ -57,6 +57,7 @@ export abstract class Watch<T = any> extends Monitor {
 						(w.catcount as number)++;
 					} catch(err) {
 						console.error(err);
+						_ok = false;
 					} finally {
 						w.run_cating = false;
 					}
