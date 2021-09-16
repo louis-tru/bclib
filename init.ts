@@ -8,7 +8,7 @@ import * as utils from './utils';
 import storage from './storage';
 import auth from './auth';
 
-export async function initialize () {
+export async function initialize() {
 	console.time('bclib init');
 	await db.initialize(); console.timeLog('bclib/db init');
 	await utils.initialize(); console.timeLog('bclib/utils init');

@@ -9,24 +9,32 @@ import {SQLiteTools} from './sqlite';
 
 export class Storage implements IStorage {
 
-	private _db: SQLiteTools;
+	private _db?: SQLiteTools;
 	private _data: Dict = {};
 
-	constructor(path?: string) {
-		this._db = new SQLiteTools(path || `${paths.var}/storage.db`);
+	get db() {
+		return this._db as SQLiteTools;
 	}
 
-	async initialize(): Promise<void> {
-		await this._db.initialize(`
-			CREATE TABLE if not exists util (
-				key         VARCHAR (64) PRIMARY KEY NOT NULL,
-				value       TEXT    NOT NULL
-			);
-		`, [], [
-			'create unique index util_indexes on util (key)'
-		]);
+	async initialize(db?: SQLiteTools): Promise<void> {
+		if (!db) {
+			if (!this._db) {
+				this._db = new SQLiteTools(`${paths.var}/storage.db`);
+				await this._db.initialize(`
+					CREATE TABLE if not exists storage (
+						key         VARCHAR (64) PRIMARY KEY NOT NULL,
+						value       TEXT    NOT NULL
+					);
+				`, [], [
+				]);
+			}
+		} else {
+			this._db = db;
+		}
 
-		for (var {key, value} of await this._db.select('util')) {
+		this._data = {};
+
+		for (var {key, value} of await this._db.select('storage')) {
 			if (value) {
 				try {
 					this._data[key] = JSON.parse(value);
@@ -54,9 +62,9 @@ export class Storage implements IStorage {
 
 	set(key: string, value: any): void {
 		if (key in this._data) {
-			this._db.update('util', { value: JSON.stringify(value) }, { key });
+			this.db.update('util', { value: JSON.stringify(value) }, { key });
 		} else {
-			this._db.insert('util', { key, value: JSON.stringify(value) });
+			this.db.insert('util', { key, value: JSON.stringify(value) });
 		}
 		this._data[key] = value;
 	}
@@ -67,12 +75,12 @@ export class Storage implements IStorage {
 
 	delete(key: string): void {
 		delete this._data[key];
-		this._db.delete('util', { key });
+		this.db.delete('util', { key });
 	}
 
 	clear(): void {
 		this._data = {};
-		this._db.delete('util');
+		this.db.delete('util');
 	}
 
 	commit(): void {
