@@ -28,12 +28,17 @@ export default function upload(src: string, dest?: string) {
 	// 上传是否使用cdn加速
 	config.useCdnDomain = true;
 
-	var formUploader = new qiniu.form_up.FormUploader(config);
-	var putExtra = new qiniu.form_up.PutExtra();
+	var resumeUploader = new qiniu.resume_up.ResumeUploader(config);
+
+	// var formUploader = new qiniu.form_up.FormUploader(config);
+	var putExtra = new qiniu.resume_up.PutExtra(); // new qiniu.form_up.PutExtra();
 	var key = dest || path.basename(src);
 
+	putExtra.version = 'v2';
+	putExtra.partSize = 6 * 1024 * 1024;
+
 	return new Promise<string>(function (resolve, reject) {
-		formUploader.putFile(uploadToken(), key, src, putExtra, function(respErr, respBody, respInfo) {
+		resumeUploader.putFile(uploadToken(), key, src, putExtra, function(respErr, respBody, respInfo) {
 			if (respErr) {
 				reject(Error.new(errno.ERR_QINIU_UPLOAD_ERR).ext(respErr));
 			} else if (respInfo.statusCode == 200) {
