@@ -232,28 +232,39 @@ export class SQLiteTools {
 	}
 
 	async select(table: string, where: object | string = '', limit: number | number[] = 0): Promise<Result[]> {
+		return this.select2(table, where, {limit});
+	}
+
+	async select2(table: string, where: object | string = '', opts: {
+		group?: string;
+		order?: string;
+		limit?: number | number[];
+	}):
+	Promise<Result[]> {
 		var struct = this.check(table);
 		var sql, ls;
 		var limit_str = '';
-		if (limit) {
-			limit_str = Array.isArray(limit) ? ' limit ' + limit.join(','): ' limit ' + limit;
+		if (opts.limit) {
+			limit_str = Array.isArray(opts.limit) ? ' limit ' + opts.limit.join(','): ' limit ' + opts.limit;
 		}
+		var group = opts.group ? `group by ${opts.group}`: '';
+		var order = opts.order ? `order by ${opts.order}`: '';
 		if (where) {
 			if (typeof where == 'object') {
 				var { exp, values } = get_sql_params(struct, where);
 				if (exp.length) {
-					sql = `select * from ${table} where ${exp.join(' and ')}${limit_str}`;
+					sql = `select * from ${table} where ${exp.join(' and ')} ${group} ${order} ${limit_str}`;
 				} else {
-					sql = `select * from ${table} ${limit_str}`;
+					sql = `select * from ${table} ${group} ${order} ${limit_str}`;
 				}
 				// console.log(sql, values)
 				ls = await this.queue(sql, values);
 			} else {
-				sql = `select * from ${table} where ${where}${limit_str}`
+				sql = `select * from ${table} where ${where} ${group} ${order} ${limit_str}`
 				ls = await this.queue(sql);
 			}
 		} else {
-			sql = `select * from ${table}${limit_str}`;
+			sql = `select * from ${table} ${group} ${order} ${limit_str}`;
 			ls = await this.queue(sql);
 		}
 		return selectAfter(struct, ls);
