@@ -34,8 +34,8 @@ export default function upload(src: string, dest?: string) {
 	var putExtra = new qiniu.resume_up.PutExtra(); // new qiniu.form_up.PutExtra();
 	var key = dest || path.basename(src);
 
-	putExtra.version = 'v2';
-	putExtra.partSize = 6 * 1024 * 1024;
+	// putExtra.version = 'v2';
+	// putExtra.partSize = 6 * 1024 * 1024;
 
 	return new Promise<string>(function (resolve, reject) {
 		resumeUploader.putFile(uploadToken(), key, src, putExtra, function(respErr, respBody, respInfo) {
