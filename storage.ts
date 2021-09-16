@@ -62,9 +62,9 @@ export class Storage implements IStorage {
 
 	set(key: string, value: any): void {
 		if (key in this._data) {
-			this.db.update('util', { value: JSON.stringify(value) }, { key });
+			this.db.update('storage', { value: JSON.stringify(value) }, { key });
 		} else {
-			this.db.insert('util', { key, value: JSON.stringify(value) });
+			this.db.insert('storage', { key, value: JSON.stringify(value) });
 		}
 		this._data[key] = value;
 	}
@@ -75,12 +75,12 @@ export class Storage implements IStorage {
 
 	delete(key: string): void {
 		delete this._data[key];
-		this.db.delete('util', { key });
+		this.db.delete('storage', { key });
 	}
 
 	clear(): void {
 		this._data = {};
-		this.db.delete('util');
+		this.db.delete('storage');
 	}
 
 	commit(): void {
