@@ -45,7 +45,7 @@ export abstract class Watch<T = any> extends Monitor {
 		var now = Date.now();
 		var data = await this.beforeCat(now);
 		// cats
-		for (var [name,o] of this._cat) {
+		for (let [name,o] of this._cat) {
 			let {watch:w,ok} = o;
 			if (force || !ok || (now > (w.priv_cattime as number) + (w.cattime as number) * this.interval && !w.run_cating)) {
 				(async ()=>{
