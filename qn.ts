@@ -7,8 +7,10 @@ import * as qiniu from 'qiniu';
 import cfg from './cfg';
 import * as path from 'path';
 import errno from './errno';
+import somes from 'somes';
 
 export function uploadToken() {
+	somes.assert(cfg.qiniu, errno.ERR_NO_QINIU_CONFIG);
 	if (cfg.qiniu) {
 		var mac = new qiniu.auth.digest.Mac(cfg.qiniu.accessKey, cfg.qiniu.secretKey);
 		var putPolicy = new qiniu.rs.PutPolicy({ scope: cfg.qiniu.scope });

@@ -35,6 +35,7 @@ export class ErrnoList extends SysErrnoList {
 	ERR_APPLICATION_FOUND: ErrnoCode = [100265, '找不到应用程序']
 	ERR_BAD_AUTH_USER_MODE: ErrnoCode = [100266, 'ERR_AUTH_USER_MODE_BAD']
 	ERR_QINIU_UPLOAD_ERR: ErrnoCode = [100267, 'ERR_QINIU_UPLOAD_ERR']
+	ERR_NO_QINIU_CONFIG: ErrnoCode = [100268, 'ERR_NO_QINIU_CONFIG']
 }
 
 export default new ErrnoList;
