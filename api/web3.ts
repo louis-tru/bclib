@@ -14,7 +14,7 @@ import keys from '../keys+';
 interface Args_ {
 	method: string;
 	args?: any[];
-	// event?: string;
+	event?: string;
 	from?: string;
 	value?: string;
 	timeout?: number;

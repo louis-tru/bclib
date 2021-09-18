@@ -485,7 +485,7 @@ interface TransactionReceipt {
 ```ts
 interface PostResult {
 	receipt: TransactionReceipt;
-	data?: any;
+	event?: FindEventResult;
 	error?: Error;
 	id?: string;
 }
@@ -495,8 +495,9 @@ interface PostResult {
 
 ```ts
 interface FindEventResult {
-	event: EventData;
+	events: EventData[];
 	transaction: Transaction;
+	transactionReceipt: TransactionReceipt;
 }
 ```
 

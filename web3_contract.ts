@@ -6,8 +6,7 @@
 import somes from 'somes';
 import web3 from './web3+';
 import { TransactionReceipt, 
-	FindEventResult,TxOptions as RawTxOptions,
-	SAFE_TRANSACTION_MAX_TIMEOUT } from 'web3z';
+	FindEventResult,TxOptions as RawTxOptions } from 'web3z';
 import errno_web3z from 'web3z/errno';
 import {ABIType, getAddressByType} from './abi';
 import errno from './errno';
@@ -17,8 +16,7 @@ import {WatchCat} from './watch';
 
 export interface PostResult {
 	receipt: TransactionReceipt;
-	// event?: FindEventResult;
-	data?: any;
+	event?: FindEventResult;
 	error?: Error;
 	id?: string;
 }
@@ -29,7 +27,7 @@ export interface Options {
 	retry?: number;
 	timeout?: number;
 	blockRange?: number;
-	// event?: string;
+	event?: string;
 }
 
 export type TxOptions = Options & RawTxOptions;
@@ -204,7 +202,11 @@ export class Web3Contracts implements WatchCat {
 		await fn.call(opts); // try call
 		// var nonce = await web3.txQueue.getNonce();
 		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}, hash), opts);
-		return { receipt } as PostResult;
+		var event: FindEventResult | undefined;
+		if (opts?.event) {
+			event = await contract.findEvent(opts.event, receipt.blockNumber, receipt.transactionHash) || undefined;
+		}
+		return { receipt, event } as PostResult;
 	}
 
 	async _contractPostAsync(id: number, cb_?: Callback) {
