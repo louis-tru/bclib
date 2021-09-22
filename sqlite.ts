@@ -6,6 +6,7 @@
 import utils from 'somes';
 import sqlite3 from './sqlite_ext';
 import errno from './errno';
+import {DatabaseCRUD,DatabaseTools,Where,Database,SelectOptions,Result} from 'somes/db';
 
 interface DBStructColumn {
 	name: string;
@@ -22,12 +23,10 @@ interface DBStructMap {
 	[key: string]: DBStruct;
 }
 
-export type Result = Dict;
-
 export interface Collection {
 	index: number;
 	total: number;
-	data: Result[];
+	data: Dict[];
 }
 
 function get_sql_params(
@@ -87,7 +86,7 @@ function get_select_table_name(sql: string, defaultTable: string): string {
 	return defaultTable;
 }
 
-function selectAfter(struct: DBStruct, ls: Result[]): Result[] {
+function selectAfter(struct: DBStruct, ls: Dict[]): Dict[] {
 	if (!('_json' in struct.columns)) {
 		return ls;
 	}
@@ -107,11 +106,12 @@ function selectAfter(struct: DBStruct, ls: Result[]): Result[] {
 /**
  * @class SQLiteTools
  */
-export class SQLiteTools {
-	
+export class SQLiteTools implements DatabaseTools {
+
 	private m_db: any = null;
 	private m_db_struct: DBStructMap | null = null;
 	private m_path: string;
+	private _loads: Map<string, [string, string[], string[]]> = new Map();
 
 	private check(table: string): DBStruct {
 		var struct = this.dbStruct[table];
@@ -120,19 +120,38 @@ export class SQLiteTools {
 	}
 	
 	get path() { return this.m_path }
-	get db() { return this.m_db }
+	get sqlite() { return this.m_db }
 	get dbStruct() { return this.m_db_struct as DBStructMap; }
 
 	constructor(path: string) {
 		this.m_path = path;
 	}
 
-	async initialize(SQL: string, SQL_PLUS: string[], SQL_INDEXES: string[]): Promise<void> {
-		utils.assert(!this.m_db);
-		var _db = new sqlite3.Database(this.m_path);
-		var _db_struct: DBStructMap = {};
-		await _db.serialize2();
-		await _db.exec2(SQL);
+	private async _Init() {
+		if (!this.m_db) {
+			var _db = new sqlite3.Database(this.m_path);
+			await _db.serialize2();
+			this.m_db = _db;
+			this.m_db_struct = {} as DBStructMap;
+		}
+	}
+
+	private _Sql(sql: string) {
+		return sql
+			.replace(/AUTO_INCREMENT/img, 'AUTOINCREMENT')
+			.replace(/DEFAULT\s+(\d+|\'[^\']*\'|true|false|null)/img, 'DEFAULT ($1)')
+		;
+	}
+
+	async load(SQL: string, SQL_PLUS: string[], SQL_INDEXES: string[], id?: string): Promise<void> {
+		await this._Init();
+		var _id = id || 'default';
+		var _db = this.m_db;
+		var _db_struct = this.m_db_struct as DBStructMap;
+
+		utils.assert(!this._loads.has(_id), errno.ERR_REPEAT_LOAD_SQLITE);
+
+		await _db.exec2(this._Sql(SQL));
 
 		for (let sql of SQL_PLUS) {
 			var [,table_name,table_column] = sql.match(/^alter\s+table\s+(\w+)\s+add\s+(\w+)/) as RegExpMatchArray;
@@ -168,28 +187,37 @@ export class SQLiteTools {
 				});
 			}
 		}
-		this.m_db = _db;
-		this.m_db_struct = _db_struct;
+
+		this._loads.set(_id, [SQL, SQL_PLUS, SQL_INDEXES]);
 	}
 
 	close(): Promise<any> { return this.m_db.close2() }
-	// private _exec(sql: string): Promise<any> { return this.m_db.exec2(sql) }
-	exec(sql: string, values?: Dict): Promise<any> { return this.m_db.run2(sql, values) } // no result
-	queue(sql: string, values?: Dict): Promise<any[]> { return this.m_db.all2(sql, values) } // get result
-	hasTable(table: string): boolean { return table in this.dbStruct }
+	private _Exec(sql: string, values?: Dict): Promise<void> { return this.m_db.run2(sql, values) } // no result
+	private _Query(sql: string, values?: Dict): Promise<any[]> { return this.m_db.all2(sql, values) } // get result
 
-	async insert(table: string, row: Object): Promise<number> {
+	async exec(sql: string) {
+		// TODO not impl ..
+		console.warn('Incomplete implementation');
+		var r = await this._Query(sql);
+		if (r && Array.isArray(r))
+			return [{ rows: r }] as Result[];
+		return [] as Result[];
+	}
+
+	has(table: string): boolean { return table in this.dbStruct }
+
+	async insert(table: string, row: Dict): Promise<number> {
 		return await utils.scopeLock(this.m_db, async ()=>{
 			var struct = this.check(table);
 			var { keys, $keys, values } = get_sql_params(struct, row, true);
 			var sql = `insert into ${table} (${keys.join(',')}) values (${$keys.join(',')})`;
-			await this.exec(sql, values);
-			var r = await this.queue('select last_insert_rowid() as id');
+			await this._Exec(sql, values);
+			var r = await this._Query('select last_insert_rowid() as id');
 			return r[0].id as number;
 		});
 	}
 
-	async update(table: string, row: Dict, where: Dict | string = ''): Promise<any> {
+	async update(table: string, row: Dict, where: Where = ''): Promise<number> {
 		var struct = this.check(table);
 		var { values, exp, json } = get_sql_params(struct, row, true);
 		var is_where_object = typeof where == 'object';
@@ -214,33 +242,26 @@ export class SQLiteTools {
 		}
 		if (is_where_object) {
 			var sql = `update ${table} set ${exp.join(',')} where ${exp2.join(' and ')}`;
-			return await this.exec(sql, Object.assign(values, values2));
+			await this._Exec(sql, Object.assign(values, values2));
 		} else {
 			var sql = `update ${table} set ${exp.join(',')} where ${where}`;
-			return await this.exec(sql, values);
+			await this._Exec(sql, values);
 		}
+		return 0; // TODO ...
 	}
 
-	async delete(table: string, where: object | string = ''): Promise<any> {
+	async delete(table: string, where: Where = ''): Promise<number> {
 		var struct = this.check(table);
 		if (typeof where == 'object') {
 			var { values, exp } = get_sql_params(struct, where);
-			return await this.exec(`delete from ${table} where ${exp.join(' and ')}`, values);
+			await this._Exec(`delete from ${table} where ${exp.join(' and ')}`, values);
 		} else {
-			return await this.exec(`delete from ${table} ${where ? 'where ' + where: ''}`);
+			await this._Exec(`delete from ${table} ${where ? 'where ' + where: ''}`);
 		}
+		return 0; // TODO ...
 	}
 
-	async select(table: string, where: object | string = '', limit: number | number[] = 0): Promise<Result[]> {
-		return this.select2(table, where, {limit});
-	}
-
-	async select2(table: string, where: object | string = '', opts: {
-		group?: string;
-		order?: string;
-		limit?: number | number[];
-	}):
-	Promise<Result[]> {
+	async select<T = Dict>(table: string, where: Where = '', opts: SelectOptions = {}): Promise<T[]> {
 		var struct = this.check(table);
 		var sql, ls;
 		var limit_str = '';
@@ -258,46 +279,58 @@ export class SQLiteTools {
 					sql = `select * from ${table} ${group} ${order} ${limit_str}`;
 				}
 				// console.log(sql, values)
-				ls = await this.queue(sql, values);
+				ls = await this._Query(sql, values);
 			} else {
 				sql = `select * from ${table} where ${where} ${group} ${order} ${limit_str}`
-				ls = await this.queue(sql);
+				ls = await this._Query(sql);
 			}
 		} else {
 			sql = `select * from ${table} ${group} ${order} ${limit_str}`;
-			ls = await this.queue(sql);
+			ls = await this._Query(sql);
 		}
-		return selectAfter(struct, ls);
+		return selectAfter(struct, ls) as T[];
 	}
 
-	async selectFrom(sql: string, table: string = ''): Promise<Result[]> {
+	async query<T = Dict>(sql: string, table: string = ''): Promise<T[]> {
 		table = get_select_table_name(sql, table);
-		return selectAfter(this.check(table), await this.queue(sql));
+		return selectAfter(this.check(table), await this._Query(sql)) as T[];;
 	}
 
 	async deleteById(table: string, id: number): Promise<any> {
 		return await this.delete(table, { id });
 	}
 
-	async getById(table: string, id: number): Promise<Result | null> {
-		return (await this.select(table, { id }, 1))[0] || null;
+	async getById(table: string, id: number): Promise<Dict | null> {
+		return (await this.select(table, { id }, {limit:1}))[0] || null;
 	}
 
 	// @obsolete
-	async get(sql: string, table: string = ''): Promise<Result | null> {
+	async get(sql: string, table: string = ''): Promise<Dict | null> {
 		// this.m_db.get2(`select _json from ${table} where ${exp2.join(' and ')}`, values2);
 		return (await this.gets(sql, table))[0] || null;
 	}
 
 	// @obsolete
 	gets(sql: string, table: string = '') {
-		return this.selectFrom(sql, table);
+		return this.query(sql, table);
 	}
 
 	async clear() {
 		for (var table of Object.keys(this.dbStruct)) {
-			await this.exec(`delete from ${table}`);
+			await this._Exec(`delete from ${table}`);
 		}
+	}
+
+	scope<T = any>(cb: (db: DatabaseCRUD, self: DatabaseTools)=>Promise<T>): Promise<T> {
+		return cb(this, this);
+	}
+
+	transaction<T = any>(cb: (db: DatabaseCRUD, self: DatabaseTools)=>Promise<T>): Promise<T> {
+		return cb(this, this);
+	}
+
+	db(): Database {
+		throw Error.new('Not IMPL');
 	}
 
 }

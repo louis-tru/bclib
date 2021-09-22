@@ -184,7 +184,7 @@ async function callbackURL_impl(data: any, url: string, id: number) {
 		try {
 			var r = await post(url, { params: data, urlencoded: false, signer });
 			if (r.statusCode == 200) {
-				await db.deleteById('callback_url', id);
+				await db.delete('callback_url', {id});
 				return;
 			}
 		} catch(err) {}

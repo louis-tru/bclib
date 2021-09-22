@@ -3,41 +3,40 @@
  * @date 2020-11-28
  */
 
+ import somes from 'somes';
 import paths from './paths';
 import {IStorage} from 'somes/storage';
 import {SQLiteTools} from './sqlite';
+import {DatabaseTools} from 'somes/db';
 
 export class Storage implements IStorage {
 
-	private _db?: SQLiteTools;
+	private _db?: DatabaseTools;
 	private _data: Dict = {};
 
-	get db() {
-		return this._db as SQLiteTools;
+	private get db() {
+		somes.assert(this._db);
+		return this._db as DatabaseTools;
 	}
 
-	async initialize(db?: SQLiteTools): Promise<void> {
-		if (!db) {
-			if (!this._db) {
-				this._db = new SQLiteTools(`${paths.var}/storage.db`);
-				await this._db.initialize(`
-					CREATE TABLE if not exists storage (
-						key         VARCHAR (64) PRIMARY KEY NOT NULL,
-						value       TEXT    NOT NULL
-					);
-				`, [], [
-				]);
-			}
-		} else {
-			this._db = db;
-		}
+	async initialize(db?: DatabaseTools): Promise<void> {
+		somes.assert(!this._db);
+
+		this._db = db || new SQLiteTools(`${paths.var}/storage.db`);
+		await this._db.load(`
+			CREATE TABLE if not exists storage (
+				skey     VARCHAR (64) PRIMARY KEY NOT NULL, -- string key
+				value    TEXT    NOT NULL
+			);
+		`, [], [
+		], 'bclib/storage');
 
 		this._data = {};
 
-		for (var {key, value} of await this._db.select('storage')) {
+		for (var {skey, value} of await this._db.select('storage')) {
 			if (value) {
 				try {
-					this._data[key] = JSON.parse(value);
+					this._data[skey] = JSON.parse(value);
 				} catch(err) {
 					console.error(err);
 				}
@@ -62,9 +61,9 @@ export class Storage implements IStorage {
 
 	set(key: string, value: any): void {
 		if (key in this._data) {
-			this.db.update('storage', { value: JSON.stringify(value) }, { key });
+			this.db.update('storage', { value: JSON.stringify(value) }, { skey: key });
 		} else {
-			this.db.insert('storage', { key, value: JSON.stringify(value) });
+			this.db.insert('storage', { value: JSON.stringify(value), skey: key });
 		}
 		this._data[key] = value;
 	}
@@ -75,7 +74,7 @@ export class Storage implements IStorage {
 
 	delete(key: string): void {
 		delete this._data[key];
-		this.db.delete('storage', { key });
+		this.db.delete('storage', { skey: key });
 	}
 
 	clear(): void {

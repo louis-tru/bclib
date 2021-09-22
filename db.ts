@@ -5,19 +5,25 @@
 
 import * as sqlite from 'bclib/sqlite';
 import paths from './paths';
+import {DatabaseTools} from 'somes/db';
 
-var _defailt = new sqlite.SQLiteTools(`${paths.var}/bclib.db`);
+var _default: DatabaseTools = new sqlite.SQLiteTools(`${paths.var}/bclib.db`);
 
-export function initialize() {
-	return _defailt.initialize(`
+export function initialize(db?: DatabaseTools) {
+	if (db)
+		exports.default = db;
+	else
+		db = _default;
+
+	return db.load(`
 		CREATE TABLE if not exists callback_url (
-			id           INTEGER PRIMARY KEY AUTOINCREMENT,
+			id           INTEGER PRIMARY KEY AUTO_INCREMENT,
 			url          VARCHAR (255) NOT NULL,
 			data         TEXT NOT NULL,
-			status       INTEGER DEFAULT (0) NOT NULL -- 0没完成,1完成,2丢弃 
+			status       INTEGER DEFAULT 0 NOT NULL -- 0没完成,1完成,2丢弃 
 		);
 		CREATE TABLE if not exists tx_async (
-			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			id         INTEGER PRIMARY KEY AUTO_INCREMENT,
 			account    VARCHAR (128),
 			contract   VARCHAR (128),
 			method     VARCHAR (64),
@@ -30,9 +36,9 @@ export function initialize() {
 			time       INTEGER DEFAULT (0) NOT NULL
 		);
 		create table if not exists auth_user(
-			id         integer PRIMARY KEY AUTOINCREMENT,
+			id         integer PRIMARY KEY AUTO_INCREMENT,
 			name       varchar (64)         not null,
-			key        text    default ('') not null,
+			pkey       text    default ('') not null,
 			keyType    varchar (32) default ('') not null,
 			mode       integer default (0)  not null,
 			interfaces text,
@@ -48,7 +54,7 @@ export function initialize() {
 		'create        index tx_async_status on tx_async (status)',
 		'create unique index auth_user_name on auth_user (name)',
 		'create        index auth_user_mode on auth_user (mode)',
-	]);
+	], 'bclib');
 }
 
-export default _defailt;
+export default _default;

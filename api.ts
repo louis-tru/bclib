@@ -78,12 +78,12 @@ export default class APIController extends ViewController {
 		var user = await this.userNotErr();
 		if (user) {
 			if (user.keyType == 'rsa') {
-				sign = crypto.publicDecrypt(user.key, sign);
+				sign = crypto.publicDecrypt(user.pkey, sign);
 				var c = sign.compare(hash);
 				return c == 0;
 			}
 			else if (user.keyType == 'secp256k1') { // secp256k1
-				var pkey = Buffer.from(user.key.slice(2), 'hex');
+				var pkey = Buffer.from(user.pkey.slice(2), 'hex');
 				var signature = Buffer.from(sign.buffer, sign.byteOffset, 64);
 				hash = cfg_s.formHash == 'md5' ? Buffer.from(hash.toString('hex')): hash;
 				var ok = cryptoTx.verify(hash, signature, pkey, false);

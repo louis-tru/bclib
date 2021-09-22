@@ -22,7 +22,7 @@ export enum AuthorizationMode { // mode or role
 export interface AuthorizationUser {
 	id: number;
 	name: string;
-	key: string;
+	pkey: string;
 	keyType: AuthorizationKeyType;
 	mode: AuthorizationMode; // mode or role
 	interfaces?: string; // 允许访问的接口名列表
@@ -75,7 +75,7 @@ export class AuthorizationManager {
 		return {
 			id: -1,
 			name: app.appId,
-			key: app.appKey,
+			pkey: app.appKey,
 			keyType: app.keyType as AuthorizationKeyType || AuthorizationKeyType.secp256k1,
 			mode: AuthorizationMode.INLINE,
 			time: 0,

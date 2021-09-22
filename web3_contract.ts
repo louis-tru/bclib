@@ -118,7 +118,7 @@ export class Web3Contracts implements WatchCat {
 	}
 
 	async review(id: string): Promise<PostResult> {
-		var row = await db.getById('tx_async', Number(id)) as { status: number; data: string };
+		var [row] = await db.select('tx_async', { id: Number(id) }) as { status: number; data: string }[];
 		somes.assert(row, errno.ERR_WEB3_API_POST_NON_EXIST);
 		somes.assert(row.status == 2 || row.status == 3, errno.ERR_WEB3_API_POST_PENDING);
 		var data = JSON.parse(row.data) as PostResult;
@@ -126,7 +126,7 @@ export class Web3Contracts implements WatchCat {
 	}
 
 	private async _sendTransactionAsyncAfter(id: number, result: PostResult, cb?: Callback) {
-		var r = await db.getById('tx_async', id) as TxAsync;
+		var [r] = await db.select('tx_async', {id}) as TxAsync[];
 		if (r.status != 1) {
 			return;
 		}
@@ -210,7 +210,7 @@ export class Web3Contracts implements WatchCat {
 	}
 
 	async _contractPostAsync(id: number, cb_?: Callback) {
-		var row = await db.getById('tx_async', id) as TxAsync; somes.assert(row);
+		var [row] = await db.select('tx_async', {id}) as TxAsync[]; somes.assert(row);
 		this._sendTransactionAsync(id, row, async (hash)=>{
 			var {contract,method} = row;
 			var args: any[] = JSON.parse(row.args as string);
@@ -220,7 +220,7 @@ export class Web3Contracts implements WatchCat {
 	}
 
 	async _sendSignTransactionAsync(id: number, cb_?: Callback) {
-		var row = await db.getById('tx_async', id) as TxAsync; somes.assert(row);
+		var [row] = await db.select('tx_async', {id}) as TxAsync[]; somes.assert(row);
 		this._sendTransactionAsync(id, row, async (hash)=>{
 			var opts: TxOptions = JSON.parse(row.opts);
 			return {

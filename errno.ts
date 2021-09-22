@@ -36,6 +36,7 @@ export class ErrnoList extends SysErrnoList {
 	ERR_BAD_AUTH_USER_MODE: ErrnoCode = [100266, 'ERR_AUTH_USER_MODE_BAD']
 	ERR_QINIU_UPLOAD_ERR: ErrnoCode = [100267, 'ERR_QINIU_UPLOAD_ERR']
 	ERR_NO_QINIU_CONFIG: ErrnoCode = [100268, 'ERR_NO_QINIU_CONFIG']
+	ERR_REPEAT_LOAD_SQLITE: ErrnoCode = [100269, 'ERR_REPEAT_LOAD_SQLITE']
 }
 
 export default new ErrnoList;
