@@ -99,25 +99,25 @@ export class AuthorizationManager {
 		return null;
 	}
 
-	async setAuthorizationUserNoCheck(name: string, key: string, type?: AuthorizationKeyType, mode?: number) {
-		key = String(key).trim();
+	async setAuthorizationUserNoCheck(name: string, pkey: string, type?: AuthorizationKeyType, mode?: number) {
+		pkey = String(pkey).trim() || '';
 		type = type || AuthorizationKeyType.secp256k1;
 		name = name || 'default';
 		mode = mode || AuthorizationMode.OUTER;
 
 		if (type == AuthorizationKeyType.rsa) {
-			if (!/BEGIN PUBLIC KEY/.test(key)) {
-				key = '-----BEGIN PUBLIC KEY-----\n' + key;
+			if (!/BEGIN PUBLIC KEY/.test(pkey)) {
+				pkey = '-----BEGIN PUBLIC KEY-----\n' + pkey;
 			}
-			if (!/END PUBLIC KEY/.test(key)) {
-				key += '\n-----END PUBLIC KEY-----';
+			if (!/END PUBLIC KEY/.test(pkey)) {
+				pkey += '\n-----END PUBLIC KEY-----';
 			}
 		} else {
-			if (key.substr(0, 2) != '0x') {
-				key = '0x' + key;
+			if (pkey.substr(0, 2) != '0x') {
+				pkey = '0x' + pkey;
 			}
 		}
-		var row: Dict = { name, key, keyType: type, mode };
+		var row: Dict = { name, pkey, keyType: type, mode };
 		var user = await this.user(name) as User;
 
 		utils.assert(mode != AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE);
