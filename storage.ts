@@ -25,7 +25,7 @@ export class Storage implements IStorage {
 		this._db = db || new SQLiteTools(`${paths.var}/storage.db`);
 		await this._db.load(`
 			CREATE TABLE if not exists storage (
-				skey     VARCHAR (64) PRIMARY KEY NOT NULL, -- string key
+				kkey     VARCHAR (128) PRIMARY KEY NOT NULL, -- string key
 				value    TEXT    NOT NULL
 			);
 		`, [], [
@@ -33,10 +33,10 @@ export class Storage implements IStorage {
 
 		this._data = {};
 
-		for (var {skey, value} of await this._db.select('storage')) {
+		for (var {kkey, value} of await this._db.select('storage')) {
 			if (value) {
 				try {
-					this._data[skey] = JSON.parse(value);
+					this._data[kkey] = JSON.parse(value);
 				} catch(err) {
 					console.error(err);
 				}
@@ -44,37 +44,37 @@ export class Storage implements IStorage {
 		}
 	}
 
-	get(key: string, defaultValue?: any) {
-		if (key in this._data) {
-			return this._data[key];
+	get(kkey: string, defaultValue?: any) {
+		if (kkey in this._data) {
+			return this._data[kkey];
 		} else {
 			if (defaultValue !== undefined) {
-				this.set(key, defaultValue);
+				this.set(kkey, defaultValue);
 				return defaultValue;
 			}
 		}
 	}
 
-	has(key: string): any {
-		return key in this._data;
+	has(kkey: string): any {
+		return kkey in this._data;
 	}
 
-	set(key: string, value: any): void {
-		if (key in this._data) {
-			this.db.update('storage', { value: JSON.stringify(value) }, { skey: key });
+	set(kkey: string, value: any): void {
+		if (kkey in this._data) {
+			this.db.update('storage', { value: JSON.stringify(value) }, { kkey });
 		} else {
-			this.db.insert('storage', { value: JSON.stringify(value), skey: key });
+			this.db.insert('storage', { value: JSON.stringify(value), kkey });
 		}
-		this._data[key] = value;
+		this._data[kkey] = value;
 	}
 
-	del(key: string): void {
-		this.delete(key);
+	del(kkey: string): void {
+		this.delete(kkey);
 	}
 
-	delete(key: string): void {
-		delete this._data[key];
-		this.db.delete('storage', { skey: key });
+	delete(kkey: string): void {
+		delete this._data[kkey];
+		this.db.delete('storage', { kkey });
 	}
 
 	clear(): void {

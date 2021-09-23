@@ -140,6 +140,7 @@ export class SQLiteTools implements DatabaseTools {
 		return sql
 			.replace(/AUTO_INCREMENT/img, 'AUTOINCREMENT')
 			.replace(/DEFAULT\s+(\d+|\'[^\']*\'|true|false|null)/img, 'DEFAULT ($1)')
+			.replace(/INT /img, 'INTEGER ')
 		;
 	}
 
@@ -151,7 +152,8 @@ export class SQLiteTools implements DatabaseTools {
 
 		utils.assert(!this._loads.has(_id), errno.ERR_REPEAT_LOAD_SQLITE);
 
-		await _db.exec2(this._Sql(SQL));
+		if (SQL)
+			await _db.exec2(this._Sql(SQL));
 
 		for (let sql of SQL_PLUS) {
 			var [,table_name,table_column] = sql.match(/^alter\s+table\s+(\w+)\s+add\s+(\w+)/) as RegExpMatchArray;
