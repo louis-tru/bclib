@@ -371,7 +371,7 @@ export class KeychainManager {
 	async setPassword(name: string, oldPwd: string, newPwd: string) {
 		var key = await this.root(name);
 		key.unlock(oldPwd);
-		var keystore = JSON.stringify(key.exportKeystore(newPwd));
+		var keystore = JSON.stringify(await key.exportKeystore(newPwd));
 		await this._db.update('keystore_list', {keystore}, {name});
 		key.lock();
 		this._keys.delete(name);
@@ -396,7 +396,7 @@ export class KeychainManager {
 			if (!r) {
 				// gen root key
 				var privkey = buffer.from(crypto_tx.genPrivateKey());
-				var keystore = JSON.stringify(SecretKey.from(privkey).exportKeystore('0000'), null, 2); // default
+				var keystore = JSON.stringify(await SecretKey.from(privkey).exportKeystore('0000'), null, 2); // default
 				try {
 					await this._db.insert('keystore_list', {name, keystore});
 				} catch(err: any) {
@@ -545,6 +545,8 @@ export class KeysManager {
 			} else {
 				key = this._defaultKey; // use default system permission
 			}
+			if (key)
+				return; // check ok
 		}
 		await this.keychain.checkPermission(keychainName, addressOrAddressBtc);
 	}
