@@ -59,7 +59,7 @@ export default class extends ViewController {
 	async res({ pathname }: { pathname: string }) {
 		var ext = path.extname(pathname);
 		var name = pathname.substr(0, pathname.length - ext.length);
-		pathname = paths.tmp_res_dir + '/' + name;
+		pathname = paths.res + '/' + name;
 		if (await fs.exists(`${pathname}.mime`)) {
 			this.returnFile(pathname + ext, await fs.readFile(`${pathname}.mime`) + '');
 		} else {
@@ -75,8 +75,9 @@ export default class extends ViewController {
 		var mime = '';
 		var ext = path.extname(url);
 		var basename = hash.md5(url).toString('hex');
-		var pathname = `${paths.tmp_res_dir}/${basename}`;
+		var pathname = `${paths.res}/${basename}`;
 		var save = `${pathname}${ext}`;
+		var tmp = `${paths.tmp_res}/${basename}${ext}~`;
 
 		if (await fs.exists(save) && (await fs.stat(save)).size) {
 			try {
@@ -86,12 +87,12 @@ export default class extends ViewController {
 		}
 		await utils.scopeLock(`_mutex_files_read_${save}`, async ()=>{
 			try {
-				mime = (await wget(url, `${save}~`)).mime;
+				mime = (await wget(url, tmp)).mime;
 			} catch(err: any) {
 				if (err.statusCode != 416)
 					throw err;
 			}
-			await fs.rename(`${save}~`, save);
+			await fs.rename(tmp, save);
 			await fs.writeFile(`${pathname}.mime`, mime);
 		});
 
