@@ -391,7 +391,7 @@ export class KeychainManager {
 		var key = await this.root(name);
 		key.unlock(oldPwd);
 		var path = `${this._key_path}/${name}`;
-		var keystore = JSON.stringify(key.exportKeystore(newPwd));
+		var keystore = JSON.stringify(await key.exportKeystore(newPwd));
 		await fs.writeFile(path, keystore);
 		await this.backupKeystore(name);
 		key.lock();
@@ -417,7 +417,7 @@ export class KeychainManager {
 			if (!await fs.exists(path)) {
 				// gen root key
 				var privkey = buffer.from(crypto_tx.genPrivateKey());
-				var keystore = JSON.stringify(SecretKey.from(privkey).exportKeystore('0000'), null, 2); // default
+				var keystore = JSON.stringify(await SecretKey.from(privkey).exportKeystore('0000'), null, 2); // default
 				await fs.writeFile(path, keystore);
 			}
 			var keystore_bin = await fs.readFile(path);
