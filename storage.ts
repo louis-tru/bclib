@@ -33,7 +33,7 @@ export class Storage implements IStorage {
 
 	async get(kkey: string, defaultValue?: any) {
 		var its = await this.db.select('storage', {kkey}, {limit:1});
-		if (its) {
+		if (its.length) {
 			return JSON.parse(its[0].value);
 		} else {
 			if (defaultValue !== undefined) {
