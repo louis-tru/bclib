@@ -3,7 +3,7 @@
  * @date 2020-11-28
  */
 
- import somes from 'somes';
+import somes from 'somes';
 import paths from './paths';
 import {IStorage} from 'somes/storage';
 import {SQLiteTools} from './sqlite';
@@ -12,7 +12,6 @@ import {DatabaseTools} from 'somes/db';
 export class Storage implements IStorage {
 
 	private _db?: DatabaseTools;
-	private _data: Dict = {};
 
 	private get db() {
 		somes.assert(this._db);
@@ -30,64 +29,47 @@ export class Storage implements IStorage {
 			);
 		`, [], [
 		], 'bclib/storage');
-
-		this._data = {};
-
-		for (var {kkey, value} of await this._db.select('storage')) {
-			if (value) {
-				try {
-					this._data[kkey] = JSON.parse(value);
-				} catch(err) {
-					console.error(err);
-				}
-			}
-		}
 	}
 
-	get(kkey: string, defaultValue?: any) {
-		if (kkey in this._data) {
-			return this._data[kkey];
+	async get(kkey: string, defaultValue?: any) {
+		var its = await this.db.select('storage', {kkey}, {limit:1});
+		if (its) {
+			return JSON.parse(its[0].value);
 		} else {
 			if (defaultValue !== undefined) {
-				this.set(kkey, defaultValue);
+				await this.set(kkey, defaultValue);
 				return defaultValue;
 			}
 		}
 	}
 
-	has(kkey: string): any {
-		return kkey in this._data;
+	async has(kkey: string) {
+		var its = await this.db.select('storage', {kkey}, {limit:1});
+		return its.length > 0;
 	}
 
-	set(kkey: string, value: any): void {
-		if (kkey in this._data) {
-			this.db.update('storage', { value: JSON.stringify(value) }, { kkey });
-		} else {
-			this.db.insert('storage', { value: JSON.stringify(value), kkey });
+	async set(kkey: string, _value: any) {
+		var value = JSON.stringify(_value);
+		if (this.db instanceof SQLiteTools) { // sqlite
+			if (await this.has(kkey)) {
+				await this.db.update('storage', { value }, { kkey });
+			} else {
+				await this.db.update('storage', { value }, { kkey });
+			}
+		} else { // mysql
+			var ok = await this.db.update('storage', { value }, { kkey });
+			if (!ok) {
+				this.db.insert('storage', { value: value, kkey });
+			}
 		}
-		this._data[kkey] = value;
 	}
 
-	del(kkey: string): void {
-		this.delete(kkey);
-	}
-
-	delete(kkey: string): void {
-		delete this._data[kkey];
+	async delete(kkey: string) {
 		this.db.delete('storage', { kkey });
 	}
 
-	clear(): void {
-		this._data = {};
+	async clear() {
 		this.db.delete('storage');
-	}
-
-	commit(): void {
-		// TODO ...
-	}
-
-	all() {
-		return this._data;
 	}
 
 }
