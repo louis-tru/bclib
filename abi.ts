@@ -35,7 +35,7 @@ export interface AbiInterface {
 export async function getLocalAbi(pathname: string) {
 	// var data = await dasset.post('device/getDeviceBySN', { device_sn: device.serialNumber });
 
-	if (fs.existsSync(pathname)) {
+	if (await fs.exists(pathname)) {
 		try {
 			var b = await fs.readFile(pathname);
 			var abi = JSON.parse(b.toString('utf-8')) as AbiInterface;
