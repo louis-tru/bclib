@@ -125,7 +125,7 @@ async function getAbi(address?: string, type?: ABIType, star?: string) {
 		abi = await getLocalAbi(path); // 读取缓存文件
 	}
 
-	utils.assert(abi, errno.ERR_STAR_ADDRESS_NOT_FOUND);
+	utils.assert(abi, errno.ERR_STAR_ADDRESS_NOT_FOUND, { address, type, star });
 	
 	return abi as AbiInterface;
 }
