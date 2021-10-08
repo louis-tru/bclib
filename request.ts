@@ -240,7 +240,7 @@ class Dasset extends SafeRequest {
 
 		try {
 			return await super.sendSignRequest(name, method, params, options);
-		} catch(err) {
+		} catch(err: any) {
 			// C-10005 Token错误,请重新登录或重新获取Token
 			if (err.errno != errno.ERR_REQ_DASSET_ERR[0] || err.state != 'C-10005') {
 				throw err;

@@ -105,10 +105,13 @@ export default class extends ViewController {
 		var lib = isSSL ? https: http;
 		this.markCompleteResponse();
 
+		var method = this.form ? 'POST': 'GET';
+
 		var res = this.response;
 		var {connection,host,port,...headers} = this.headers;
-		var opts = { method: 'GET', headers, rejectUnauthorized: false };
+		var opts = { method, headers, rejectUnauthorized: false };
 
+		var req = 
 		lib.request(url, opts, (msg) => {
 			if (noCrypt) {
 				res.writeHead(msg.statusCode as number, msg.headers);
@@ -119,8 +122,14 @@ export default class extends ViewController {
 		})
 		.on('abort', ()=>res.destroy())
 		.on('error', ()=>res.destroy())
-		.on('timeout', ()=>res.destroy())
-		.end();
+		.on('timeout', ()=>res.destroy());
+
+		if (this.form) {
+			req.end(JSON.stringify(this.form.fields));
+		} else {
+			req.end();
+		}
+
 	}
 
 };
