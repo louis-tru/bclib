@@ -5,6 +5,7 @@
 
 import paths from '../paths';
 import {ViewController} from 'somes/ctr';
+import request from 'somes/request';
 import utils from 'somes';
 import wget from 'somes/wget';
 import * as fs from 'somes/fs2';
@@ -52,9 +53,9 @@ class SecurityEncryption extends events.EventEmitter implements NodeJS.WritableS
 
 export default class extends ViewController {
 
-	requestAuth() {
-		return this.request.method == 'GET';
-	}
+	// requestAuth() {
+	// 	return this.request.method == 'GET';
+	// }
 
 	async res({ pathname }: { pathname: string }) {
 		var ext = path.extname(pathname);
@@ -103,26 +104,50 @@ export default class extends ViewController {
 		var url = buffer.from(pathname, 'base58').toString('utf-8');
 		var isSSL = !!url.match(/^https:\/\//i);
 		var lib = isSSL ? https: http;
-		this.markCompleteResponse();
 
+		var uri = new path.URL(url);
+		var hostname = uri.hostname;
+		var port = Number(uri.port) || (isSSL ? 443: 80);
 		var method = this.form ? 'POST': 'GET';
 
 		var res = this.response;
-		var {connection,host,port,...headers} = this.headers;
-		var opts = { method, headers, rejectUnauthorized: false };
+		var {connection,host,port: _,..._headers} = this.headers;
+
+		var headers: Dict = {
+			'Host': uri.port ? hostname + ':' + port: hostname,
+			'User-Agent': request.userAgent,
+		};
+
+		for (var i in _headers) {
+			var j = i.replace(/((^|\-)[a-z])/g, function(a) {
+				return a.toUpperCase();
+			});
+			headers[j] = _headers[i];
+		}
+
+		var opts: https.RequestOptions = {
+			hostname,
+			host: hostname,
+			port,
+			path: uri.path,
+			method, 
+			headers, 
+			rejectUnauthorized: false,
+			minVersion: 'TLSv1.3',
+		};
 
 		var req = 
-		lib.request(url, opts, (msg) => {
-			if (noCrypt) {
-				res.writeHead(msg.statusCode as number, msg.headers);
-				msg.pipe(res);
-			} else {
-				msg.pipe(new SecurityEncryption(msg, res));
-			}
-		})
-		.on('abort', ()=>res.destroy())
-		.on('error', ()=>res.destroy())
-		.on('timeout', ()=>res.destroy());
+			lib.request(opts, (msg) => {
+				if (noCrypt) {
+					res.writeHead(msg.statusCode as number, msg.headers);
+					msg.pipe(res);
+				} else {
+					msg.pipe(new SecurityEncryption(msg, res));
+				}
+			})
+			.on('abort', ()=>res.destroy())
+			.on('error', ()=>res.destroy())
+			.on('timeout', ()=>res.destroy());
 
 		if (this.form) {
 			req.end(JSON.stringify(this.form.fields));
@@ -130,6 +155,7 @@ export default class extends ViewController {
 			req.end();
 		}
 
+		this.markCompleteResponse();
 	}
 
 };
