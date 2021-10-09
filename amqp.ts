@@ -42,7 +42,7 @@ export class Amqp {
 				var fn = handle[name];
 				somes.assert(fn, errno.ERR_METHOD_NOT_FOUND);
 				await fn.call(handle, data.args);
-			} catch(err) {
+			} catch(err: any) {
 				err = Error.new(err);
 				console.error(err);
 				
