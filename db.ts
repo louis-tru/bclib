@@ -6,6 +6,7 @@
 import * as sqlite from 'bclib/sqlite';
 import paths from './paths';
 import {DatabaseTools} from 'somes/db';
+import cfg from './cfg';
 
 var _default: DatabaseTools = new sqlite.SQLiteTools(`${paths.var}/bclib.db`);
 
@@ -14,6 +15,10 @@ export function initialize(db?: DatabaseTools) {
 		exports.default = db;
 	else
 		db = _default;
+
+	if (cfg.fastStart) {
+		return db.load(``, [], [], 'bclib');
+	}
 
 	return db.load(`
 		CREATE TABLE if not exists callback_url (
