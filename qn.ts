@@ -24,7 +24,16 @@ export default function upload(src: string, dest?: string) {
 
 	var config = new qiniu.conf.Config() as qiniu.conf.ConfigOptions;
 	// 空间对应的机房
-	// config.zone = qiniu.zone.Zone_z0;
+	var spaces: Dict = {
+		huadong: qiniu.zone.Zone_z0,
+		huabei: qiniu.zone.Zone_z1,
+		huanan: qiniu.zone.Zone_z2,
+		beimei: qiniu.zone.Zone_na0,
+		southeast_asia: qiniu.zone.Zone_as0,
+	}
+	var zone = cfg.qiniu ? spaces[cfg.qiniu.zone as any]: null;
+	if (zone)
+		config.zone = zone;
 	// 是否使用https域名
 	//config.useHttpsDomain = true;
 	// 上传是否使用cdn加速
