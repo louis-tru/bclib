@@ -21,8 +21,8 @@ export interface IWeb3Z extends IWeb3Z_ {
 }
 
 export class Web3IMPL extends Web3Z {
-
 	TRANSACTION_CHECK_TIME = 5e3;
+
 	private _txQueue?: TransactionQueue;
 	private _contracts: Dict<Contract> = {};
 
@@ -59,6 +59,7 @@ export class Web3IMPL extends Web3Z {
 		});
 		return fn();
 	}
+
 }
 
 class ExportDefault extends StaticObject<IWeb3Z> {
