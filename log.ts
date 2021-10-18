@@ -15,7 +15,7 @@ export class Console extends ConsoleBase {
 		super(path || `${paths.var}/${cfg.name}.log`);
 
 		somes.onUncaughtException.on((e)=>{
-			this.error(e.data.reason);
+			this.error(e.data);
 			this.reportException(cfg.name, e.data);
 		});
 
