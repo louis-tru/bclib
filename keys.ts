@@ -12,8 +12,9 @@ import cfg from './cfg';
 import paths from './paths';
 import errno from './errno';
 import * as crypto from 'crypto';
-import {SQLiteTools} from './sqlite';
+import {DatabaseTools} from 'somes/db';
 import {rng} from 'somes/rng';
+import db from './db';
 
 const crypto_tx = require('crypto-tx');
 const crypto_tx_sign = require('crypto-tx/sign');
@@ -163,26 +164,20 @@ export class SecretKey implements ISecretKey {
 
 export class KeychainManager {
 
-	private _key_path: string = `${cfg.keys || paths.var}/keychain`;
 	private _keys: Map<string, SecretKey> = new Map(); // name => key, user root key
 	private _addresss_cache: Map<string, string[]> = new Map(); // name => [address]
 	private _part_key_cache: Map<string, string> = new Map(); // part_key => [address]
 	private _address_indexed: Map<string, [string, number, string]> = new Map(); // address => [name,offset,part_key]
-	private _db: SQLiteTools;
+	private _db = db;
 
-	constructor(path?: string) {
-		if (path)
-			this._key_path = path;
-		fs.mkdirpSync(this._key_path)
-		// somes.assert(fs.statSync(this._key_path).isDirectory(), 'This is not a user key directory');
-		if (fs.existsSync(`${this._key_path}/address_indexed.db`)) {
-			fs.renameSync(`${this._key_path}/address_indexed.db`, `${this._key_path}/keys.db`);
-		}
-		this._db = new SQLiteTools(`${this._key_path}/keys.db`);
-	}
-
-	initialize() {
-		return this._db.initialize(`
+	async initialize(db?: DatabaseTools) {
+		if (db)
+			this._db = db;
+		await this._db.load(`
+			create table if not exists keystore_list (
+				name        VARCHAR (64) PRIMARY KEY NOT NULL, -- 用户名称
+				keystore    VARCHAR (1024) NOT NULL
+			);
 			CREATE TABLE if not exists address_list ( -- 所有的地址列表
 				address     VARCHAR (42) PRIMARY KEY NOT NULL,
 				addressBtc  VARCHAR (42)             NOT NULL,
@@ -202,12 +197,9 @@ export class KeychainManager {
 		`, [
 			'alter table address_list add part_key VARCHAR (64) NOT NULL',
 		], [
-			'create unique index address_list_address    on address_list (address)',
 			'create unique index address_list_addressBtc on address_list (addressBtc)',
 			'create unique index address_list_part_key   on address_list (part_key)',
-			'create unique index root_keys_address       on root_keys (address)',
-			'create unique index unlock_pwd_name         on unlock_pwd (name)',
-		]);
+		], 'keys');
 	}
 
 	private getPart_key(name: string, part_key: string) {
@@ -376,24 +368,11 @@ export class KeychainManager {
 		}
 	}
 
-	private async backupKeystore(name: string) {
-		var path = `${this._key_path}/${name}`;
-		var bin = await fs.readFile(path);
-		await fs.mkdirp(`${this._key_path}/backup`); // backup keystore
-		await fs.writeFile(`${this._key_path}/backup/${name}`, bin);
-		await fs.mkdirp(`${this._key_path}/backup2`); // backup keystore
-		await fs.writeFile(`${this._key_path}/backup2/${name}`, bin);
-		await fs.mkdirp(`${this._key_path}/backup3`); // backup keystore
-		await fs.writeFile(`${this._key_path}/backup3/${name}`, bin);
-	}
-
 	async setPassword(name: string, oldPwd: string, newPwd: string) {
 		var key = await this.root(name);
 		key.unlock(oldPwd);
-		var path = `${this._key_path}/${name}`;
 		var keystore = JSON.stringify(await key.exportKeystore(newPwd));
-		await fs.writeFile(path, keystore);
-		await this.backupKeystore(name);
+		await this._db.update('keystore_list', {keystore}, {name});
 		key.lock();
 		this._keys.delete(name);
 	}
@@ -413,16 +392,22 @@ export class KeychainManager {
 	async root(name: string) {
 		var key = this._keys.get(name);
 		if (!key) {
-			var path = `${this._key_path}/${name}`;
-			if (!await fs.exists(path)) {
+			var [r] = await this._db.select('keystore_list', {name});
+			if (!r) {
 				// gen root key
 				var privkey = buffer.from(crypto_tx.genPrivateKey());
 				var keystore = JSON.stringify(await SecretKey.from(privkey).exportKeystore('0000'), null, 2); // default
-				await fs.writeFile(path, keystore);
+				try {
+					await this._db.insert('keystore_list', {name, keystore});
+				} catch(err: any) {
+					var [r] = await this._db.select('keystore_list', {name});
+					somes.assert(r, err);
+					keystore = r.keystore;
+				}
+				key = SecretKey.keystore(JSON.parse(keystore));
+			} else {
+				key = SecretKey.keystore(JSON.parse(r.keystore));
 			}
-			var keystore_bin = await fs.readFile(path);
-			key = SecretKey.keystore(JSON.parse(keystore_bin.toString()));
-			await this.backupKeystore(name);
 			this._keys.set(name, key);
 		}
 		return key as SecretKey;
@@ -459,9 +444,12 @@ export class KeysManager {
 		var path = `${cfg.keys || paths.var}/keys`;
 
 		if (fs.existsSync(path)) {
-			var strs = keys.parseFile(path);
+			var strs = keys.parseFile(path) as string[];
 			if (Array.isArray(strs)) {
 				for (var priv of strs) {
+					if (priv.substr(0,2) == '0x') {
+						priv = priv.slice(2); // slice 0x
+					}
 					// add key
 					var privKey = buffer.from(priv, 'hex');
 					var address = crypto_tx.getAddress(privKey);
@@ -557,6 +545,8 @@ export class KeysManager {
 			} else {
 				key = this._defaultKey; // use default system permission
 			}
+			if (key)
+				return; // check ok
 		}
 		await this.keychain.checkPermission(keychainName, addressOrAddressBtc);
 	}

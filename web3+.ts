@@ -9,26 +9,27 @@ import cfg from './cfg';
 import keys from './keys+';
 import {IBuffer} from 'somes/buffer';
 import {Signature} from 'web3z';
-import {Web3Z, IWeb3Z as IWeb3ZBase} from 'web3z';
+import {Web3Z, IWeb3Z as IWeb3Z_} from 'web3z';
 import { TransactionQueue } from 'web3z/queue';
 import { Contract } from 'web3z';
-import {getAbiFromAddress} from './abi';
+import {getAbiByAddress} from './abi';
+import {StaticObject} from './obj';
 
-export interface IWeb3Z extends IWeb3ZBase {
+export interface IWeb3Z extends IWeb3Z_ {
 	readonly txQueue: TransactionQueue;
 	contract(address: string): Promise<Contract>;
 }
 
 export class Web3IMPL extends Web3Z {
-
 	TRANSACTION_CHECK_TIME = 5e3;
+
 	private _txQueue?: TransactionQueue;
 	private _contracts: Dict<Contract> = {};
 
 	async contract(address: string) {
 		var contract = this._contracts[address];
 		if (!contract) {
-			var {abi} = await getAbiFromAddress(address);
+			var {abi} = await getAbiByAddress(address);
 			contract = this.createContract(address, abi);
 			this._contracts[address] = contract;
 		}
@@ -58,33 +59,17 @@ export class Web3IMPL extends Web3Z {
 		});
 		return fn();
 	}
+
 }
 
-var _web3: IWeb3Z | undefined;
-var _web3_c: Web3Contracts | undefined;
-
-export default {
-
-	get impl() {
-		if (!_web3) {
-			_web3 = new Web3IMPL();
-		}
-		return _web3;
-	},
-
-	set_impl(impl: IWeb3Z) {
-		_web3 = impl;
-	},
-
+class ExportDefault extends StaticObject<IWeb3Z> {
+	private _web3_c = new StaticObject(Web3Contracts);
 	get web3_c() {
-		if (!_web3_c) {
-			_web3_c = new Web3Contracts();
-		}
-		return _web3_c;
-	},
-
+		return this._web3_c.impl;
+	}
 	set_web3_c(web3_c: Web3Contracts) {
-		_web3_c = web3_c;
-	},
+		this._web3_c.set_impl(web3_c);
+	}
+}
 
-};
+export default new ExportDefault(Web3IMPL);

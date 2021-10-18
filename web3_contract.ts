@@ -6,10 +6,9 @@
 import somes from 'somes';
 import web3 from './web3+';
 import { TransactionReceipt, 
-	FindEventResult,TxOptions as RawTxOptions,
-	SAFE_TRANSACTION_MAX_TIMEOUT } from 'web3z';
+	FindEventResult,TxOptions as RawTxOptions } from 'web3z';
 import errno_web3z from 'web3z/errno';
-import {ABIType, getAddressFromType} from './abi';
+import {ABIType, getAddressByType} from './abi';
 import errno from './errno';
 import {callbackURI} from './utils';
 import db from './db';
@@ -17,8 +16,7 @@ import {WatchCat} from './watch';
 
 export interface PostResult {
 	receipt: TransactionReceipt;
-	// event?: FindEventResult;
-	data?: any;
+	event?: FindEventResult;
 	error?: Error;
 	id?: string;
 }
@@ -29,7 +27,7 @@ export interface Options {
 	retry?: number;
 	timeout?: number;
 	blockRange?: number;
-	// event?: string;
+	event?: string;
 }
 
 export type TxOptions = Options & RawTxOptions;
@@ -50,7 +48,7 @@ interface TxAsync {
 	time: number;
 };
 
-export abstract class ContractCall {
+export abstract class ContractWrap {
 	private _host: Web3Contracts;
 
 	constructor(host: Web3Contracts) {
@@ -77,10 +75,10 @@ export abstract class ContractCall {
 
 }
 
-class TypeContract extends ContractCall {
+class TypeContract extends ContractWrap {
 	private _star: string;
 	private _type: ABIType;
-	getAddress() { return getAddressFromType(this._type, this._star) }
+	getAddress() { return getAddressByType(this._type, this._star) }
 	constructor(_star: string, _type: ABIType, host: Web3Contracts) {
 		super(host);
 		this._star = _star;
@@ -88,7 +86,7 @@ class TypeContract extends ContractCall {
 	}
 }
 
-class AddressContract extends ContractCall {
+class AddressContract extends ContractWrap {
 	private _address: string;
 	async getAddress() {return this._address}
 	constructor(_address: string, host: Web3Contracts) {
@@ -98,7 +96,7 @@ class AddressContract extends ContractCall {
 }
 
 export class Web3Contracts implements WatchCat {
-	private _contracts = new Map<string, ContractCall>();
+	private _contracts = new Map<string, ContractWrap>();
 
 	contractFromType(type: ABIType, star_?: string) {
 		var star = star_ || '';
@@ -120,7 +118,7 @@ export class Web3Contracts implements WatchCat {
 	}
 
 	async review(id: string): Promise<PostResult> {
-		var row = await db.getById('tx_async', Number(id)) as { status: number; data: string };
+		var [row] = await db.select('tx_async', { id: Number(id) }) as { status: number; data: string }[];
 		somes.assert(row, errno.ERR_WEB3_API_POST_NON_EXIST);
 		somes.assert(row.status == 2 || row.status == 3, errno.ERR_WEB3_API_POST_PENDING);
 		var data = JSON.parse(row.data) as PostResult;
@@ -128,7 +126,7 @@ export class Web3Contracts implements WatchCat {
 	}
 
 	private async _sendTransactionAsyncAfter(id: number, result: PostResult, cb?: Callback) {
-		var r = await db.getById('tx_async', id) as TxAsync;
+		var [r] = await db.select('tx_async', {id}) as TxAsync[];
 		if (r.status != 1) {
 			return;
 		}
@@ -204,11 +202,15 @@ export class Web3Contracts implements WatchCat {
 		await fn.call(opts); // try call
 		// var nonce = await web3.txQueue.getNonce();
 		var receipt = await web3.impl.txQueue.push(e=>fn.sendSignTransaction({...opts, ...e}, hash), opts);
-		return { receipt } as PostResult;
+		var event: FindEventResult | undefined;
+		if (opts?.event) {
+			event = await contract.findEvent(opts.event, receipt.blockNumber, receipt.transactionHash) || undefined;
+		}
+		return { receipt, event } as PostResult;
 	}
 
 	async _contractPostAsync(id: number, cb_?: Callback) {
-		var row = await db.getById('tx_async', id) as TxAsync; somes.assert(row);
+		var [row] = await db.select('tx_async', {id}) as TxAsync[]; somes.assert(row);
 		this._sendTransactionAsync(id, row, async (hash)=>{
 			var {contract,method} = row;
 			var args: any[] = JSON.parse(row.args as string);
@@ -218,7 +220,7 @@ export class Web3Contracts implements WatchCat {
 	}
 
 	async _sendSignTransactionAsync(id: number, cb_?: Callback) {
-		var row = await db.getById('tx_async', id) as TxAsync; somes.assert(row);
+		var [row] = await db.select('tx_async', {id}) as TxAsync[]; somes.assert(row);
 		this._sendTransactionAsync(id, row, async (hash)=>{
 			var opts: TxOptions = JSON.parse(row.opts);
 			return {

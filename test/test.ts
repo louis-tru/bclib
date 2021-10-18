@@ -6,9 +6,9 @@ export default function(name: string, dir: string) {
 		index({ test_name, ...args }: { test_name: string, args: any[] }) {
 			var lib = require(`${dir}/${name}-${test_name}`);
 			if (lib.default) {
-				return lib.default(args);
+				return lib.default(args, this);
 			} else {
-				return lib(args);
+				return lib(args, this);
 			}
 		}
 	};

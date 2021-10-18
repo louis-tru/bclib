@@ -10,7 +10,11 @@ import {BlockNumber} from 'web3-core/types';
 const web3 = ()=>web3z.impl.web3;
 
 export default class extends ApiController {
-	
+
+	async auth() {
+		return true;
+	}
+
 	isSyncing() { return web3().eth.isSyncing(); }
 	blockNumber() { return web3().eth.getBlockNumber(); }
 	blockNumberCache() { return web3z.impl.getBlockNumber(); }

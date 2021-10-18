@@ -5,19 +5,30 @@
 
 import * as sqlite from 'bclib/sqlite';
 import paths from './paths';
+import {DatabaseTools} from 'somes/db';
+import cfg from './cfg';
 
-var _defailt = new sqlite.SQLiteTools(`${paths.var}/bclib.db`);
+var _default: DatabaseTools = new sqlite.SQLiteTools(`${paths.var}/bclib.db`);
 
-export function initialize() {
-	return _defailt.initialize(`
+export function initialize(db?: DatabaseTools) {
+	if (db)
+		exports.default = db;
+	else
+		db = _default;
+
+	if (cfg.fastStart) {
+		return db.load(``, [], [], 'bclib');
+	}
+
+	return db.load(`
 		CREATE TABLE if not exists callback_url (
-			id           INTEGER PRIMARY KEY AUTOINCREMENT,
+			id           INT PRIMARY KEY AUTO_INCREMENT,
 			url          VARCHAR (255) NOT NULL,
 			data         TEXT NOT NULL,
-			status       INTEGER DEFAULT (0) NOT NULL -- 0没完成,1完成,2丢弃 
+			status       INT DEFAULT 0 NOT NULL -- 0没完成,1完成,2丢弃 
 		);
 		CREATE TABLE if not exists tx_async (
-			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			id         INT PRIMARY KEY AUTO_INCREMENT,
 			account    VARCHAR (128),
 			contract   VARCHAR (128),
 			method     VARCHAR (64),
@@ -26,17 +37,29 @@ export function initialize() {
 			data       TEXT,
 			cb         VARCHAR (255),
 			txid       VARCHAR (255),
-			status     INTEGER DEFAULT (0) NOT NULL, -- 1进行中,2完成,3失败
-			time       INTEGER DEFAULT (0) NOT NULL
+			status     INT DEFAULT (0) NOT NULL, -- 1进行中,2完成,3失败
+			time       bigint DEFAULT (0) NOT NULL
+		);
+		create table if not exists auth_user(
+			id         int PRIMARY KEY AUTO_INCREMENT,
+			name       varchar (64)         not null,
+			pkey       text   not null,
+			keyType    varchar (32) default ('') not null,
+			mode       int default (0)  not null,
+			interfaces text,
+			time       bigint not null
 		);
 	`, [
-		'alter table tx_async add time INTEGER DEFAULT (0) NOT NULL',
+		`alter table tx_async add time bigint DEFAULT (0) NOT NULL`,
+		`alter table auth_user add keyType varchar (32) default ('') not null`,
 	], [
 		'create unique index callback_url_id     on callback_url (id)',
 		'create        index callback_url_status on callback_url (status)',
 		'create unique index tx_async_id     on tx_async (id)',
 		'create        index tx_async_status on tx_async (status)',
-	]);
+		'create unique index auth_user_name on auth_user (name)',
+		'create        index auth_user_mode on auth_user (mode)',
+	], 'bclib');
 }
 
-export default _defailt;
+export default _default;

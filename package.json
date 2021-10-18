@@ -11,16 +11,17 @@
 	},
 	"scripts": {},
 	"dependencies": {
-		"somes": "file:deps/somes",
-		"web3z": "file:deps/web3z",
-		"crypto-tx": "file:deps/crypto-tx",
-		"@types/node": "~12.12.20",
-		"supervisor": "^0.12.0",
 		"@openzeppelin/contracts": "~3.3.0",
+		"@types/node": "~14.14.22",
+		"amqplib": "~0.6.0",
+		"bitcoinjs-lib": "~5.1.10",
+		"node-xlsx": "~0.15.0",
+		"qiniu": "~7.4.0",
 		"solc": "~0.7.5",
 		"sqlite3": "~4.1.1",
-		"bitcoinjs-lib": "~5.1.10",
-		"amqplib": "~0.6.0",
-		"node-xlsx": "~0.15.0"
+		"supervisor": "^0.12.0",
+		"crypto-tx": "file:deps/crypto-tx",
+		"somes": "file:deps/somes",
+		"web3z": "file:deps/web3z"
 	}
 }

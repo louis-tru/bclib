@@ -6,6 +6,7 @@
 import {getLocalNetworkHost} from 'somes/network_host';
 import {Monitor} from 'somes/monitor';
 import {MessagePost} from 'bclib/message';
+import {StaticObject} from './obj';
 
 const RUN_INTERVAL = 60 * 1000; // 60s
 const [host] = getLocalNetworkHost();
@@ -15,6 +16,7 @@ export interface WatchCat<T = any> {
 	name?: string;
 	catcount?: number;
 	cattime?: number;
+	tryTime?: number;
 	priv_cattime?: number;
 	run_cating?: boolean;
 	cat(data: T): Promise<boolean> | boolean;
@@ -44,9 +46,10 @@ export abstract class Watch<T = any> extends Monitor {
 		var now = Date.now();
 		var data = await this.beforeCat(now);
 		// cats
-		for (var [name,o] of this._cat) {
+		for (let [name,o] of this._cat) {
 			let {watch:w,ok} = o;
-			if (force || (now > (w.priv_cattime as number) + (w.cattime as number) * RUN_INTERVAL && !w.run_cating)) {
+			let cattime = (ok ? w.cattime: w.tryTime || w.cattime) as number;
+			if (force || (now > (w.priv_cattime as number) + cattime * this.interval && !w.run_cating)) {
 				(async ()=>{
 					var _ok = false;
 					try {
@@ -56,6 +59,7 @@ export abstract class Watch<T = any> extends Monitor {
 						(w.catcount as number)++;
 					} catch(err) {
 						console.error(err);
+						_ok = false;
 					} finally {
 						w.run_cating = false;
 					}
@@ -110,4 +114,4 @@ export class WatchDefault extends Watch<number> {
 
 }
 
-export default new WatchDefault();
+export default new StaticObject(WatchDefault);

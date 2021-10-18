@@ -3,84 +3,73 @@
  * @date 2020-11-28
  */
 
+import somes from 'somes';
 import paths from './paths';
 import {IStorage} from 'somes/storage';
 import {SQLiteTools} from './sqlite';
+import {DatabaseTools} from 'somes/db';
 
 export class Storage implements IStorage {
 
-	private _db: SQLiteTools;
-	private _data: Dict = {};
+	private _db?: DatabaseTools;
 
-	constructor(path?: string) {
-		this._db = new SQLiteTools(path || `${paths.var}/storage.db`);
+	private get db() {
+		somes.assert(this._db);
+		return this._db as DatabaseTools;
 	}
 
-	async initialize(): Promise<void> {
-		await this._db.initialize(`
-			CREATE TABLE if not exists util (
-				key         VARCHAR (64) PRIMARY KEY NOT NULL,
-				value       TEXT    NOT NULL
+	async initialize(db?: DatabaseTools): Promise<void> {
+		somes.assert(!this._db);
+
+		this._db = db || new SQLiteTools(`${paths.var}/storage.db`);
+		await this._db.load(`
+			CREATE TABLE if not exists storage (
+				kkey     VARCHAR (128) PRIMARY KEY NOT NULL, -- string key
+				value    TEXT    NOT NULL
 			);
 		`, [], [
-			'create unique index util_indexes on util (key)'
-		]);
-
-		for (var {key, value} of await this._db.select('util')) {
-			if (value) {
-				try {
-					this._data[key] = JSON.parse(value);
-				} catch(err) {
-					console.error(err);
-				}
-			}
-		}
+		], 'bclib/storage');
 	}
 
-	get(key: string, defaultValue?: any) {
-		if (key in this._data) {
-			return this._data[key];
+	async get(kkey: string, defaultValue?: any) {
+		var its = await this.db.select('storage', {kkey}, {limit:1});
+		if (its.length) {
+			return JSON.parse(its[0].value);
 		} else {
 			if (defaultValue !== undefined) {
-				this.set(key, defaultValue);
+				await this.set(kkey, defaultValue);
 				return defaultValue;
 			}
 		}
 	}
 
-	has(key: string): any {
-		return key in this._data;
+	async has(kkey: string) {
+		var its = await this.db.select('storage', {kkey}, {limit:1});
+		return its.length > 0;
 	}
 
-	set(key: string, value: any): void {
-		if (key in this._data) {
-			this._db.update('util', { value: JSON.stringify(value) }, { key });
-		} else {
-			this._db.insert('util', { key, value: JSON.stringify(value) });
+	async set(kkey: string, _value: any) {
+		var value = JSON.stringify(_value);
+		if (this.db instanceof SQLiteTools) { // sqlite
+			if (await this.has(kkey)) {
+				await this.db.update('storage', { value }, { kkey });
+			} else {
+				await this.db.update('storage', { value }, { kkey });
+			}
+		} else { // mysql
+			var ok = await this.db.update('storage', { value }, { kkey });
+			if (!ok) {
+				this.db.insert('storage', { value: value, kkey });
+			}
 		}
-		this._data[key] = value;
 	}
 
-	del(key: string): void {
-		this.delete(key);
+	async delete(kkey: string) {
+		this.db.delete('storage', { kkey });
 	}
 
-	delete(key: string): void {
-		delete this._data[key];
-		this._db.delete('util', { key });
-	}
-
-	clear(): void {
-		this._data = {};
-		this._db.delete('util');
-	}
-
-	commit(): void {
-		// TODO ...
-	}
-
-	all() {
-		return this._data;
+	async clear() {
+		this.db.delete('storage');
 	}
 
 }

@@ -37,12 +37,12 @@ cfg.router.push({
 
 // register service test
 if (!prod) {
-	for (var e of cfg_.tests.concat([`${__dirname}/test/test`])) {
+	for (var e of cfg_.tests || []) {
 		var {name,dir} = path.parse(e);
 		service.set(name, require(e).default(name, dir));
 		cfg.router.push({ match: `/${name}/{test_name}`, service: name, action: 'index' });
 	}
-	service.set('test-ws', require('./test/test-ws').default);
+	// service.set('test-ws', require('./test/test-ws').default);
 }
 
 service.del('descriptors'); // delete descriptors service

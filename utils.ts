@@ -5,12 +5,12 @@
 
 import utils from 'somes';
 import {Options,Params,Signer} from 'somes/request';
-import storage from './storage';
 import buffer from 'somes/buffer';
-import {SafeRequest, post} from './request';
 import cfg from './cfg';
-import keys from './keys+';
 import db from './db';
+import storage from './storage';
+import keys from './keys+';
+import {SafeRequest, post} from './request';
 
 const crypto_tx = require('crypto-tx');
 
@@ -90,10 +90,10 @@ export function createCache<A extends any[], R>(
 			} else {
 				value = await fetch(...args);
 			}
-			storage.set(key, { value, time: Date.now() + cacheTime });
+			await storage.set(key, { value, time: Date.now() + cacheTime });
 			return value;
 		} catch(error) {
-			var cache = storage.get(key);
+			var cache = await storage.get(key);
 			if (cache) { // use cache
 				return { ...cache.value, error };
 			}
@@ -102,7 +102,7 @@ export function createCache<A extends any[], R>(
 	}
 
 	async function call(...args: A): Promise<R> {
-		var value = storage.get(key) || { value: null, time: 0 };
+		var value = await storage.get(key) || { value: null, time: 0 };
 		if (value.time < Date.now()) {
 			return await noCache(...args);
 		}
@@ -110,11 +110,11 @@ export function createCache<A extends any[], R>(
 	}
 
 	async function cache(...args: A): Promise<R> {
-		var value = storage.get(key);
+		var value = await storage.get(key);
 		if (value) {
 			return Promise.resolve(value.value as R);
 		}
-		return call(...args);
+		return await call(...args);
 	}
 
 	function func(no_cache = CacheMode.AUTO, ...args: A): Promise<R> {
@@ -151,10 +151,10 @@ export async function callApi(
 		} else {
 			var {data} = await api.post(name, params, options);
 		}
-		storage.set(key, data);
+		await storage.set(key, data);
 	} catch(err) {
 		// console.error(err);
-		data = storage.get(key);
+		data = await storage.get(key);
 		if (!data) {
 			throw err;
 		}
@@ -184,7 +184,7 @@ async function callbackURL_impl(data: any, url: string, id: number) {
 		try {
 			var r = await post(url, { params: data, urlencoded: false, signer });
 			if (r.statusCode == 200) {
-				await db.deleteById('callback_url', id);
+				await db.delete('callback_url', {id});
 				return;
 			}
 		} catch(err) {}
