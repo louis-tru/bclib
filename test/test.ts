@@ -8,7 +8,7 @@ export default function(name: string, dir: string) {
 			if (lib.default) {
 				return lib.default(args, this);
 			} else {
-				return lib(args);
+				return lib(args, this);
 			}
 		}
 	};
