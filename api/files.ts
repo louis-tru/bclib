@@ -17,6 +17,7 @@ import buffer, {IBuffer} from 'somes/buffer';
 import * as events from 'events';
 import cfg from '../cfg';
 import * as crypto from 'crypto';
+import * as tls from 'tls';
 
 class SecurityEncryption extends events.EventEmitter implements NodeJS.WritableStream {
 	private _res: http.ServerResponse;
@@ -100,7 +101,7 @@ export default class extends ViewController {
 		this.returnFile(save, mime);
 	}
 
-	security({ pathname, noCrypt }: { pathname: string, noCrypt?: boolean }) {
+	security({ pathname, noCrypt, sslVersion }: { pathname: string, noCrypt?: boolean, sslVersion?: tls.SecureVersion }) {
 		var url = buffer.from(pathname, 'base58').toString('utf-8');
 		var isSSL = !!url.match(/^https:\/\//i);
 		var lib = isSSL ? https: http;
@@ -135,6 +136,10 @@ export default class extends ViewController {
 			rejectUnauthorized: false,
 			minVersion: 'TLSv1.3',
 		};
+
+		if (sslVersion) {
+			opts.minVersion = sslVersion;
+		}
 
 		var req = 
 			lib.request(opts, (msg) => {
