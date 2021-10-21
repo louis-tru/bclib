@@ -6,6 +6,7 @@
 import paths from '../paths';
 import {ViewController} from 'somes/ctr';
 import request from 'somes/request';
+import {Http2Sessions} from 'somes/http2';
 import utils from 'somes';
 import wget from 'somes/wget';
 import * as fs from 'somes/fs2';
@@ -18,6 +19,8 @@ import * as events from 'events';
 import cfg from '../cfg';
 import * as crypto from 'crypto';
 import * as tls from 'tls';
+import * as http2 from 'http2';
+import {URL} from 'somes/path';
 
 class SecurityEncryption extends events.EventEmitter implements NodeJS.WritableStream {
 	private _res: http.ServerResponse;
@@ -52,11 +55,9 @@ class SecurityEncryption extends events.EventEmitter implements NodeJS.WritableS
 	}
 }
 
-export default class extends ViewController {
+const sessions = new Http2Sessions();
 
-	// requestAuth() {
-	// 	return this.request.method == 'GET';
-	// }
+export default class extends ViewController {
 
 	async res({ pathname }: { pathname: string }) {
 		var ext = path.extname(pathname);
@@ -101,7 +102,10 @@ export default class extends ViewController {
 		this.returnFile(save, mime);
 	}
 
-	security({ pathname, noCrypt, sslVersion }: { pathname: string, noCrypt?: boolean, sslVersion?: tls.SecureVersion }) {
+	security({ pathname, noCrypt, sslVersion, http2 }: { pathname: string, noCrypt?: boolean, sslVersion?: tls.SecureVersion, http2?: boolean }) {
+		if (http2) {
+			return this.http2({pathname, sslVersion});
+		}
 		var url = buffer.from(pathname, 'base58').toString('utf-8');
 		var isSSL = !!url.match(/^https:\/\//i);
 		var lib = isSSL ? https: http;
@@ -153,6 +157,78 @@ export default class extends ViewController {
 			.on('abort', ()=>res.destroy())
 			.on('error', ()=>res.destroy())
 			.on('timeout', ()=>res.destroy());
+
+		if (this.form) {
+			req.end(JSON.stringify(this.form.fields));
+		} else {
+			req.end();
+		}
+
+		this.markCompleteResponse();
+	}
+
+	http2({pathname, sslVersion}: { pathname: string, sslVersion?: tls.SecureVersion }) {
+		var url = buffer.from(pathname, 'base58').toString('utf-8');
+		var session = sessions.session(url, { minSsl: sslVersion });
+		var uri = new URL(url);
+		var method = this.form ? 'POST': 'GET';
+
+		var res = this.response;
+		var {connection,host,port: _,..._headers} = this.headers;
+
+		var headers: http2.OutgoingHttpHeaders = {
+			':path': uri.path,
+			':scheme': 'https',
+			':authority': uri.hostname,
+			':method': method || 'GET',
+			'user-agent': request.userAgent,
+		};
+
+		for (var i in headers) {
+			var j = i.replace(/((^|\-)[a-z])/g, function(a) {
+				return a.toLowerCase();
+			});
+			headers[j] = _headers[i];
+		}
+
+		var req = session.request(headers, {exclusive: true, weight: 220/*, endStream: true*/});
+		var statusCode = 0;
+		var responseHeaders: Dict = {};
+		var ok = false;
+
+		var Err = (e?: Error)=>{
+			if (!ok) {
+				ok = true;
+				session.removeListener('error', Err);
+				session.removeListener('close', Err);
+				res.destroy();
+			}
+		};
+		var Ok = ()=>{
+			if (!ok) {
+				ok = true;
+				session.removeListener('error', Err);
+				session.removeListener('close', Err);
+			}
+		};
+
+		session.on('error', Err);
+		session.on('close', Err);
+		req
+			.on('aborted', Err)
+			.on('error', Err)
+			.on('timeout', Err)
+			.on('end', Ok)
+			.on('response', (headers)=>
+			{
+				for (var [k,v] of Object.entries(headers)) {
+					if (k[0] != ':')
+						responseHeaders[k] = v;
+				}
+				statusCode = headers[':status'] as number;
+				res.writeHead(statusCode as number, responseHeaders);
+				req.pipe(res);
+			});
 
 		if (this.form) {
 			req.end(JSON.stringify(this.form.fields));
