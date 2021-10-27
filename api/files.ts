@@ -138,7 +138,7 @@ export default class extends ViewController {
 			method, 
 			headers, 
 			rejectUnauthorized: false,
-			minVersion: 'TLSv1.3',
+			// minVersion: 'TLSv1.3',
 		};
 
 		if (sslVersion) {
