@@ -174,7 +174,8 @@ export default class extends ViewController {
 		var method = this.form ? 'POST': 'GET';
 
 		var res = this.response;
-		var {connection,host,port: _,..._headers} = this.headers;
+		var {connection,host,Host,Accept,port: _,..._headers} = this.headers;
+		delete _headers['User-Agent'];
 
 		var headers: http2.OutgoingHttpHeaders = {
 			':path': uri.path,
