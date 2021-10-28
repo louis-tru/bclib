@@ -293,6 +293,11 @@ export class SQLiteTools implements DatabaseTools {
 		return selectAfter(struct, ls) as T[];
 	}
 
+	async selectOne<T = Dict>(table: string, where: Where = '', opts: SelectOptions = {}): Promise<T|null> {
+		var [s] = await this.select<T>(table, where, {limit: 1, ...opts});
+		return s || null;
+	}
+
 	async query<T = Dict>(sql: string, table: string = ''): Promise<T[]> {
 		table = get_select_table_name(sql, table);
 		return selectAfter(this.check(table), await this._Query(sql)) as T[];;
