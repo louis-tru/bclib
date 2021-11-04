@@ -10,7 +10,7 @@ import cfg from './cfg';
 import db from './db';
 import storage from './storage';
 import keys from './keys+';
-import {SafeRequest, post} from './request';
+import {Standard, post} from './request';
 
 const crypto_tx = require('crypto-tx');
 
@@ -137,7 +137,7 @@ export function createCache<A extends any[], R>(
 }
 
 export async function callApi(
-	api: SafeRequest,
+	api: Standard,
 	name: string,
 	method: 'post' | 'get' = 'post',
 	params?: Params,

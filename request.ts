@@ -26,7 +26,7 @@ if (cfg.internetTest && Array.isArray(cfg.internetTest)) {
 }
 
 type RequestArgs = [string, string?, Params?, Options?];
-type RequestItem = [ SafeRequest, RequestArgs, (any: any)=>void, (any: any)=>void ];
+type RequestItem = [ Standard, RequestArgs, (any: any)=>void, (any: any)=>void ];
 
 /**
  * @class CheckNetwork
@@ -81,7 +81,7 @@ class CheckNetwork {
 		return this.m_internet_available !== 0;
 	}
 
-	request<T>(safe: SafeRequest, args: RequestArgs): PromiseResult<T> {
+	request<T>(safe: Standard, args: RequestArgs): PromiseResult<T> {
 		return new Promise((ok, err)=>{
 			if (this.m_check_internet_flag == 2) {
 				if (this.m_internet_available) {
@@ -118,12 +118,15 @@ var CHECK = new CheckNetwork();
 /**
  * @class SafeRequest
  */
-export abstract class SafeRequest extends req.Request {
-
+export class Standard extends req.Request {
+	protected user: string;// = 'bclib';
 	private _chack = CHECK;
 	protected shareKey = 'a4dd53f2fefde37c07ac4824cf7086439633e1a357daacc3aaa16418275a9e40';
 
-	abstract parseResponseData(buf: IBuffer, r: Result): any;
+	constructor(prefix: string, user?: string) {
+		super(prefix);
+		this.user = user || 'bclib';
+	}
 
 	checkNetwork(): Promise<void> {
 		return this._chack.check();
@@ -141,11 +144,11 @@ export abstract class SafeRequest extends req.Request {
 	protected hash(st: number, params: Params, method?: string) {
 		var key = this.shareKey;
 		if (method == 'POST') {
-			var hash = crypto_tx.keccak(JSON.stringify(params) + st + key).hex;
+			var hash = crypto.createHash('sha256').update(JSON.stringify(params) + st + key).digest('hex');
 		} else {
-			var hash = crypto_tx.keccak(st + key).hex;
+			var hash = crypto.createHash('sha256').update(st + key).digest('hex');
 		}
-		return hash;
+		return '0x' + hash;
 	}
 
 	async sendSignRequest<T>(
@@ -160,6 +163,7 @@ export abstract class SafeRequest extends req.Request {
 		// sign request
 		var st = Date.now();
 		var headers = Object.assign({
+			'auth-user': this.user,
 			st: st,
 			sign: await this.sign(this.hash(st, params, method)),
 		}, options.headers);
@@ -183,9 +187,34 @@ export abstract class SafeRequest extends req.Request {
 		return this._chack.request<T>(this, [name, method, params, options]);
 	}
 
+	// abstract parseResponseData(buf: IBuffer, r: Result): any;
+
+	parseResponseData(buf: IBuffer, r: Result): any {
+		if (r.statusCode != 200) {
+			throw Error.new(errno.ERR_HTTP_STATUS_NO_200);
+		}
+		var json = buf.toString('utf8');
+		var res = parseJSON(json);
+		if (res.errno === 0) {
+			return res.data;
+		} else {
+			throw Error.new(res);
+		}
+	}
+
 }
 
-class Chain extends SafeRequest {
+class Chain extends Standard {
+
+	protected hash(st: number, params: Params, method?: string) {
+		var key = this.shareKey;
+		if (method == 'POST') {
+			var hash = crypto_tx.keccak(JSON.stringify(params) + st + key).hex;
+		} else {
+			var hash = crypto_tx.keccak(st + key).hex;
+		}
+		return hash;
+	}
 
 	parseResponseData(buf: IBuffer, r: Result): any {
 		if (r.statusCode != 200) {
@@ -203,7 +232,7 @@ class Chain extends SafeRequest {
 	}
 }
 
-class Dasset extends SafeRequest {
+class Dasset extends Standard {
 
 	private _token?: { token: string; expire_time: number };
 
@@ -268,7 +297,7 @@ class Dasset extends SafeRequest {
 	}
 }
 
-class XApi extends SafeRequest {
+class XApi extends Standard {
 
 	getRequestHeaders() {
 		return {
@@ -285,7 +314,9 @@ class XApi extends SafeRequest {
 
 }
 
-class Baas extends SafeRequest {
+export const SafeRequest: typeof Standard = Standard;
+
+class Baas extends Standard {
 	protected shareKey = 'b4dd53f2fefde37c07ac4824cf7086439633e3a357daacc3aaa16418275a9e51';
 	// privateKey: 0x1594e3262ff748d55ac6d220b01f28f9c878760708f1f67d294614e41182deb5
 	// publicKey: 0x037be384f878f0d4adeb2e71adc446357e3cc8cdb782a36ddfafc630331c98f717
@@ -293,36 +324,9 @@ class Baas extends SafeRequest {
 		'1594e3262ff748d55ac6d220b01f28f9c878760708f1f67d294614e41182deb5', 'hex'
 	));
 
-	protected hash(st: number, params: Params, method?: string) {
-		var key = this.shareKey;
-		if (method == 'POST') {
-			var hash = crypto.createHash('sha256').update(JSON.stringify(params) + st + key).digest('hex');
-		} else {
-			var hash = crypto.createHash('sha256').update(st + key).digest('hex');
-		}
-		return '0x' + hash;
-	}
-
 	protected async sign(hash32Hex: string) {
 		var signature = await this._secretKey.sign(buffer.from(hash32Hex.slice(2), 'hex'))
 		return buffer.concat([signature.signature, [signature.recovery]]).toString('base64');
-	}
-
-	parseResponseData(buf: IBuffer, r: Result): any {
-		if (r.statusCode != 200) {
-			throw Error.new(errno.ERR_HTTP_STATUS_NO_200);
-		}
-		var json = buf.toString('utf8');
-		var res = parseJSON(json);
-		if (res.errno === 0) {
-			return res.data;
-		} else {
-			throw Error.new(res);
-		}
-	}
-
-	getRequestHeaders(): Dict {
-		return { 'auth-user': 'dphotos' };
 	}
 }
 
@@ -333,7 +337,7 @@ export const request = req.request;
 export const chain = new Chain(cfg.chain);
 export const dasset = new Dasset(cfg.dasset);
 export const btc = new XApi(cfg.x_api + '/btc/mainnet');
-export const baas = new Baas(cfg.baas);
+export const baas = new Baas(cfg.baas, 'dphotos');
 
 export default chain;
 
