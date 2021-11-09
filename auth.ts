@@ -19,13 +19,19 @@ export enum AuthorizationMode { // mode or role
 	INLINE, OUTER, OTHER,
 }
 
+export enum VisitAPI {
+	PUBLIC  = 0,  // 需要签名才能访问
+	PRIVATE = 1,  // 需要签名才能访问
+	NO_SAFE = 2,  // 完全公开无需签名也能访问
+}
+
 export interface AuthorizationUser {
 	id: number;
 	name: string;
 	pkey: string;
 	keyType: AuthorizationKeyType;
 	mode: AuthorizationMode; // mode or role
-	interfaces?: string; // 允许访问的接口名列表
+	interfaces?: Dict<VisitAPI>; // 允许访问的接口名列表
 	time: number;
 }
 
@@ -93,10 +99,22 @@ export class AuthorizationManager {
 		}
 		var [_user] = await db.select('auth_user', { name }) as AuthorizationUser[];
 		if (_user) {
+			if (_user.interfaces) {
+				try {
+					_user.interfaces = JSON.parse(_user.interfaces as any);
+				} catch(err) {}
+			}
 			this._cache.set(name, _user);
 			return _user;
 		}
 		return null;
+	}
+
+	visitApi(user: AuthorizationUser, api: string) {
+		if (user.interfaces) {
+			return user.interfaces[api] || VisitAPI.PUBLIC;
+		}
+		return VisitAPI.PUBLIC;
 	}
 
 	async setAuthorizationUserNoCheck(name: string, pkey: string, type?: AuthorizationKeyType, mode?: number) {

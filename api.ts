@@ -7,7 +7,7 @@ import utils from './utils';
 import * as crypto from 'crypto';
 import { ViewController } from 'somes/ctr';
 import {RuleResult} from 'somes/router';
-import auth, {User} from './auth';
+import auth, {User, VisitAPI} from './auth';
 import errno from './errno';
 import {Events} from './message';
 import {Notification} from 'somes/event';
@@ -50,6 +50,17 @@ export default class APIController extends ViewController {
 		if (!enable_auth) {
 			return true;
 		}
+		var user = await this.userNotErr();
+
+		var visit = VisitAPI.PUBLIC;
+		if (user) {
+			visit = auth.impl.visitApi(user, _.service + '/' + _.action);
+		}
+
+		if (visit == VisitAPI.NO_SAFE) { // 不安全的访问
+			return true;
+		}
+
 		var signRaw = this.headers.sign as string;
 		if (!signRaw)
 			return false;
@@ -75,27 +86,34 @@ export default class APIController extends ViewController {
 			hash = crypto.createHash(cfg_s.formHash).update(st + key).digest();
 		}
 
-		var user = await this.userNotErr();
+		var ok = false;
+
 		if (user) {
 			if (user.keyType == 'rsa') {
 				sign = crypto.publicDecrypt(user.pkey, sign);
 				var c = sign.compare(hash);
-				return c == 0;
+				ok = c == 0;
 			}
 			else if (user.keyType == 'secp256k1') { // secp256k1
 				var pkey = Buffer.from(user.pkey.slice(2), 'hex');
 				var signature = Buffer.from(sign.buffer, sign.byteOffset, 64);
 				hash = cfg_s.formHash == 'md5' ? Buffer.from(hash.toString('hex')): hash;
-				var ok = cryptoTx.verify(hash, signature, pkey, false);
+				ok = cryptoTx.verify(hash, signature, pkey, false);
 				if (!ok && cfg.moreLog)
 					console.warn(`Auth fail, user: ${this.userName}, hash: 0x${hash.toString('hex')}`);
-				return ok;
+				// return ok;
 			} else {
 				console.warn('Authentication mode is not supported', user.keyType);
 			}
 		}
 
-		return false;
+		if (ok) {
+			if (visit == VisitAPI.PRIVATE) {
+				// TODO ... 询问用户界面是否可以访问
+			}
+		}
+
+		return ok;
 	}
 
 	async auth(_: RuleResult) {
