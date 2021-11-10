@@ -54,7 +54,7 @@ export class Storage implements IStorage {
 			if (await this.has(kkey)) {
 				await this.db.update('storage', { value }, { kkey });
 			} else {
-				await this.db.update('storage', { value }, { kkey });
+				await this.db.insert('storage', { kkey, value });
 			}
 		} else { // mysql
 			var ok = await this.db.update('storage', { value }, { kkey });
