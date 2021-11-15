@@ -10,6 +10,7 @@ import {DatabaseCRUD,DatabaseTools,Where,Database,SelectOptions,Result} from 'so
 
 interface DBStructColumn {
 	name: string;
+	type: string;
 }
 
 interface DBStruct {
@@ -46,6 +47,11 @@ function get_sql_params(
 	.forEach(([k,v])=>{
 		keys.push(k);
 		$keys.push($ + k);
+
+		var def = struct.columns[k];
+		if (def && def.type == 'json') {
+			v = JSON.stringify(v);
+		}
 		values[$ + k] = v;
 		exp.push(k + '=' + $ + k);
 		// exp2.push(k + '!=' + $ + k);
@@ -86,20 +92,40 @@ function get_select_table_name(sql: string, defaultTable: string): string {
 	return defaultTable;
 }
 
+function parseJSON(json: string | null) {
+	if (json) {
+		try {
+			return JSON.parse(json);
+		} catch(e) {
+			console.error(e);
+		}
+	}
+	return null;
+}
+
 function selectAfter(struct: DBStruct, ls: Dict[]): Dict[] {
-	if (!('_json' in struct.columns)) {
+	var jsons = [] as string[];
+	var json_ext = '_json' in struct.columns;
+
+	for (var k of struct.names) {
+		var d = struct.columns[k];
+		if (d.type == 'json')
+			jsons.push(k);
+	}
+
+	if (!jsons.length && !json_ext) {
 		return ls;
 	}
+
 	return ls.map(e=>{
-		var json = e._json;
-		if (!json) return e;
-		delete e._json;
-		try {
-			json = JSON.parse(json);
-			return Object.assign({}, json, e);
-		} catch(e) {
-			return e;
+		for (var k of jsons) {
+			e[k] = parseJSON(e[k]);
 		}
+		if (json_ext) {
+			Object.assign(e, parseJSON(e._json));
+			delete e._json;
+		}
+		return e;
 	});
 }
 
@@ -185,7 +211,7 @@ export class SQLiteTools implements DatabaseTools {
 				var struct: DBStruct = _db_struct[name] = { names: [], columns: {}, };
 				(await _db.all2(`pragma table_info(${name})`)).forEach((e: any)=>{
 					struct.names.push(e.name);
-					struct.columns[e.name] = e as DBStructColumn;
+					struct.columns[e.name] = { ...e, type: e.type.toLowerCase() } as DBStructColumn;
 				});
 			}
 		}
