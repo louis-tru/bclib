@@ -45,22 +45,41 @@ export function uploadToken() {
 export interface State {
 	fsize: number,//1698853,
 	hash: string,//"FoXbQNzDzA8m0ie0V36eSdV1QAna",
+	key: string;
 	md5: string,//"c41a413301d6d98fd2850ff41833b416",
 	mimeType: string,//"image/jpeg",
 	putTime: number,//16316781226417224,
 	type: number,//0
+	status: number;
 }
 
 export async function exists(key: string) {
 	try {
-		await state(key);
+		var stat = await state(key);
 	} catch(err: any) {
 		if (err.errno == errno.ERR_QINIU_STATE_FILE_404[0]) {
-			return false;
+			return null;
 		}
 		throw err;
 	}
-	return true;
+	return stat;
+}
+
+export function searchPrefix(prefix: string, limit?: number) {
+	var {mac, scope} = uploadToken();
+	var bucket = new qiniu.rs.BucketManager(mac, config());
+
+	return new Promise<State[]>((r,j)=>{
+		bucket.listPrefix(scope, {prefix, limit}, function(e?: Error, respBody?: any, respInfo?: { statusCode: number }) {
+			if (e || !respBody || !respInfo) {
+				j(Error.new(e || 'read Qiniu file state '));
+			} else if (respInfo.statusCode == 200) {
+				r(respBody.items);
+			} else {
+				j(Error.new(errno.ERR_QINIU_RESULT_ERROR));
+			}
+		});
+	});
 }
 
 export function state(key: string) {
