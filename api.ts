@@ -100,7 +100,8 @@ export default class APIController extends ViewController {
 				hash = cfg_s.formHash == 'md5' ? Buffer.from(hash.toString('hex')): hash;
 				ok = cryptoTx.verify(hash, signature, pkey, false);
 				if (!ok && cfg.moreLog)
-					console.warn(`Auth fail, user: ${this.userName}, hash: 0x${hash.toString('hex')}`);
+					// console.warn(`Auth fail, user: ${this.userName}, hash: 0x${hash.toString('hex')}`);
+					console.warn(`Auth fail, user: ${this.userName}, hash: 0x${hash.toString('hex')}, sign: 0x${sign.toString('hex')}, pkey: 0x${pkey.toString('hex')}`);
 				// return ok;
 			} else {
 				console.warn('Authentication mode is not supported', user.keyType);
