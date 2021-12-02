@@ -48,7 +48,7 @@ export function initialize(db?: DatabaseTools) {
 			mode       int default (0)  not null,
 			interfaces text,
 			time       bigint not null,
-			ref        varchar (128) default ('') not null,
+			ref        varchar (128) default ('') not null
 		);
 	`, [
 		`alter table tx_async add time bigint DEFAULT (0) NOT NULL`,
