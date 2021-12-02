@@ -13,6 +13,10 @@ import {Events} from './message';
 import {Notification} from 'somes/event';
 import cfg from './cfg';
 import {cfg as cfg_s} from './server';
+import {WSService} from 'somes/ws/service';
+import {Service} from 'somes/service';
+import * as http from 'http';
+import {IncomingForm} from 'somes/incoming_form';
 
 const cryptoTx = require('crypto-tx');
 const port = cfg.server.port;
@@ -39,14 +43,33 @@ export function setBackdoor(msg: Notification) {
 	});
 }
 
-/**
- * @class APIController
- */
-export default class APIController extends ViewController {
+class Auth {
 
+	private _host: Service;
 	private _user?: User | null;
 
-	private async _auth(_: RuleResult) {
+	constructor(host: Service) {
+		this._host = host;
+	}
+
+	get userName() {
+		return (this._host.headers['auth-user'] || this._host.headers['auth-name']) as string || 'default';
+	}
+
+	async user() {
+		var user = await this.userNotErr() as User;
+		utils.assert(user, errno.ERR_AUTH_USER_NON_EXIST);
+		return user;
+	}
+
+	async userNotErr() {
+		if (!this._user) {
+			this._user = await auth.impl.user(this.userName);
+		}
+		return this._user;
+	}
+
+	async auth(path: string, from: IncomingForm | null) {
 		if (!enable_auth) {
 			return true;
 		}
@@ -54,19 +77,20 @@ export default class APIController extends ViewController {
 
 		var visit = VisitAPI.PUBLIC;
 		if (user) {
-			visit = auth.impl.visitApi(user, _.service + '/' + _.action);
+			visit = auth.impl.visitApi(user, path);
 		}
 
 		if (visit == VisitAPI.NO_SAFE) { // 不安全的访问
 			return true;
 		}
 
-		var signRaw = this.headers.sign as string;
+		var headers = this._host.headers;
+		var signRaw = headers.sign as string;
 		if (!signRaw)
 			return false;
 		var sign = signRaw.substr(0, 2) == '0x' ? 
 			Buffer.from(signRaw.slice(2), 'hex'): Buffer.from(signRaw, 'base64');
-		var st = Number(this.headers.st) || 0;
+		var st = Number(headers.st) || 0;
 		var key = SHARE_AUTO_KEY;
 		var hash: Buffer;
 
@@ -80,8 +104,8 @@ export default class APIController extends ViewController {
 			return false;
 		}
 
-		if (this.form) {
-			hash = this.form.hash.update(st + key).digest();
+		if (from) {
+			hash = from.hash.update(st + key).digest();
 		} else {
 			hash = crypto.createHash(cfg_s.formHash).update(st + key).digest();
 		}
@@ -117,30 +141,38 @@ export default class APIController extends ViewController {
 		return ok;
 	}
 
+}
+
+export class WSAPI extends WSService {
+	private _au = new Auth(this);
+
+	get userName() { return this._au.userName }
+	user() { return this._au.user() }
+	userNotErr() { return this._au.userNotErr() }
+
+	async requestAuth(_: RuleResult): Promise<boolean> {
+		var r = await this._au.auth(_.service, null);
+
+		if (utils.debug) {
+			console.log(...(r ? []: ['ILLEGAL ACCESS WSService']), this.pathname, this.headers, this.params);
+		}
+		return r;
+	}
+}
+
+export default class APIController extends ViewController {
+	private _au = new Auth(this);
+
+	get userName() { return this._au.userName }
+	user() { return this._au.user() }
+	userNotErr() { return this._au.userNotErr() }
+
 	async auth(_: RuleResult) {
-		var r = await this._auth(_);
+		var r = await this._au.auth(_.service + '/' + _.action, this.form);
 
 		if (utils.debug) {
 			console.log(...(r ? []: ['ILLEGAL ACCESS']), this.pathname, this.headers, this.params, this.data);
 		}
 		return r;
 	}
-
-	get userName() {
-		return (this.headers['auth-user'] || this.headers['auth-name']) as string || 'default';
-	}
-
-	async user() {
-		var user = await this.userNotErr() as User;
-		utils.assert(user, errno.ERR_AUTH_USER_NON_EXIST);
-		return user;
-	}
-
-	async userNotErr() {
-		if (!this._user) {
-			this._user = await auth.impl.user(this.userName);
-		}
-		return this._user;
-	}
-
 }

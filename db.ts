@@ -47,11 +47,13 @@ export function initialize(db?: DatabaseTools) {
 			keyType    varchar (32) default ('') not null,
 			mode       int default (0)  not null,
 			interfaces text,
-			time       bigint not null
+			time       bigint not null,
+			ref        varchar (128) default ('') not null,
 		);
 	`, [
 		`alter table tx_async add time bigint DEFAULT (0) NOT NULL`,
 		`alter table auth_user add keyType varchar (32) default ('') not null`,
+		`alter table auth_user add ref     varchar (128) default ('') not null`,
 	], [
 		'create unique index callback_url_id     on callback_url (id)',
 		'create        index callback_url_status on callback_url (status)',

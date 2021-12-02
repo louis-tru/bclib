@@ -33,6 +33,7 @@ export interface AuthorizationUser {
 	mode: AuthorizationMode; // mode or role
 	interfaces?: Dict<VisitAPI>; // 允许访问的接口名列表
 	time: number;
+	ref?: string; // 引用的一个值可以是别这个用户的身份id分身好可以是别的属性
 }
 
 export type User = AuthorizationUser;
@@ -117,7 +118,7 @@ export class AuthorizationManager {
 		return VisitAPI.PUBLIC;
 	}
 
-	async setAuthorizationUserNoCheck(name: string, pkey: string, type?: AuthorizationKeyType, mode?: number) {
+	async setAuthorizationUserNoCheck(name: string, pkey: string, type?: AuthorizationKeyType, mode?: number, ref?: string) {
 		pkey = String(pkey).trim() || '';
 		type = type || AuthorizationKeyType.secp256k1;
 		name = name || 'default';
@@ -135,7 +136,7 @@ export class AuthorizationManager {
 				pkey = '0x' + pkey;
 			}
 		}
-		var row: Dict = { name, pkey, keyType: type, mode };
+		var row: Dict = { name, pkey, keyType: type, mode, ref };
 		var user = await this.user(name) as User;
 
 		utils.assert(mode != AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE);
