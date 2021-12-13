@@ -4,7 +4,7 @@
  */
 
 import somes from 'somes';
-import web3 from './web3+';
+import web3, {IWeb3Z} from './web3+';
 import { TransactionReceipt, 
 	FindEventResult,TxOptions as RawTxOptions } from 'web3z';
 import errno_web3z from 'web3z/errno';
@@ -70,7 +70,7 @@ export abstract class ContractWrap {
 	}
 
 	async contract() {
-		return await web3.impl.contract(await this.getAddress());
+		return await this._host.web3.contract(await this.getAddress());
 	}
 
 }
@@ -97,6 +97,15 @@ class AddressContract extends ContractWrap {
 
 export class Web3Contracts implements WatchCat {
 	private _contracts = new Map<string, ContractWrap>();
+	private _web3?: IWeb3Z;
+
+	get web3() {
+		return this._web3 || web3.impl;
+	}
+
+	constructor(web3?: IWeb3Z) {
+		this._web3 = web3;
+	}
 
 	contractFromType(type: ABIType, star_?: string) {
 		var star = star_ || '';
