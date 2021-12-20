@@ -95,7 +95,11 @@ export function createCache<A extends any[], R>(
 		} catch(error) {
 			var cache = await storage.get(key);
 			if (cache) { // use cache
-				return { ...cache.value, error };
+				if (typeof cache == 'object') {
+					return { ...cache.value, error };
+				} else {
+					cache.value;//
+				}
 			}
 			throw error;
 		}
