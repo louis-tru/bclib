@@ -32,8 +32,13 @@ export interface AbiInterface {
 	abi: AbiItem[],
 }
 
+const getLocalAbiCache: Dict<AbiInterface> = {};
+
 export async function getLocalAbi(pathname: string) {
 	// var data = await dasset.post('device/getDeviceBySN', { device_sn: device.serialNumber });
+
+	if (getLocalAbiCache[pathname])
+		return getLocalAbiCache[pathname];
 
 	if (await fs.exists(pathname)) {
 		try {
@@ -49,6 +54,7 @@ export async function getLocalAbi(pathname: string) {
 					var extname = path.extname(pathname);
 					abi.address = basename.substring(0, basename.length - extname.length);
 				}
+				getLocalAbiCache[pathname] = abi;
 				return abi;
 			}
 		} catch(err) { // 可能文件损坏
