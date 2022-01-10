@@ -17,6 +17,7 @@ export enum Events {
 	DTTYD_PORT_FORWARD = 'DTTYD_PORT_FORWARD',
 	DTTYD_PORT_FORWARD_END = 'DTTYD_PORT_FORWARD_END',
 	WatchStatusChange = 'WatchStatusChange',
+	AuthorizationUserUpdate = 'AuthorizationUserUpdate',
 }
 
 export class Mbus extends mbus.NotificationCenter {
@@ -59,11 +60,11 @@ export class MessageCenter<T = any> extends Notification implements WatchCat<T>,
 		return this._mbus || null;
 	}
 
-	constructor(_cfg?: {mbus: string; mbus_topic: string}) {
+	constructor(_cfg?: {mbus: string; mbus_topic: string; mbus_auth?: string}) {
 		super();
 		var config = _cfg || cfg;
 		if (config.mbus) {
-			this._mbus = new Mbus(config.mbus, config.mbus_topic || 'default');
+			this._mbus = new Mbus(config.mbus, config.mbus_topic || 'default', {auth: config.mbus_auth});
 			this._mbus.subscribeAll();
 			if (!default_bus) {
 				default_bus = this._mbus;

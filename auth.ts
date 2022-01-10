@@ -10,6 +10,8 @@ import * as apps from './apps';
 import buffer from 'somes/buffer';
 import db from './db';
 import {StaticObject} from './obj';
+import {Notification} from 'somes/event';
+import {Events} from './message';
 
 export enum AuthorizationKeyType {
 	rsa = 'rsa', secp256k1 = 'secp256k1'
@@ -41,41 +43,61 @@ export type User = AuthorizationUser;
 export interface Cache {
 	get(name: string): Promise<User | null>;
 	set(name: string, user: User | null): void;
-	clear(): void;
 };
 
 class DefaultCacheIMPL implements Cache {
-	private _value: Map<string, User> = new Map();
-	get(name: string): Promise<User | null> {
-		return Promise.resolve(this._value.get(name) || null);
+	private _value: Map<string, {timeout: number; user: User}> = new Map();
+
+	async get(name: string): Promise<User | null> {
+		var user = this._value.get(name);
+		if (user) {
+			if (user.timeout > Date.now()) {
+				return user.user;
+			}
+			this._value.delete(name);
+		}
+		return null;
 	}
 	set(name: string, user: User | null): void {
 		if (user) {
-			this._value.set(name, user);
+			this._value.set(name, {timeout: Date.now() + 3e4, user});
 		} else {
 			this._value.delete(name);
 		}
-	}
-	clear(): void {
-		this._value.clear();
 	}
 }
 
 export class AuthorizationManager {
 
 	private _cache: Cache = new DefaultCacheIMPL();
+	private _msg?: Notification;
 
 	setCache(cache: Cache) {
 		this._cache = cache;
 	}
 
-	async initialize() {
+	private _SetCache(name: string, user: User | null) {
+		this._cache.set(name, user);
+		if (this._msg) {
+			this._msg.trigger(Events.AuthorizationUserUpdate, {name, user});
+		}
+	}
+
+	async initialize(msg?: Notification) {
 		// fix old key
 		// var old_key = storage.get('auth_public_key', '');
 		// if (old_key) { // 兼容旧的验证方式
 		// 	storage.delete('auth_public_key');
 		// 	this.setAuthorizationUserNoCheck('default', old_key, AuthorizationKeyType.rsa);
 		// }
+		this._cache = new DefaultCacheIMPL();
+		if (msg) {
+			msg.addEventListener(Events.AuthorizationUserUpdate, ({data})=>{
+				if (data.name) {
+					this._cache.set(data.name, data.user);
+				}
+			});
+		}
 	}
 
 	static toAuthorizationUser(app: apps.ApplicationInfo): AuthorizationUser {
@@ -132,7 +154,7 @@ export class AuthorizationManager {
 				pkey += '\n-----END PUBLIC KEY-----';
 			}
 		} else {
-			if (pkey.substr(0, 2) != '0x') {
+			if (pkey.substring(0, 2) != '0x') {
 				pkey = '0x' + pkey;
 			}
 		}
@@ -150,7 +172,7 @@ export class AuthorizationManager {
 			user = Object.assign(row, { time: Date.now() }) as User;
 			user.id = await db.insert('auth_user', user);
 		}
-		this._cache.set(name, user);
+		this._SetCache(name, user);
 	}
 
 	/**
@@ -162,19 +184,11 @@ export class AuthorizationManager {
 	}
 
 	/**
-	 * 通过mode删除全部外部授权
-	 */
-	 async removeAuthorizationUsers(mode: number) {
-		await db.delete('auth_user', {mode});
-		this._cache.clear();
-	}
-
-	/**
 	 * 删除外部授权
 	 */
 	async removeAuthorizationUser(name: string) {
 		await db.delete('auth_user', {name});
-		this._cache.set(name, null);
+		this._SetCache(name, null);
 	}
 
 	// ---- Authorization auth ----

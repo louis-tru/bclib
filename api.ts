@@ -15,7 +15,7 @@ import cfg from './cfg';
 import {cfg as cfg_s} from './server';
 import {WSService} from 'somes/ws/service';
 import {Service} from 'somes/service';
-import * as http from 'http';
+// import * as http from 'http';
 import {IncomingForm} from 'somes/incoming_form';
 
 const cryptoTx = require('crypto-tx');
@@ -88,7 +88,7 @@ class Auth {
 		var signRaw = headers.sign as string;
 		if (!signRaw)
 			return false;
-		var sign = signRaw.substr(0, 2) == '0x' ? 
+		var sign = signRaw.substring(0, 2) == '0x' ? 
 			Buffer.from(signRaw.slice(2), 'hex'): Buffer.from(signRaw, 'base64');
 		var st = Number(headers.st) || 0;
 		var key = SHARE_AUTO_KEY;

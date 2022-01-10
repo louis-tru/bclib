@@ -18,6 +18,7 @@ const cfg = {
 	moreLog: true,
 	mbus: 'mqtt://127.0.0.1:1883',
 	mbus_topic: 'default',
+	mbus_auth: '',
 	env: 'dev',
 	keys: '',
 	keys_auto_unlock: false,
