@@ -69,6 +69,14 @@ class Auth {
 		return this._user;
 	}
 
+	private verifySecp256k1(key: string, hash: Buffer, sign: Buffer) {
+		var pkey = Buffer.from(key.slice(2), 'hex');
+		var signature = Buffer.from(sign.buffer, sign.byteOffset, 64);
+		hash = cfg_s.formHash == 'md5' ? Buffer.from(hash.toString('hex')): hash;
+		var ok: boolean = cryptoTx.verify(hash, signature, pkey, false);
+		return ok;
+	}
+
 	async auth(path: string, from: IncomingForm | null) {
 		if (!enable_auth) {
 			return true;
@@ -113,22 +121,23 @@ class Auth {
 		var ok = false;
 
 		if (user) {
-			if (user.keyType == 'rsa') {
-				sign = crypto.publicDecrypt(user.pkey, sign);
-				var c = sign.compare(hash);
-				ok = c == 0;
+			if (user.key2) {
+				ok = this.verifySecp256k1(user.key2, hash, sign);
 			}
-			else if (user.keyType == 'secp256k1') { // secp256k1
-				var pkey = Buffer.from(user.pkey.slice(2), 'hex');
-				var signature = Buffer.from(sign.buffer, sign.byteOffset, 64);
-				hash = cfg_s.formHash == 'md5' ? Buffer.from(hash.toString('hex')): hash;
-				ok = cryptoTx.verify(hash, signature, pkey, false);
-				if (!ok && cfg.moreLog)
-					// console.warn(`Auth fail, user: ${this.userName}, hash: 0x${hash.toString('hex')}`);
-					console.warn(`Auth fail, user: ${this.userName}, hash: 0x${hash.toString('hex')}, sign: 0x${sign.toString('hex')}, pkey: 0x${pkey.toString('hex')}`);
-				// return ok;
-			} else {
-				console.warn('Authentication mode is not supported', user.keyType);
+
+			if (!ok) { // main key verify
+				if (user.keyType == 'rsa') {
+					sign = crypto.publicDecrypt(user.pkey, sign);
+					var c = sign.compare(hash);
+					ok = c == 0;
+				}
+				else if (user.keyType == 'secp256k1') { // secp256k1
+					ok = this.verifySecp256k1(user.pkey, hash, sign);
+					if (!ok && cfg.moreLog)
+						console.warn(`Auth fail, user: ${this.userName}, hash: 0x${hash.toString('hex')}, sign: 0x${sign.toString('hex')}, pkey: ${user.pkey}`);
+				} else {
+					console.warn('Authentication mode is not supported', user.keyType);
+				}
 			}
 		}
 

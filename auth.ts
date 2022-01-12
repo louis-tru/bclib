@@ -31,6 +31,7 @@ export interface AuthorizationUser {
 	id: number;
 	name: string;
 	pkey: string;
+	key2?: string,
 	keyType: AuthorizationKeyType;
 	mode: AuthorizationMode; // mode or role
 	interfaces?: Dict<VisitAPI>; // 允许访问的接口名列表
@@ -140,36 +141,39 @@ export class AuthorizationManager {
 		return VisitAPI.PUBLIC;
 	}
 
-	async setAuthorizationUserNoCheck(name: string, pkey: string, type?: AuthorizationKeyType, mode?: number, ref?: string) {
-		pkey = String(pkey).trim() || '';
-		type = type || AuthorizationKeyType.secp256k1;
-		name = name || 'default';
-		mode = mode || AuthorizationMode.OUTER;
+	async setAuthorizationUserNoCheck(name: string, user_: Partial<User>) {
+		var name = name || 'default';
+		var pkey = String(user_.pkey).trim() || '';
+		var mode = user_.mode === undefined ? AuthorizationMode.OUTER: user_.mode;
+		var row: Dict = { name, ref: user_.ref, key2: user_.key2, mode };
 
-		if (type == AuthorizationKeyType.rsa) {
-			if (!/BEGIN PUBLIC KEY/.test(pkey)) {
-				pkey = '-----BEGIN PUBLIC KEY-----\n' + pkey;
+		utils.assert(mode != AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE); // 不允许设置成内部授权
+
+		if (pkey) {
+			var keyType = user_.keyType || AuthorizationKeyType.secp256k1;
+			if (keyType == AuthorizationKeyType.rsa) {
+				if (!/BEGIN PUBLIC KEY/.test(pkey)) {
+					pkey = '-----BEGIN PUBLIC KEY-----\n' + pkey;
+				}
+				if (!/END PUBLIC KEY/.test(pkey)) {
+					pkey += '\n-----END PUBLIC KEY-----';
+				}
+			} else {
+				if (pkey.substring(0, 2) != '0x') {
+					pkey = '0x' + pkey;
+				}
 			}
-			if (!/END PUBLIC KEY/.test(pkey)) {
-				pkey += '\n-----END PUBLIC KEY-----';
-			}
-		} else {
-			if (pkey.substring(0, 2) != '0x') {
-				pkey = '0x' + pkey;
-			}
+			Object.assign(row, { pkey, keyType });
 		}
-		var row: Dict = { name, pkey, keyType: type, mode, ref };
+
 		var user = await this.user(name) as User;
-
-		utils.assert(mode != AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE);
-
 		if (user) {
 			// 不允许外部授权更改内部授权
 			utils.assert(row.mode != AuthorizationMode.INLINE, errno.ERR_AUTHORIZATION_FAIL);
 			await db.update('auth_user', row, {name});
 			Object.assign(user, row);
 		} else {
-			user = Object.assign(row, { time: Date.now() }) as User;
+			user = Object.assign({pkey: '', ...row}, { time: Date.now() }) as User;
 			user.id = await db.insert('auth_user', user);
 		}
 		this._SetCache(name, user);
@@ -178,9 +182,9 @@ export class AuthorizationManager {
 	/**
 	 * 设置外部授权
 	 */
-	async setAuthorizationUser(request_auth_key: string, name: string, key: string, type?: AuthorizationKeyType, mode?: number) {
+	async setAuthorizationUser(request_auth_key: string, name: string, pkey: string, keyType?: AuthorizationKeyType, mode?: number) {
 		this.checkRequestAuthorizationKey(request_auth_key);
-		await this.setAuthorizationUserNoCheck(name, key, type, mode);
+		await this.setAuthorizationUserNoCheck(name, {pkey, keyType, mode});
 	}
 
 	/**

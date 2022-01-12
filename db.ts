@@ -44,6 +44,7 @@ export function initialize(db?: DatabaseTools) {
 			id         int PRIMARY KEY AUTO_INCREMENT,
 			name       varchar (64)         not null,
 			pkey       text   not null,
+			key2       varchar (128),
 			keyType    varchar (32) default ('') not null,
 			mode       int default (0)  not null,
 			interfaces text,
@@ -54,6 +55,7 @@ export function initialize(db?: DatabaseTools) {
 		`alter table tx_async add time bigint DEFAULT (0) NOT NULL`,
 		`alter table auth_user add keyType varchar (32) default ('') not null`,
 		`alter table auth_user add ref     varchar (128) default ('') not null`,
+		`alter table auth_user add key2    varchar (128)`,
 	], [
 		'create unique index callback_url_id     on callback_url (id)',
 		'create        index callback_url_status on callback_url (status)',
