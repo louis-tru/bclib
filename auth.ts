@@ -143,10 +143,7 @@ export class AuthorizationManager {
 
 	async setAuthorizationUserNoCheck(name: string, user_: Partial<User>) {
 		var name = name || 'default';
-		var mode = user_.mode === undefined ? AuthorizationMode.OUTER: user_.mode;
-		var row: Dict = { name, ref: user_.ref, key2: user_.key2, mode };
-
-		utils.assert(mode != AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE); // 不允许设置成内部授权
+		var row: Dict = { name, ref: user_.ref, key2: user_.key2 };
 
 		if (user_.pkey) {
 			var pkey = user_.pkey.trim();
@@ -166,15 +163,22 @@ export class AuthorizationManager {
 			Object.assign(row, { pkey, keyType });
 		}
 
+		if ('mode' in user_) {
+			row.mode = Number(user_.mode) || AuthorizationMode.INLINE;
+			// utils.assert(row.mode !== AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE); // 不允许设置成内部授权
+		}
+
 		this._cache.set(name, null); // clear cache
 		var user = await this.user(name) as User;
 		if (user) {
 			// 不允许外部授权更改内部授权
-			utils.assert(row.mode != AuthorizationMode.INLINE, errno.ERR_AUTHORIZATION_FAIL);
+			utils.assert(row.mode !== AuthorizationMode.INLINE, errno.ERR_AUTHORIZATION_FAIL);
 			await db.update('auth_user', row, {name});
 			Object.assign(user, row);
 		} else {
-			user = Object.assign({pkey: '', ...row}, { time: Date.now() }) as User;
+			user = {
+				pkey: '', mode: AuthorizationMode.OUTER, ...row, time: Date.now(),
+			} as User;
 			user.id = await db.insert('auth_user', user);
 		}
 		this._SetCache(name, user);
