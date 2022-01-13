@@ -166,6 +166,7 @@ export class AuthorizationManager {
 			Object.assign(row, { pkey, keyType });
 		}
 
+		this._cache.set(name, null); // clear cache
 		var user = await this.user(name) as User;
 		if (user) {
 			// 不允许外部授权更改内部授权
