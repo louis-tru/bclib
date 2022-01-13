@@ -121,7 +121,7 @@ export class AuthorizationManager {
 		if (user) {
 			return user;
 		}
-		var [_user] = await db.select('auth_user', { name }) as AuthorizationUser[];
+		var _user = await db.selectOne<AuthorizationUser>('auth_user', { name });
 		if (_user) {
 			if (_user.interfaces) {
 				try {
@@ -143,13 +143,13 @@ export class AuthorizationManager {
 
 	async setAuthorizationUserNoCheck(name: string, user_: Partial<User>) {
 		var name = name || 'default';
-		var pkey = String(user_.pkey).trim() || '';
 		var mode = user_.mode === undefined ? AuthorizationMode.OUTER: user_.mode;
 		var row: Dict = { name, ref: user_.ref, key2: user_.key2, mode };
 
 		utils.assert(mode != AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE); // 不允许设置成内部授权
 
-		if (pkey) {
+		if (user_.pkey) {
+			var pkey = user_.pkey.trim();
 			var keyType = user_.keyType || AuthorizationKeyType.secp256k1;
 			if (keyType == AuthorizationKeyType.rsa) {
 				if (!/BEGIN PUBLIC KEY/.test(pkey)) {
