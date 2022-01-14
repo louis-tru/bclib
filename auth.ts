@@ -170,8 +170,6 @@ export class AuthorizationManager {
 		if (Object.keys(user_).length === 0)
 			return; // 
 
-		row.name = name;
-
 		this._cache.set(name, null); // clear cache
 		var user = await this.user(name) as User;
 		if (user) {
@@ -182,7 +180,7 @@ export class AuthorizationManager {
 		} else {
 			user = {
 				mode: AuthorizationMode.OUTER, pkey: '',
-				...row, time: Date.now(),
+				...row, time: Date.now(), name,
 			} as User;
 			user.id = await db.insert('auth_user', user);
 		}
