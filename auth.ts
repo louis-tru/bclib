@@ -143,7 +143,7 @@ export class AuthorizationManager {
 
 	async setAuthorizationUserNoCheck(name: string, user_: Partial<User>) {
 		var name = name || 'default';
-		var row: Dict = { name, ref: user_.ref, key2: user_.key2 };
+		var row: Dict = { ref: user_.ref, key2: user_.key2 };
 
 		if (user_.pkey) {
 			var pkey = user_.pkey.trim();
@@ -163,10 +163,14 @@ export class AuthorizationManager {
 			Object.assign(row, { pkey, keyType });
 		}
 
-		if ('mode' in user_) {
-			row.mode = Number(user_.mode) || AuthorizationMode.INLINE;
-			// utils.assert(row.mode !== AuthorizationMode.INLINE, errno.ERR_BAD_AUTH_USER_MODE); // 不允许设置成内部授权
-		}
+		if ('mode' in user_) row.mode = Number(user_.mode) || AuthorizationMode.INLINE;
+		if ('ref' in user_) row.ref = user_.ref;
+		if ('key2' in user_) row.key2 = user_.key2;
+
+		if (Object.keys(user_).length === 0)
+			return; // 
+
+		row.name = name;
 
 		this._cache.set(name, null); // clear cache
 		var user = await this.user(name) as User;
@@ -177,7 +181,8 @@ export class AuthorizationManager {
 			Object.assign(user, row);
 		} else {
 			user = {
-				pkey: '', mode: AuthorizationMode.OUTER, ...row, time: Date.now(),
+				pkey: '', 
+				mode: AuthorizationMode.OUTER, ...row, time: Date.now(),
 			} as User;
 			user.id = await db.insert('auth_user', user);
 		}
