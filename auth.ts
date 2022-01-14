@@ -143,7 +143,7 @@ export class AuthorizationManager {
 
 	async setAuthorizationUserNoCheck(name: string, user_: Partial<User>) {
 		var name = name || 'default';
-		var row: Dict = { ref: user_.ref, key2: user_.key2 };
+		var row: Dict = {};
 
 		if (user_.pkey) {
 			var pkey = user_.pkey.trim();
