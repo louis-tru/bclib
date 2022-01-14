@@ -181,9 +181,9 @@ export class AuthorizationManager {
 			Object.assign(user, row);
 		} else {
 			user = {
-				pkey: '', 
 				mode: AuthorizationMode.OUTER, ...row, time: Date.now(),
 			} as User;
+			user.pkey = user.pkey || '';
 			user.id = await db.insert('auth_user', user);
 		}
 		this._SetCache(name, user);
