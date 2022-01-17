@@ -10,7 +10,7 @@ import cfg from './cfg';
 import db from './db';
 import storage from './storage';
 import keys from './keys+';
-import {Standard, post} from './request';
+import {BcRequest, post} from './request';
 
 const crypto_tx = require('crypto-tx');
 
@@ -141,7 +141,7 @@ export function createCache<A extends any[], R>(
 }
 
 export async function callApi(
-	api: Standard,
+	api: BcRequest,
 	name: string,
 	method: 'post' | 'get' = 'post',
 	params?: Params,
