@@ -26,7 +26,7 @@ if (cfg.internetTest && Array.isArray(cfg.internetTest)) {
 }
 
 type RequestArgs = [string, string?, Params?, Options?];
-type RequestItem = [ Standard, RequestArgs, (any: any)=>void, (any: any)=>void ];
+type RequestItem = [ BcRequest, RequestArgs, (any: any)=>void, (any: any)=>void ];
 
 /**
  * @class CheckNetwork
@@ -81,7 +81,7 @@ class CheckNetwork {
 		return this.m_internet_available !== 0;
 	}
 
-	request<T>(safe: Standard, args: RequestArgs): PromiseResult<T> {
+	request<T>(safe: BcRequest, args: RequestArgs): PromiseResult<T> {
 		return new Promise((ok, err)=>{
 			if (this.m_check_internet_flag == 2) {
 				if (this.m_internet_available) {
@@ -116,9 +116,9 @@ class CheckNetwork {
 var CHECK = new CheckNetwork();
 
 /**
- * @class SafeRequest
+ * @class BcRequest
  */
-export class Standard extends req.Request {
+export class BcRequest extends req.Request {
 	protected user: string;// = 'bclib';
 	private _chack = CHECK;
 	protected shareKey = 'a4dd53f2fefde37c07ac4824cf7086439633e1a357daacc3aaa16418275a9e40';
@@ -195,7 +195,7 @@ export class Standard extends req.Request {
 		}
 		var json = buf.toString('utf8');
 		var res = parseJSON(json);
-		if (res.errno === 0) {
+		if (('errno' in res) ? res.errno === 0: res.code === 0) {
 			return res.data;
 		} else {
 			throw Error.new(res);
@@ -204,7 +204,7 @@ export class Standard extends req.Request {
 
 }
 
-class Chain extends Standard {
+class Chain extends BcRequest {
 
 	protected hash(st: number, params: Params, method?: string) {
 		var key = this.shareKey;
@@ -232,7 +232,7 @@ class Chain extends Standard {
 	}
 }
 
-class Dasset extends Standard {
+class Dasset extends BcRequest {
 
 	private _token?: { token: string; expire_time: number };
 
@@ -297,7 +297,7 @@ class Dasset extends Standard {
 	}
 }
 
-class XApi extends Standard {
+class XApi extends BcRequest {
 
 	getRequestHeaders() {
 		return {
@@ -314,9 +314,9 @@ class XApi extends Standard {
 
 }
 
-export const SafeRequest: typeof Standard = Standard;
+export const SafeRequest: typeof BcRequest = BcRequest;
 
-class Baas extends Standard {
+class Baas extends BcRequest {
 	protected shareKey = 'b4dd53f2fefde37c07ac4824cf7086439633e3a357daacc3aaa16418275a9e51';
 	// privateKey: 0x1594e3262ff748d55ac6d220b01f28f9c878760708f1f67d294614e41182deb5
 	// publicKey: 0x037be384f878f0d4adeb2e71adc446357e3cc8cdb782a36ddfafc630331c98f717
