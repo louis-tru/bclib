@@ -49,15 +49,14 @@ export class Web3IMPL extends Web3Z {
 		return this._txQueue;
 	}
 
-	getProvider() {
-		this.gasLimit = 1e6;
+	givenProvider() {
 		return Array.isArray(cfg.web3) ? cfg.web3[0]: cfg.web3;
 	}
 
 	getBlockNumber() {
 		var fetch = (): Promise<number>=>this.eth.getBlockNumber();
 		var fn = createCache(fetch, {
-			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber_' + this.getProvider(),
+			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber_' + this.givenProvider(),
 		});
 		return fn();
 	}
