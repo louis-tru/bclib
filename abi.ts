@@ -6,8 +6,7 @@
 import * as fs from 'somes/fs2';
 import * as path from 'path';
 import paths from './paths';
-import {dasset} from './request';
-import utils, * as utils2 from './utils';
+import utils from './utils';
 import {AbiItem} from 'web3-utils';
 import errno from './errno';
 
@@ -63,58 +62,31 @@ export async function getLocalAbi(pathname: string) {
 	}
 }
 
-type FetchAbiFun = (address: string)=>Promise<AbiInterface|undefined>;
+export type FetchAbiFun = (address: string, chain: number, type?: ABIType)=>Promise<AbiInterface|undefined>;
 
-export const fetchAbiFunList: FetchAbiFun[] = [
-	async function(address: string) {
-		var opts = {cacheTime: utils2.prod ? 24*3600*1000/*1d*/ : 2e5/*200s*/};
-		var {data} = await dasset.post('contract/getAbiByAddress', { address }, opts);
-		utils.assert(data, errno.ERR_GET_ABI_NOT_FOUND);
-		return { ...data, abi: JSON.parse(data.abi) } as AbiInterface;
-	}
+export const FetchAbiFunList: FetchAbiFun[] = [
+	// async function(address?: string, chain?: number, type?: ABIType) {
+	// 	var opts = {cacheTime: utils2.prod ? 24*3600*1000/*1d*/ : 2e5/*200s*/};
+	// 	var {data} = await dasset.post('contract/getAbiByAddress', { address, chain, type }, opts);
+	// 	utils.assert(data, errno.ERR_GET_ABI_NOT_FOUND);
+	// 	return { ...data, abi: JSON.parse(data.abi) } as AbiInterface;
+	// }
 ];
 
-export async function getAbiFromExternal({ address, type, star }: { address?: string, type?: ABIType, star?: string }) {
-	var opts = {cacheTime: utils2.prod ? 24*3600*1000/*1d*/ : 2e5/*200s*/};
-	var data: AbiInterface | undefined;
-	if (address) {
-		for (var fetch of fetchAbiFunList) {
-			try {
-				if (data = await fetch(address)) {
-					break;
-				}
-			} catch(err) {
-				console.error(err);
-			}
-		}
-	} else if (type) {
-		var types: Dict<number> = {
-			[ABIType.PROOF]: 1, // 1-proof
-			[ABIType.ERC20]: 2, // 2-erc20
-			[ABIType.ERC721]: 3, // 3-erc721
-			[ABIType.BANK]: 4, // 4-bank
-			[ABIType.CASPER]: 5, // 4-casper
-		};
-		var tpye_ = types[type] || 1; // default 1-proof
-		var {data: data_} = await dasset.post('contract/getAbiByType', { type: tpye_, id: star, star }, opts);
-		utils.assert(data_, errno.ERR_GET_ABI_NOT_FOUND);
-		data = { ...data_, abi: JSON.parse(data_.abi) };
-	}
-
-	utils.assert(data && data.address == address, errno.ERR_GET_ABI_NOT_FOUND);
-	return data as AbiInterface;
-}
-
-async function getAbi(address?: string, type?: ABIType, star?: string) {
+async function getAbi({address,chain,type}: {address?: string, chain?: number, type?: ABIType}) {
 	await fs.mkdirp(`${paths.var}/abis`);
-	var name = address || ('abi_type_' + String(type) + '_' + (star||''));
+	var name = address ? `${address}_${chain}`: `${ABIType[type||0]}`;
 	var path = `${paths.var}/abis/${name}.json`;
 	var abi: AbiInterface|undefined;
 
-	try {
-		abi = await getAbiFromExternal({address, type, star});
-	} catch(err) {
-		console.error(err);
+	for (var fetch of FetchAbiFunList) {
+		try {
+			if (abi = await fetch(address || '', chain || 0, type)) {
+				break;
+			}
+		} catch(err) {
+			console.error(err);
+		}
 	}
 
 	if (abi) { // save cache file
@@ -131,23 +103,24 @@ async function getAbi(address?: string, type?: ABIType, star?: string) {
 		abi = await getLocalAbi(path); // 读取缓存文件
 	}
 
-	utils.assert(abi, errno.ERR_STAR_ADDRESS_NOT_FOUND, { address, type, star });
+	utils.assert(abi, errno.ERR_STAR_ADDRESS_NOT_FOUND, { address, type });
 	
 	return abi as AbiInterface;
 }
 
-export function getAbiByType(type: ABIType, star?: string) {
-	return getAbi('', type, star);
+export function getAbiByType(type: ABIType) {
+	return getAbi({type});
 }
 
-export function getAbiByAddress(address: string) {
-	return getAbi(address);
+export function getAbiByAddress(address: string, chain: number) {
+	return getAbi({address, chain});
 }
 
 export function getCasperAbi() {
-	return getAbiByType(ABIType.CASPER);
+	return getAbi({type:ABIType.CASPER});
 }
 
-export async function getAddressByType(type: ABIType, star?: string) {
-	return (await getAbiByType(type, star)).address;
+export async function getAddressByType(type: ABIType) {
+	var abi = await getAbi({type});
+	return abi.address;
 }

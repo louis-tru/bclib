@@ -25,11 +25,13 @@ export class Web3IMPL extends Web3Z {
 
 	private _txQueue?: TransactionQueue;
 	private _contracts: Dict<Contract> = {};
+	private _chain = 0;
 
-	async contract(address: string) {
+	async contract(address: string, chain?: number) {
 		var contract = this._contracts[address];
 		if (!contract) {
-			var {abi} = await getAbiByAddress(address);
+			chain = chain || this._chain || (this._chain = await this.eth.getChainId());
+			var {abi} = await getAbiByAddress(address, chain);
 			contract = this.createContract(address, abi);
 			this._contracts[address] = contract;
 		}

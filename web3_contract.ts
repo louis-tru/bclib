@@ -76,12 +76,10 @@ export abstract class ContractWrap {
 }
 
 class TypeContract extends ContractWrap {
-	private _star: string;
 	private _type: ABIType;
-	getAddress() { return getAddressByType(this._type, this._star) }
-	constructor(_star: string, _type: ABIType, host: Web3Contracts) {
+	getAddress() { return getAddressByType(this._type) }
+	constructor(_type: ABIType, host: Web3Contracts) {
 		super(host);
-		this._star = _star;
 		this._type = _type;
 	}
 }
@@ -107,12 +105,12 @@ export class Web3Contracts implements WatchCat {
 		this._web3 = web3;
 	}
 
-	contractFromType(type: ABIType, star_?: string) {
-		var star = star_ || '';
-		var api = this._contracts.get(star + type);
+	contractFromType(type: ABIType) {
+		var _type = String(type);
+		var api = this._contracts.get(_type);
 		if (!api) {
-			api = new TypeContract(star, type, this);
-			this._contracts.set(star + type, api);
+			api = new TypeContract(type, this);
+			this._contracts.set(_type, api);
 		}
 		return api;
 	}
