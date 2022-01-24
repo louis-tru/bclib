@@ -12,7 +12,7 @@ var _default: DatabaseTools = new sqlite.SQLiteTools(`${paths.var}/bclib.db`);
 
 export function initialize(db?: DatabaseTools) {
 	if (db)
-		exports.default = db;
+		exports.default = _default = db;
 	else
 		db = _default;
 

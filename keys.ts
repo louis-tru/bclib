@@ -23,14 +23,14 @@ const keystore = require('crypto-tx/keystore');
 const iv = rng(16);
 
 export interface ISecretKey {
+	readonly publicKey: IBuffer;
+	readonly address: string;
+	readonly addressBtc: string;
 	offset(offset: number): ISecretKey;
 	hasUnlock(): boolean;
 	lock(): void;
 	unlock(pwd: string): void;
 	exportKeystore(pwd: string): Promise<object>;
-	readonly publicKey: IBuffer;
-	readonly address: string;
-	readonly addressBtc: string;
 	sign(message: IBuffer): Promise<Signature>;
 }
 
@@ -170,9 +170,12 @@ export class KeychainManager {
 	private _address_indexed: Map<string, [string, number, string]> = new Map(); // address => [name,offset,part_key]
 	private _db = db;
 
-	async initialize(db?: DatabaseTools) {
-		if (db)
+	async initialize(new_db?: DatabaseTools) {
+		if (new_db)
+			this._db = new_db;
+		else 
 			this._db = db;
+
 		await this._db.load(`
 			create table if not exists keystore_list (
 				name        VARCHAR (64) PRIMARY KEY NOT NULL, -- 用户名称
@@ -202,7 +205,7 @@ export class KeychainManager {
 		], 'keys');
 	}
 
-	private getPart_key(name: string, part_key: string) {
+	private getPart_Key(name: string, part_key: string) {
 		somes.assert(part_key, 'part_ Key cannot be empty');
 		return crypto.createHash('sha256')
 			.update(default_traitKey)
@@ -243,7 +246,7 @@ export class KeychainManager {
 					addressBtc: key.addressBtc,
 					name: name,
 					offset: i + 1,
-					part_key: this.getPart_key(name, 'offset:' + i + 1)
+					part_key: this.getPart_Key(name, 'offset:' + i + 1)
 				});
 			}
 			address.push(key.address);
@@ -265,7 +268,7 @@ export class KeychainManager {
 	 * @func genSecretKeyFromPartKey()
 	*/
 	async genSecretKeyFromPartKey(name: string, part_key: string): Promise<string> {
-		part_key = this.getPart_key(name, part_key);
+		part_key = this.getPart_Key(name, part_key);
 
 		var addr = this._part_key_cache.get(part_key);
 		if (addr) {
