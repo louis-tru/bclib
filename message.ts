@@ -42,13 +42,6 @@ export interface MessagePost {
 	post(event: string, data?: any): void;
 }
 
-export default {
-	post(event: string, data?: any) {
-		if (default_bus)
-			default_bus.publish(event, data);
-	}
-} as MessagePost;
-
 /**
 * @class MessageCenter
 */
@@ -102,3 +95,5 @@ export class MessageCenter<T = any> extends Notification implements WatchCat<T>,
 		return true;
 	}
 }
+
+export default new MessageCenter();

@@ -64,7 +64,7 @@ export class Web3IMPL extends Web3Z {
 }
 
 class ExportDefault extends StaticObject<IWeb3Z> {
-	private _web3_c?: Web3Contracts;
+	protected _web3_c?: Web3Contracts;
 	get web3_c() {
 		if (!this._web3_c)
 			this._web3_c = new Web3Contracts(this.impl);

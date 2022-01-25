@@ -25,7 +25,8 @@ export function initialize(db?: DatabaseTools) {
 			id           INT PRIMARY KEY AUTO_INCREMENT,
 			url          VARCHAR (255) NOT NULL,
 			data         TEXT NOT NULL,
-			status       INT DEFAULT 0 NOT NULL -- 0没完成,1完成,2丢弃 
+			status       INT DEFAULT 0 NOT NULL, -- 0没完成,1完成,2丢弃,3处理中
+			active       bigint default (0) NOT NULL
 		);
 		CREATE TABLE if not exists tx_async (
 			id         INT PRIMARY KEY AUTO_INCREMENT,
@@ -38,7 +39,8 @@ export function initialize(db?: DatabaseTools) {
 			cb         VARCHAR (255),
 			txid       VARCHAR (255),
 			status     INT DEFAULT (0) NOT NULL, -- 1进行中,2完成,3失败
-			time       bigint DEFAULT (0) NOT NULL
+			time       bigint DEFAULT (0) NOT NULL,
+			active     bigint default (0) NOT null
 		);
 		create table if not exists auth_user(
 			id         int PRIMARY KEY AUTO_INCREMENT,
@@ -52,10 +54,12 @@ export function initialize(db?: DatabaseTools) {
 			ref        varchar (128) default ('') not null
 		);
 	`, [
-		`alter table tx_async add time bigint DEFAULT (0) NOT NULL`,
-		`alter table auth_user add keyType varchar (32) default ('') not null`,
-		`alter table auth_user add ref     varchar (128) default ('') not null`,
-		`alter table auth_user add key2    varchar (128)`,
+		`alter table tx_async     add time    bigint DEFAULT (0) NOT NULL`,
+		`alter table auth_user    add keyType varchar (32) default ('') not null`,
+		`alter table auth_user    add ref     varchar (128) default ('') not null`,
+		`alter table auth_user    add key2    varchar (128)`,
+		`alter table callback_url add active  bigint  default (0)  not null`,
+		`alter table tx_async     add active  bigint  default (0)  not null`,
 	], [
 		'create unique index callback_url_id     on callback_url (id)',
 		'create        index callback_url_status on callback_url (status)',

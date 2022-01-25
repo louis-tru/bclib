@@ -326,7 +326,7 @@ export class SQLiteTools implements DatabaseTools {
 
 	async query<T = Dict>(sql: string, table: string = ''): Promise<T[]> {
 		table = get_select_table_name(sql, table);
-		return selectAfter(this.check(table), await this._Query(sql)) as T[];;
+		return selectAfter(this.check(table), await this._Query(sql)) as T[];
 	}
 
 	async deleteById(table: string, id: number): Promise<any> {

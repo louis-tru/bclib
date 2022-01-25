@@ -179,7 +179,18 @@ class SignerIMPL implements Signer {
 
 var signer = new SignerIMPL();
 
+export async function lockDataState(table: string, id: number, state: {name: string, value: string}) {
+	var action = Date.now();
+	await db.query(
+		`update ${table} set ${state.name}=${state.value},action=${action} where \
+			where ${state.name}=0 or active < ${action-(10 * 60 * 1e3)}
+	`);
+	var it = await db.selectOne(table, {id,[state.name]:state.value,action});
+	return !!it;
+}
+
 async function callbackURL_impl(data: any, url: string, id: number) {
+	if (!await lockDataState('callback_url', id, {name: 'status', value: '3'})) return; // Multi worker lock
 	var sleep = 10;
 	var retry = 144;
 	while (--retry) {

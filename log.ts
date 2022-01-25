@@ -8,11 +8,16 @@ import {Console as ConsoleBase} from 'somes/log';
 import paths from './paths';
 import cfg from './cfg';
 import { exec } from 'somes/syscall';
+import { workers } from './env';
 
 export class Console extends ConsoleBase {
 
 	constructor(path?: string) {
-		super(path || `${paths.var}/${cfg.name}.log`);
+		if (workers) {
+			super(path || `${paths.var}/${cfg.name}_${workers.id}.log`);
+		} else {
+			super(path || `${paths.var}/${cfg.name}.log`);
+		}
 
 		somes.onUncaughtException.on((e)=>{
 			this.error(e.data);

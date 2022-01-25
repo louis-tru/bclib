@@ -11,8 +11,10 @@ import errno_web3z from 'web3z/errno';
 import {ABIType, getAddressByType} from './abi';
 import errno from './errno';
 import {callbackURI} from './utils';
+import {workers} from './env';
 import db from './db';
 import {WatchCat} from './watch';
+import msg from './message';
 
 export interface PostResult {
 	receipt: TransactionReceipt;
@@ -96,13 +98,27 @@ class AddressContract extends ContractWrap {
 export class Web3Contracts implements WatchCat {
 	private _contracts = new Map<string, ContractWrap>();
 	private _web3?: IWeb3Z;
+	// multi worker env
+	private _isQueue = workers ? !!process.env.WEB3_TX_QUEUE: true;
 
 	get web3() {
 		return this._web3 || web3.impl;
 	}
 
-	constructor(web3?: IWeb3Z) {
+	constructor(web3?: IWeb3Z, ) {
 		this._web3 = web3;
+		if (this._isQueue) {
+			msg.addEventListener('SendTransactionAsync', async ({data})=>{
+				var item = await db.selectOne<TxAsync>('tx_async', { status: 1, id: data });
+				if (item) {
+					if (item.contract) {
+						this._contractPostAsync(item.id);
+					} else {
+						this._sendSignTransactionAsync(item.id);
+					}
+				}
+			});
+		}
 	}
 
 	contractFromType(type: ABIType) {
@@ -183,12 +199,13 @@ export class Web3Contracts implements WatchCat {
 	private async _sendTransactionAsync(id: number, row: TxAsync,
 		sendQueue: (hash?: (hash: string)=>void)=>Promise<PostResult>, cb?: Callback)
 	{
-		if (row.status != 1) {
-			return;
+		if (row.status != 1) return;
+
+		if (!this._isQueue) {
+			return msg.post('SendTransactionAsync', id);
 		}
-		if (this._sendTransactionAsyncExecuting.has(id)) {
-			return;
-		}
+		if (this._sendTransactionAsyncExecuting.has(id)) return;
+
 		try {
 			this._sendTransactionAsyncExecuting.add(id);
 			await this._sendTransactionAsyncExec(id, row, sendQueue, cb);
@@ -266,12 +283,14 @@ export class Web3Contracts implements WatchCat {
 	cattime = 5; // 5 minute call cat()
 
 	async cat() {
-		var items = await db.select('tx_async', { status: 1 });
-		for (var item of items) {
-			if (item.contract) {
-				this._contractPostAsync(item.id);
-			} else {
-				this._sendSignTransactionAsync(item.id);
+		if (this._isQueue) {
+			var items = await db.select('tx_async', { status: 1 });
+			for (var item of items) {
+				if (item.contract) {
+					this._contractPostAsync(item.id);
+				} else {
+					this._sendSignTransactionAsync(item.id);
+				}
 			}
 		}
 		return true;
