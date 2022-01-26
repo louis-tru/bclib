@@ -56,7 +56,7 @@ export class AmqpChannel {
 				await this.consume(obj.cb, obj.opts); // reconsume
 				break;
 			} catch(err) {
-				console.log('_disconnectHandle', err);
+				console.warn('AmqpChannel#_disconnectHandle', err);
 			}
 			await somes.sleep(1e3)
 		}
@@ -148,7 +148,7 @@ export class AmqpChannel {
 		return ok as boolean;
 	}
 
-	async consume(cb: (data: any, msg: any, uuid: string)=>void, opts?: any) {
+	async consume(cb: (data: any, msg: any, uuid: string)=>any, opts?: any) {
 		var ch = await this._channel();
 		var consumeMessage = this._consumeMessage;
 		var fields = await ch.consume(this._name, async function(msg: any) {
@@ -160,7 +160,7 @@ export class AmqpChannel {
 					return;
 				}
 			} catch(err) {
-				console.error(err);
+				console.warn('AmqpChannel#consume#1', err);
 				ch.nack(msg, false, false);
 				return;
 			}
@@ -168,7 +168,7 @@ export class AmqpChannel {
 				consumeMessage.set(uuid, msg);
 				await cb(data, msg, uuid);
 			} catch(err) {
-				console.error(err);
+				console.warn('AmqpChannel#consume#2', err);
 				ch.nack(msg, false, false);
 			} finally {
 				consumeMessage.delete(uuid);

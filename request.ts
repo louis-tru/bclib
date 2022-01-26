@@ -57,7 +57,7 @@ class CheckNetwork {
 			self.m_check_internet_time = Date.now();
 			self.m_internet_available = 1;
 		} catch(err) {
-			console.log('check_internet error');
+			console.warn('CheckNetwork#check_internet', err);
 			if (urls.length) {
 				await self.check_internet(urls);
 			} else {

@@ -97,7 +97,7 @@ function parseJSON(json: string | null) {
 		try {
 			return JSON.parse(json);
 		} catch(e) {
-			console.error(e);
+			console.warn('sqlite#parseJSON', e);
 		}
 	}
 	return null;
@@ -264,7 +264,7 @@ export class SQLiteTools implements DatabaseTools {
 					row = Object.assign({}, JSON.parse(r._json), row);
 					values = get_sql_params(struct, row, true).values;
 				} catch(e) {
-					console.error(e);
+					console.warn('SQLiteTools#update', e);
 				}
 			}
 		}

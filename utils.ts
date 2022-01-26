@@ -157,7 +157,6 @@ export async function callApi(
 		}
 		await storage.set(key, data);
 	} catch(err) {
-		// console.error(err);
 		data = await storage.get(key);
 		if (!data) {
 			throw err;

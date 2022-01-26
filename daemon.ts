@@ -62,7 +62,7 @@ export class Daemon {
 				var r = await this.runHandle;
 				console.log(r);
 			} catch(err: any) {
-				console.error(err);
+				console.warn('Daemon#run', err);
 			}
 			await somes.sleep(5e3); // 5s
 

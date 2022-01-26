@@ -44,7 +44,7 @@ export class Amqp {
 				await fn.call(handle, data.args);
 			} catch(err: any) {
 				err = Error.new(err);
-				console.error(err);
+				console.warn('Amqp#initConsumer', err);
 				
 				var no_requeue =
 					err.code == 'INVALID_ARGUMENT' ||

@@ -57,7 +57,7 @@ export async function getLocalAbi(pathname: string) {
 				return abi;
 			}
 		} catch(err) { // 可能文件损坏
-			console.error(err);
+			console.warn(err);
 		}
 	}
 }
@@ -85,7 +85,7 @@ async function getAbi({address,chain,type}: {address?: string, chain?: number, t
 				break;
 			}
 		} catch(err) {
-			console.error(err);
+			console.warn(err);
 		}
 	}
 

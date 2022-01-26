@@ -117,7 +117,7 @@ export class SecretKey implements ISecretKey {
 				this._privKeyCiphertext.fill(0, 0, this._privKeyCiphertext.length); // Erase key
 				this._privKeyCiphertext = undefined;
 			} else {
-				console.warn('Cannot lock SecretKey');
+				console.log('Cannot lock SecretKey');
 			}
 		}
 	}

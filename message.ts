@@ -76,7 +76,7 @@ export class MessageCenter<T = any> extends Notification implements WatchCat<T>,
 			if (this._mbus) {
 				this._mbus.addEventForward(name, super.getNoticer(name));
 			} else {
-				console.warn('not config mbus');
+				console.log('not config mbus');
 			}
 		}
 		return super.getNoticer(name);
@@ -87,7 +87,7 @@ export class MessageCenter<T = any> extends Notification implements WatchCat<T>,
 		if (this._mbus) {
 			this._mbus.trigger(event, data);
 		} else {
-			console.warn('not config mbus');
+			console.log('not config mbus');
 		}
 	}
 
