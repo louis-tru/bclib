@@ -7,6 +7,7 @@ import {getLocalNetworkHost} from 'somes/network_host';
 import {Monitor} from 'somes/monitor';
 import {MessagePost} from 'bclib/message';
 import {StaticObject} from './obj';
+import util from 'somes';
 
 const RUN_INTERVAL = 60 * 1000; // 60s
 const [host] = getLocalNetworkHost();
@@ -58,7 +59,7 @@ export abstract class Watch<T = any> extends Monitor {
 						_ok = await w.cat(data);
 						(w.catcount as number)++;
 					} catch(err) {
-						console.error('WatchCat#cat', err);
+						console.warn('WatchCat#cat', ...err.filter(['errno', 'message', 'description', 'stack']));
 						_ok = false;
 					} finally {
 						w.run_cating = false;
