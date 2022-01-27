@@ -24,8 +24,8 @@ export class Web3IMPL extends Web3Z {
 	TRANSACTION_CHECK_TIME = 5e3;
 
 	private _txQueue?: TransactionQueue;
-	private _contracts: Dict<Contract> = {};
 	private _chain = 0;
+	private _contracts: Dict<Contract> = {};
 
 	async contract(address: string, chain?: number) {
 		var contract = this._contracts[address];
@@ -36,6 +36,10 @@ export class Web3IMPL extends Web3Z {
 			this._contracts[address] = contract;
 		}
 		return contract;
+	}
+
+	deleteContract(address: string) {
+		delete this._contracts[address];
 	}
 
 	sign(message: IBuffer, from?: string): Promise<Signature> {

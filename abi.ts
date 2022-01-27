@@ -64,14 +64,13 @@ export async function getLocalAbi(pathname: string) {
 
 export type FetchAbiFun = (address: string, chain: number, type?: ABIType)=>Promise<AbiInterface|undefined>;
 
-export const FetchAbiFunList: FetchAbiFun[] = [
-	// async function(address?: string, chain?: number, type?: ABIType) {
-	// 	var opts = {cacheTime: utils2.prod ? 24*3600*1000/*1d*/ : 2e5/*200s*/};
-	// 	var {data} = await dasset.post('contract/getAbiByAddress', { address, chain, type }, opts);
-	// 	utils.assert(data, errno.ERR_GET_ABI_NOT_FOUND);
-	// 	return { ...data, abi: JSON.parse(data.abi) } as AbiInterface;
-	// }
-];
+export const FetchAbiFunList: FetchAbiFun[] = [];
+
+var HAS_SAVE_ABI = true;
+
+export function setHasSaveAbi(is_save: boolean) {
+	HAS_SAVE_ABI = is_save;
+}
 
 async function getAbi({address,chain,type}: {address?: string, chain?: number, type?: ABIType}) {
 	await fs.mkdirp(`${paths.var}/abis`);
@@ -81,9 +80,8 @@ async function getAbi({address,chain,type}: {address?: string, chain?: number, t
 
 	for (var fetch of FetchAbiFunList) {
 		try {
-			if (abi = await fetch(address || '', chain || 0, type)) {
+			if (abi = await fetch(address || '', chain || 0, type))
 				break;
-			}
 		} catch(err) {
 			console.warn(err);
 		}
@@ -91,7 +89,7 @@ async function getAbi({address,chain,type}: {address?: string, chain?: number, t
 
 	if (abi) { // save cache file
 		var hash = abi.hashCode();
-		if (hashs[name] != hash) {
+		if (HAS_SAVE_ABI && hashs[name] != hash) {
 			hashs[name] = hash;
 			hashs[abi.address] = hash;
 			var abi_json = JSON.stringify(abi, null, 2);
