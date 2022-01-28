@@ -14,32 +14,40 @@ import { TransactionQueue } from 'web3z/queue';
 import { Contract } from 'web3z';
 import {getAbiByAddress} from './abi';
 import {StaticObject} from './obj';
+import {WatchCat} from 'bclib/watch';
 
 export interface IWeb3Z extends IWeb3Z_ {
 	readonly txQueue: TransactionQueue;
 	contract(address: string): Promise<Contract>;
 }
 
-export class Web3IMPL extends Web3Z {
+export class Web3IMPL extends Web3Z implements WatchCat {
 	TRANSACTION_CHECK_TIME = 5e3;
 
 	private _txQueue?: TransactionQueue;
 	private _chain = 0;
-	private _contracts: Dict<Contract> = {};
+	private _contracts: Map<string, {timeout: number, value: Contract}> = new Map();
+	private _contractTimeout = 3e4; // 3s
+
+	setContractTimeout(timeout: number) {
+		this._contractTimeout = Number(timeout) || 0;
+		if (!this._contractTimeout) {
+			this._contracts.clear();
+		}
+	}
 
 	async contract(address: string, chain?: number) {
-		var contract = this._contracts[address];
+		var contract = this._contracts.get(address);
 		if (!contract) {
 			chain = chain || this._chain || (this._chain = await this.eth.getChainId());
 			var {abi} = await getAbiByAddress(address, chain);
-			contract = this.createContract(address, abi);
-			this._contracts[address] = contract;
+			contract = { value: this.createContract(address, abi), timeout: Date.now() + this._contractTimeout };
 		}
-		return contract;
+		return contract.value;
 	}
 
 	deleteContract(address: string) {
-		delete this._contracts[address];
+		this._contracts.delete(address);
 	}
 
 	sign(message: IBuffer, from?: string): Promise<Signature> {
@@ -63,6 +71,16 @@ export class Web3IMPL extends Web3Z {
 			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber_' + this.givenProvider(),
 		});
 		return fn();
+	}
+
+	async cat() {
+		var now = Date.now();
+		for (var [k,v] of this._contracts) {
+			if (v.timeout < now) {
+				this._contracts.delete(k);
+			}
+		}
+		return true;
 	}
 
 }

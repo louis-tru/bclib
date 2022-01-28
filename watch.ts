@@ -7,7 +7,6 @@ import {getLocalNetworkHost} from 'somes/network_host';
 import {Monitor} from 'somes/monitor';
 import {MessagePost} from 'bclib/message';
 import {StaticObject} from './obj';
-import util from 'somes';
 
 const RUN_INTERVAL = 60 * 1000; // 60s
 const [host] = getLocalNetworkHost();
@@ -20,7 +19,7 @@ export interface WatchCat<T = any> {
 	tryTime?: number;
 	priv_cattime?: number;
 	run_cating?: boolean;
-	cat(data: T): Promise<boolean> | boolean;
+	cat(data: T): Promise<boolean>;
 }
 
 /**

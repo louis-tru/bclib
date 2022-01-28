@@ -66,14 +66,13 @@ export type FetchAbiFun = (address: string, chain: number, type?: ABIType)=>Prom
 
 export const FetchAbiFunList: FetchAbiFun[] = [];
 
-var HAS_SAVE_ABI = true;
+var is_SAVE_ABI_TO_LOCAL = true;
 
-export function setHasSaveAbi(is_save: boolean) {
-	HAS_SAVE_ABI = is_save;
+export function setSaveAbiToLocal(is_save: boolean) {
+	is_SAVE_ABI_TO_LOCAL = !!is_save;
 }
 
 async function getAbi({address,chain,type}: {address?: string, chain?: number, type?: ABIType}) {
-	await fs.mkdirp(`${paths.var}/abis`);
 	var name = address ? `${address}_${chain}`: `${ABIType[type||0]}`;
 	var path = `${paths.var}/abis/${name}.json`;
 	var abi: AbiInterface|undefined;
@@ -88,14 +87,16 @@ async function getAbi({address,chain,type}: {address?: string, chain?: number, t
 	}
 
 	if (abi) { // save cache file
-		var hash = abi.hashCode();
-		if (HAS_SAVE_ABI && hashs[name] != hash) {
-			hashs[name] = hash;
-			hashs[abi.address] = hash;
-			var abi_json = JSON.stringify(abi, null, 2);
-			fs.writeFileSync(path, abi_json);
-			if (!address) // type and star
-				fs.writeFileSync(`${paths.var}/abis/${abi.address}.json`, abi_json);
+		if (is_SAVE_ABI_TO_LOCAL) {
+			var hash = abi.hashCode();
+			if (hashs[name] != hash) {
+				hashs[name] = hash;
+				hashs[abi.address] = hash;
+				var abi_json = JSON.stringify(abi, null, 2);
+				fs.writeFileSync(path, abi_json);
+				if (!address) // type and star
+					fs.writeFileSync(`${paths.var}/abis/${abi.address}.json`, abi_json);
+			}
 		}
 	} else {
 		abi = await getLocalAbi(path); // 读取缓存文件

@@ -16,6 +16,7 @@ fs.mkdirpSync(`${variable}/temp/res`);
 fs.mkdirpSync(`${variable}/temp/rm`);
 // fs.chmodSync(`${variable}/temp`, 0o777);
 fs.writeFileSync(`${variable}/pid`, String(process.pid));
+fs.mkdirpSync(`${variable}/abis`);
 
 export default {
 	var: variable,
