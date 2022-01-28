@@ -42,6 +42,7 @@ export class Web3IMPL extends Web3Z implements WatchCat {
 			chain = chain || this._chain || (this._chain = await this.eth.getChainId());
 			var {abi} = await getAbiByAddress(address, chain);
 			contract = { value: this.createContract(address, abi), timeout: Date.now() + this._contractTimeout };
+			this._contracts.set(address, contract);
 		}
 		return contract.value;
 	}
