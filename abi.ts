@@ -34,14 +34,9 @@ export interface AbiInterface {
 const getLocalAbiCache: Dict<AbiInterface> = {};
 
 var is_SAVE_ABI_TO_LOCAL = true;
-var is_LOCAL_ABI_CACHE = true;
 
 export function setSaveAbiToLocal(is_save: boolean) {
 	is_SAVE_ABI_TO_LOCAL = !!is_save;
-}
-
-export function setLocalAbiCache(cache: boolean) {
-	is_LOCAL_ABI_CACHE = !!cache;
 }
 
 export async function getLocalAbi(pathname: string) {
@@ -64,8 +59,7 @@ export async function getLocalAbi(pathname: string) {
 					var extname = path.extname(pathname);
 					abi.address = basename.substring(0, basename.length - extname.length);
 				}
-				if (is_LOCAL_ABI_CACHE)
-					getLocalAbiCache[pathname] = abi;
+				getLocalAbiCache[pathname] = abi;
 				return abi;
 			}
 		} catch(err) { // 可能文件损坏
