@@ -33,6 +33,17 @@ export interface AbiInterface {
 
 const getLocalAbiCache: Dict<AbiInterface> = {};
 
+var is_SAVE_ABI_TO_LOCAL = true;
+var is_LOCAL_ABI_CACHE = true;
+
+export function setSaveAbiToLocal(is_save: boolean) {
+	is_SAVE_ABI_TO_LOCAL = !!is_save;
+}
+
+export function setLocalAbiCache(cache: boolean) {
+	is_LOCAL_ABI_CACHE = !!cache;
+}
+
 export async function getLocalAbi(pathname: string) {
 	// var data = await dasset.post('device/getDeviceBySN', { device_sn: device.serialNumber });
 
@@ -53,7 +64,8 @@ export async function getLocalAbi(pathname: string) {
 					var extname = path.extname(pathname);
 					abi.address = basename.substring(0, basename.length - extname.length);
 				}
-				getLocalAbiCache[pathname] = abi;
+				if (is_LOCAL_ABI_CACHE)
+					getLocalAbiCache[pathname] = abi;
 				return abi;
 			}
 		} catch(err) { // 可能文件损坏
@@ -65,12 +77,6 @@ export async function getLocalAbi(pathname: string) {
 export type FetchAbiFun = (address: string, chain: number, type?: ABIType)=>Promise<AbiInterface|undefined>;
 
 export const FetchAbiFunList: FetchAbiFun[] = [];
-
-var is_SAVE_ABI_TO_LOCAL = true;
-
-export function setSaveAbiToLocal(is_save: boolean) {
-	is_SAVE_ABI_TO_LOCAL = !!is_save;
-}
 
 async function getAbi({address,chain,type}: {address?: string, chain?: number, type?: ABIType}) {
 	var name = address ? `${address}_${chain}`: `${ABIType[type||0]}`;
