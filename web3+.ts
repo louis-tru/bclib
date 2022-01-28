@@ -12,6 +12,7 @@ import {Signature} from 'web3z';
 import {Web3Z, IWeb3Z as IWeb3Z_} from 'web3z';
 import { TransactionQueue } from 'web3z/queue';
 import { Contract } from 'web3z';
+import { provider } from 'web3-core';
 import {getAbiByAddress} from './abi';
 import {StaticObject} from './obj';
 import {WatchCat} from 'bclib/watch';
@@ -45,6 +46,13 @@ export class Web3IMPL extends Web3Z implements WatchCat {
 			this._contracts.set(address, contract);
 		}
 		return contract.value;
+	}
+
+	set provider(provider: provider) {
+		super.provider = provider;
+		for (var [k,c] of this._contracts) {
+			c.value.setHost(this);
+		}
 	}
 
 	deleteContract(address: string) {
