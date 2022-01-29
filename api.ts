@@ -152,7 +152,13 @@ class Auth {
 
 }
 
-export class WSAPI extends WSService {
+export interface API {
+	readonly userName: string;
+	user(): Promise<User>;
+	userNotErr(): Promise<User | null>;
+}
+
+export class WSAPI extends WSService implements API {
 	private _au = new Auth(this);
 
 	get userName() { return this._au.userName }
@@ -169,7 +175,7 @@ export class WSAPI extends WSService {
 	}
 }
 
-export default class APIController extends ViewController {
+export default class APIController extends ViewController implements API {
 	private _au = new Auth(this);
 
 	get userName() { return this._au.userName }
