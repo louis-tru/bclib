@@ -37,14 +37,14 @@ export class Daemon {
 		var self = this;
 
 		function onData(e: Buffer) {
-			var r = e.toString('utf8');
 			if (cb) {
+				var r = e.toString('utf8');
 				if (self.checkStartComplete(e, r)) {
 					cb(self._id);
 					cb = undefined;
 				}
 			}
-			return r;
+			return '';
 		}
 		do {
 			try {
