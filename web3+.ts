@@ -48,13 +48,6 @@ export class Web3IMPL extends Web3Z implements WatchCat {
 		return contract.value;
 	}
 
-	set provider(provider: provider) {
-		super.provider = provider;
-		for (var [k,c] of this._contracts) {
-			c.value.setHost(this);
-		}
-	}
-
 	deleteContract(address: string) {
 		this._contracts.delete(address);
 	}
