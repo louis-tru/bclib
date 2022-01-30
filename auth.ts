@@ -43,7 +43,7 @@ export type User = AuthorizationUser;
 
 export interface Cache {
 	get(name: string): Promise<User | null>;
-	set(name: string, user: User | null): void;
+	set(name: string, user: User | null): Promise<void>;
 };
 
 class DefaultCacheIMPL implements Cache {
@@ -59,7 +59,7 @@ class DefaultCacheIMPL implements Cache {
 		}
 		return null;
 	}
-	set(name: string, user: User | null): void {
+	async set(name: string, user: User | null) {
 		if (user) {
 			this._value.set(name, {timeout: Date.now() + 3e4, user});
 		} else {
@@ -77,8 +77,8 @@ export class AuthorizationManager {
 		this._cache = cache;
 	}
 
-	private _SetCache(name: string, user: User | null) {
-		this._cache.set(name, user);
+	private async _SetCache(name: string, user: User | null) {
+		await this._cache.set(name, user);
 		if (this._msg) {
 			this._msg.trigger(Events.AuthorizationUserUpdate, {name, user});
 		}
@@ -184,7 +184,7 @@ export class AuthorizationManager {
 			} as User;
 			user.id = await db.insert('auth_user', user);
 		}
-		this._SetCache(name, user);
+		await this._SetCache(name, user);
 	}
 
 	/**
@@ -200,7 +200,7 @@ export class AuthorizationManager {
 	 */
 	async removeAuthorizationUser(name: string) {
 		await db.delete('auth_user', {name});
-		this._SetCache(name, null);
+		await this._SetCache(name, null);
 	}
 
 	// ---- Authorization auth ----
