@@ -80,7 +80,7 @@ export function createCache<A extends any[], R>(
 	if (id && create_cache_funcs[id]) {
 		return create_cache_funcs[id];
 	}
-	var key = '__cache_' + utils.id;
+	var key = '__cache_' + (id || utils.random(0, 1e6));
 
 	async function noCache(...args: A): Promise<R> {
 		try {

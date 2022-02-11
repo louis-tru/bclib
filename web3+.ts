@@ -67,9 +67,13 @@ export class Web3IMPL extends Web3Z implements WatchCat {
 		return Array.isArray(cfg.web3) ? cfg.web3[0]: cfg.web3;
 	}
 
+	private _FetchBlockNumber = async (): Promise<number>=>{
+		var num = await this.eth.getBlockNumber();
+		return num;
+	};
+
 	getBlockNumber() {
-		var fetch = (): Promise<number>=>this.eth.getBlockNumber();
-		var fn = createCache(fetch, {
+		var fn = createCache(this._FetchBlockNumber, {
 			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber_' + this.givenProvider(),
 		});
 		return fn();
