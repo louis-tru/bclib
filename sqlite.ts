@@ -183,10 +183,8 @@ export class SQLiteTools implements DatabaseTools {
 
 		for (let sql of SQL_PLUS) {
 			var [,table_name,table_column] = sql.match(/^alter\s+table\s+(\w+)\s+add\s+(\w+)/) as RegExpMatchArray;
-			var res = await _db.all2(
-				`select * from sqlite_master where type='table' 
-				 and name=? and sql like ?`, table_name, `%${table_column}%`);
-			if (!res.length) {
+			let info = await _db.all2(`pragma table_info(${table_name})`) as any[];
+			if (!info.find(e=>e.name==table_column)) {
 				await _db.exec2(sql);
 			}
 		}
