@@ -4,68 +4,72 @@
  */
 
 import ApiController from '../api';
-import web3z from '../web3+';
+import web3s from '../web3+';
 import {BlockNumber} from 'web3-core/types';
 
-const web3 = ()=>web3z.impl.web3;
-
 export default class extends ApiController {
+
+	private _web3() { return web3s[Number(this.headers.chain) || 1] };
 
 	async auth() {
 		return true;
 	}
 
-	isSyncing() { return web3().eth.isSyncing(); }
-	blockNumber() { return web3().eth.getBlockNumber(); }
-	blockNumberCache() { return web3z.impl.getBlockNumber(); }
-	isListening() { return web3().eth.net.isListening(); }
-	getNetworkType() { return web3().eth.net.getNetworkType(); }
-	getPeerCount() { return web3().eth.net.getPeerCount(); }
-	getId() { return web3().eth.net.getId(); }
-	getChainId() { return web3().eth.getChainId(); }
-	getNodeInfo() { return web3().eth.getNodeInfo(); }
-	version() { return web3().version; }
-	isMining() { return web3().eth.isMining(); }
-	getHashrate() { return web3().eth.getHashrate(); }
-	getGasPrice() { return web3().eth.getGasPrice(); }
+	isSyncing() { return this._web3().eth.isSyncing(); }
+	blockNumber() { return this._web3().eth.getBlockNumber(); }
+	blockNumberCache() { return this._web3().getBlockNumber(); }
+	isListening() { return this._web3().eth.net.isListening(); }
+	getNetworkType() { return this._web3().eth.net.getNetworkType(); }
+	getPeerCount() { return this._web3().eth.net.getPeerCount(); }
+	getId() { return this._web3().eth.net.getId(); }
+	getChainId() { return this._web3().eth.getChainId(); }
+	getNodeInfo() { return this._web3().eth.getNodeInfo(); }
+	version() { return this._web3().version; }
+	isMining() { return this._web3().eth.isMining(); }
+	getHashrate() { return this._web3().eth.getHashrate(); }
+	getGasPrice() { return this._web3().eth.getGasPrice(); }
+
+	getNonce({from}: {from: string}) {
+		return this._web3().getNonce(from);
+	}
 
 	async getBalance({address}:{address:string}) {
-		return web3().eth.getBalance(address);
+		return this._web3().eth.getBalance(address);
 	}
 
 	async getTransactionCount({address}:{address:string}) {
 		return {
-			nonce: await web3().eth.getTransactionCount(address),
-			nonceLatest: await web3().eth.getTransactionCount(address, 'latest'),
-			nonceEarliest: await web3().eth.getTransactionCount(address, 'earliest'),
-			noncePending: await web3().eth.getTransactionCount(address, 'pending'),
+			nonce: await this._web3().eth.getTransactionCount(address),
+			nonceLatest: await this._web3().eth.getTransactionCount(address, 'latest'),
+			nonceEarliest: await this._web3().eth.getTransactionCount(address, 'earliest'),
+			noncePending: await this._web3().eth.getTransactionCount(address, 'pending'),
 		}
 	}
 
 	getBlock(
 		{blockNumber, returnTransactionObjects = false}: 
 		{blockNumber: BlockNumber, returnTransactionObjects?: boolean}
-	) { return web3().eth.getBlock(blockNumber, returnTransactionObjects); }
+	) { return this._web3().eth.getBlock(blockNumber, returnTransactionObjects); }
 
 	getBlockUncleCount(
 		{blockNumber}: {blockNumber: BlockNumber}
-	) { return web3().eth.getBlockUncleCount(blockNumber); }
+	) { return this._web3().eth.getBlockUncleCount(blockNumber); }
 
 	getTransaction(
 		{transactionHash }: {transactionHash: string }
-	) { web3().eth.getTransaction(transactionHash); }
+	) { this._web3().eth.getTransaction(transactionHash); }
 
-	getPendingTransactions() { return web3().eth.getPendingTransactions(); }
+	getPendingTransactions() { return this._web3().eth.getPendingTransactions(); }
 
 	getTransactionFromBlock(
 		{blockHashOrBlockNumber, index}: {blockHashOrBlockNumber: BlockNumber, index: number}
-	) { return web3().eth.getTransactionFromBlock(blockHashOrBlockNumber, index); }
+	) { return this._web3().eth.getTransactionFromBlock(blockHashOrBlockNumber, index); }
 
 	getTransactionReceipt(
 		{hash}: {hash: string}
-	) { return web3().eth.getTransactionReceipt(hash); }
+	) { return this._web3().eth.getTransactionReceipt(hash); }
 
-	getCoinbase() { return web3().eth.getCoinbase(); }
-	getProtocolVersion() { return web3().eth.getProtocolVersion(); }
-	getCode({address}:{address:string}) { return web3().eth.getCode(address); }
+	getCoinbase() { return this._web3().eth.getCoinbase(); }
+	getProtocolVersion() { return this._web3().eth.getProtocolVersion(); }
+	getCode({address}:{address:string}) { return this._web3().eth.getCode(address); }
 }

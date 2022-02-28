@@ -20,7 +20,7 @@ export default async function({ num, from, to, value }: {
 	var tx1: TransactionReceipt | null = null;
 
 	if (from && to && _value) {
-		tx1 = await web3z.impl.txQueue.push(e=>{
+		tx1 = await web3z.impl.tx.queue.push(e=>{
 			return web3z.impl.sendSignTransaction({
 				...e,
 				to: to,

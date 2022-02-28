@@ -248,26 +248,76 @@ signArgumentsFromTypes({
 }
 ```
 
-# `web3`
+# `tx`
 
 提供web3上链服务以及协议的访问方法与协议的签名方法访问
 
-## web3/contract*
+
+
+## tx/serializedTx
+
+对交易进行签名，序列化交易数据返回rawData
+
+```ts
+serializedTx({
+	chain: number;
+	tx: {
+		chainId?: number;
+		from?: string;
+		nonce?: number;
+		to?: string;
+		gasLimit?: number;
+		gasPrice?: number;
+		value?: string;
+		data?: string;
+	}
+}): {
+	data: string;
+	txid: string;
+	nonce: number;
+};
+```
+
+## tx/serializedTxForContract
+
+调用协约交易进行签名，序列化交易数据返回rawData
+
+```ts
+serializedTxForContract({
+	chain: number;
+	address: string; // 协约地址
+	method: string; // 协约方法名称
+	args?: any[];  // 实参列表
+	from?: string; // 发送交易的账户
+	value?: string; // eth value
+	nonce?: number;
+}): {
+	data: string; // rawData
+	txid: string;
+	nonce: number;
+};
+```
+
+
+## tx/get
 
 调用指定address协约方法
 
 ```ts
-contractGet({address: string, method: string, args: any[]}): any;
+get({address: string, method: string, args: any[]}): any;
 ```
+
+
+## tx/post
 
 调用指定address协约方法，发送交易立即返回服务查询`review(id)`句柄id
 
 ```ts
-contractPost({
+post({
+	chain: number; // chian id
 	address: string; // 协约地址
 	method: string; // 方法名
 	args: any[]; // 实参
-	event:? string; // 发送交易成功后需要检查的event
 	from?: string; // 账户
 	value?: string;
 	callback?: string; // 回调地址,只有异步方法才生效
@@ -277,25 +327,8 @@ contractPost({
 }): string; // 返回句柄id
 ```
 
-调用指定address协约方法，发送交易关挂起运行，直接有结果返回
 
-```ts
-contractPostSync({
-	address: string; // 协约地址
-	method: string; // 方法名
-	args: any[]; // 实参
-	event:? string; // 发送交易成功后需要检查的event
-	from?: string; // 账户
-	value?: string;
-	retry?: number; // 发送上链错误后重试的次数，错误后加入到队列尾部等待
-	timeout?: number; // 0表示不超时
-	blockRange?: number; // 允许最大区块范围超时，超过区块后放弃交易视为失败，默认为32个区块
-}): TransactionReceipt;
-```
-
-查看定义[`TransactionReceipt`]
-
-## web3/review
+## tx/review
 
 ```ts
 review({ id: string }): PostResult;
@@ -303,111 +336,14 @@ review({ id: string }): PostResult;
 
 查看定义[`PostResult`]
 
-## web3/contractAddress
 
-获取具名协约地址
-
-```ts
-contractAddress({type: ABIType}): string;
-```
-
-查看定义[`ABIType`]
-
-## web3/getBlockNumber
-
-获取区块高度
-
-```ts
-getBlockNumber(): number;
-```
-
-## web3/getNonce({account: string}): number;
-
-获取账户的当前nonce
-
-## web3/getNonceQueue
-
-通过account申请nonce，会以自增方式增加值，如果长时间不使用申请的nonce会自动重新被分配
-
-```ts
-getNonceQueue({account: string}): {
-	from: string;
-	nonce: number;
-	gasLimit: number;
-};
-```
-
-## web3/serializedTx
-
-对交易进行签名，序列化交易数据返回rawData
-
-```ts
-serializedTx({
-	chainId?: number;
-	from?: string;
-	nonce?: number;
-	to?: string;
-	gasLimit?: number;
-	gasPrice?: number;
-	value?: string;
-	data?: string;
-}): {
-	data: string;
-	txid: string;
-	nonce: number;
-};
-```
-
-## web3/serializedTxForContract
-
-调用协约交易进行签名，序列化交易数据返回rawData
-
-```ts
-serializedTxForContract({
-	method: string; // 协约方法名称
-	args?: any[];  // 实参列表
-	from?: string; // 发送交易的账户
-	address: string; // 协约地址
-	value?: string; // eth value
-}): {
-	data: string; // rawData
-	txid: string;
-	nonce: number;
-};
-```
-
-## web3/sendSignTransaction
-
-签名交易数据并发送，挂起http请求直到成功或者失败
-
-```ts
-sendSignTransaction({
-	tx: {
-		timeout?: number; // 超时放弃交易
-		blockRange?: number; // 允许最大区块范围超时，超过区块后放弃交易视为失败，默认为32个区块
-		chainId?: number;
-		from?: string;
-		nonce?: number;
-		to?: string;
-		gasLimit?: number;
-		gasPrice?: number;
-		value?: string;
-		data?: string;
-		retry?: number; // 发送上链错误后重试的次数，错误后加入到队列尾部等待
-	}
-}): TransactionReceipt;
-```
-
-查看定义[`TransactionReceipt`]
-
-
-
-## web3/sendSignTransactionAsync
+## tx/sendTx
 
 签名交易数据并发送，发送交易立即返回服务查询`review(id)`句柄id
 
 ```ts
-sendSignTransactionAsync({
+sendTx({
+	chain: number;
 	tx: {
 		// timeout: 这个属性有两层意义，web3中所有的`timeout`都有同样的性质
 		// 1.发送上链请求超时后丢弃这次发送的交易，如果还有重试次数会加入到队列尾部等待重新发送上链请求。
@@ -429,12 +365,62 @@ sendSignTransactionAsync({
 ```
 
 
-## web3/sendSignedTransaction
+## tx/postSync
+
+调用指定address协约方法，发送交易挂起运行，直接有结果返回，同步调用不入队列
+
+```ts
+postSync({
+	chain: number;
+	address: string; // 协约地址
+	method: string; // 方法名
+	args: any[]; // 实参
+	from?: string; // 账户
+	value?: string;
+	retry?: number; // 发送上链错误后重试的次数，错误后加入到队列尾部等待
+	timeout?: number; // 0表示不超时
+	blockRange?: number; // 允许最大区块范围超时，超过区块后放弃交易视为失败，默认为32个区块
+}): TransactionReceipt;
+```
+
+查看定义[`TransactionReceipt`]
+
+
+
+## tx/sendSignTransactionSync
+
+签名交易数据并发送，挂起http请求直到成功或者失败
+
+```ts
+sendSignTransactionSync({
+	chain: number;
+	tx: {
+		timeout?: number; // 超时放弃交易
+		blockRange?: number; // 允许最大区块范围超时，超过区块后放弃交易视为失败，默认为32个区块
+		chainId?: number;
+		from?: string;
+		nonce?: number;
+		to?: string;
+		gasLimit?: number;
+		gasPrice?: number;
+		value?: string;
+		data?: string;
+		retry?: number; // 发送上链错误后重试的次数，错误后加入到队列尾部等待
+	}
+}): TransactionReceipt;
+```
+
+查看定义[`TransactionReceipt`]
+
+
+
+## web3/sendSignedTransactionSync
 
 发送签名后的交易数据`rawData`
 
 ```ts
-sendSignedTransaction({
+sendSignedTransactionSync({
+	chain: number;
 	serializedTx: string; // rawData
 	opts?: {
 		timeout?: number; // 超时放弃交易
@@ -446,7 +432,12 @@ sendSignedTransaction({
 
 查看定义[`TransactionReceipt`]
 
+
+
+
 # interfaces
+
+
 
 
 ## TransactionReceipt
@@ -485,43 +476,13 @@ interface TransactionReceipt {
 ```ts
 interface PostResult {
 	receipt: TransactionReceipt;
-	event?: FindEventResult;
 	error?: Error;
 	id?: string;
 }
 ```
 
-## FindEventResult
 
-```ts
-interface FindEventResult {
-	events: EventData[];
-	transaction: Transaction;
-	transactionReceipt: TransactionReceipt;
-}
-```
 
-## EventData
-
-```ts
-interface EventData {
-	returnValues: {
-			[key: string]: any;
-	};
-	raw: {
-			data: string;
-			topics: string[];
-	};
-	event: string;
-	signature: string;
-	logIndex: number;
-	transactionIndex: number;
-	transactionHash: string;
-	blockHash: string;
-	blockNumber: number;
-	address: string;
-}
-```
 
 ## Transaction
 
@@ -541,27 +502,10 @@ interface Transaction {
 }
 ```
 
-## ABIType
 
-```ts
-enum ABIType {
-	STAR = 1, // Deprecated
-	BANK = 2,
-	KUN = 3, // Deprecated
-	BIGBANG = 5, // Deprecated
-	ERC20 = 6,
-	ERC721 = 7,
-	MINING = 8, // Deprecated
-	MINER = 11, // Deprecated
-	KUN_CTR = 33, // Deprecated
-	PROOF = 40, 
-	CASPER = 41,
-};
-```
 
 [`TransactionReceipt`]: #transactionreceipt
 [`FindEventResult`]: #findeventresult
 [`PostResult`]: #postresult
 [`EventData`]: #eventdata
 [`Transaction`]: #transaction
-[`ABIType`]: #abitype

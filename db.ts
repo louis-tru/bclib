@@ -38,7 +38,7 @@ export function initialize(db?: DatabaseTools) {
 			data       TEXT,
 			cb         VARCHAR (255),
 			txid       VARCHAR (255),
-			status     INT DEFAULT (0) NOT NULL, -- 1进行中,2完成,3失败
+			status     INT DEFAULT (0) NOT NULL, -- 0未发送,1进行中,2完成,3失败
 			time       bigint DEFAULT (0) NOT NULL,
 			active     bigint default (0) NOT null
 		);
@@ -61,10 +61,9 @@ export function initialize(db?: DatabaseTools) {
 		`alter table callback_url add active  bigint  default (0)  not null`,
 		`alter table tx_async     add active  bigint  default (0)  not null`,
 	], [
-		'create unique index callback_url_id     on callback_url (id)',
 		'create        index callback_url_status on callback_url (status)',
-		'create unique index tx_async_id     on tx_async (id)',
 		'create        index tx_async_status on tx_async (status)',
+		'create        index tx_async_time   on tx_async (time)',
 		'create unique index auth_user_name on auth_user (name)',
 		'create        index auth_user_mode on auth_user (mode)',
 	], 'bclib');

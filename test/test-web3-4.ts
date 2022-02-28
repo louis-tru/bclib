@@ -476,8 +476,8 @@ export default async function() {
 		"0x000000000000000000000000b1dcdcace002e3a441f254985684afe1d3f4d307"
 	]);
 
-	var kun = web3z.impl.createContract('0xd3886dFFB57b4EA654827bC8eE43eA7f3B49Fdf5', kun_abi);
-	var proof = web3z.impl.createContract('0xB1dcdcaCe002e3a441f254985684AfE1D3F4D307', proof_abi);
+	var kun = web3z.impl.createContract('0xd3886dFFB57b4EA654827bC8eE43eA7f3B49Fdf5', kun_abi as any);
+	var proof = web3z.impl.createContract('0xB1dcdcaCe002e3a441f254985684AfE1D3F4D307', proof_abi as any);
 
 	// submitProof(address _digital_proof, address _creator, bytes32 _proofHash, bytes _metaData)
 
@@ -506,7 +506,7 @@ export default async function() {
 	// find events
 	// event NewProofEvent(address indexed identity, bytes32 proofHash, bytes data);
 
-	var evt = await proof.findEvent('NewProofEvent', tx.blockNumber, tx.transactionHash);
+	var evt = await proof.findEvent('NewProofEvent', tx.transactionHash, tx.blockNumber);
 
 	return {
 		transactionReceipts,
