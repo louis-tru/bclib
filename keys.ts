@@ -89,13 +89,17 @@ export class SecretKey implements ISecretKey {
 	}
 
 	offset(offset: number): ISecretKey {
+		if (offset) {
 		var key = crypto.createHash('sha256')
 			.update(this.privateKey())
 			.update(default_traitKey)
 			.update(String(offset * offset))
 			.update(String(offset))
 			.digest();
-		return SecretKey.from(buffer.from(key));
+			return SecretKey.from(buffer.from(key));
+		} else {
+			return SecretKey.from(this.privateKey());
+		}
 	}
 
 	derive(part_key: string): ISecretKey {
@@ -202,6 +206,7 @@ export class KeychainManager {
 		], [
 			'create unique index address_list_addressBtc on address_list (addressBtc)',
 			'create unique index address_list_part_key   on address_list (part_key)',
+			'create        index address_list_part_key   on address_list (part_key)',
 		], 'keys');
 	}
 
@@ -246,7 +251,7 @@ export class KeychainManager {
 					addressBtc: key.addressBtc,
 					name: name,
 					offset: i + 1,
-					part_key: this.getPart_Key(name, 'offset:' + i + 1)
+					part_key: '', // this.getPart_Key(name, 'offset:' + i + 1)
 				});
 			}
 			address.push(key.address);
