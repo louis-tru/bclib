@@ -13,6 +13,7 @@ import {callbackURI} from './utils';
 import {workers} from './env';
 import db from './db';
 import {WatchCat} from './watch';
+import {web3_tx_dequeue} from './env';
 
 export interface IBcWeb3 extends IWeb3Z {
 	readonly tx: Web3Tx;
@@ -51,6 +52,7 @@ interface TxAsync {
 	status: number;
 	time: number;
 	active: number;
+	chain: number;
 };
 
 export class Web3Tx implements WatchCat {
@@ -85,14 +87,19 @@ export class Web3Tx implements WatchCat {
 	}
 
 	private async _Dequeue(size: number = 1) {
+		if (!web3_tx_dequeue) return;
+
 		var offset = 0;
-		
+
 		while (size && this._sendTransactionExecuting.size < this._sendTransactionExecutingLimit) {
 			var [tx] = await db.query<TxAsync>(
-				`select * from tx_async where id>=${offset} and chain=${this._web3.chain} and status < 2 order by id limit 1`);
+				`select * from tx_async where id>=${offset} and status < 2 order by id limit 1`);
 			if (!tx) break;
 
-			if (this.isMatchWorker(tx.account) && !this._sendTransactionExecuting.has(tx.id)) {
+			if (tx.chain == this._web3.chain && 
+					this.isMatchWorker(tx.account) && 
+					!this._sendTransactionExecuting.has(tx.id)
+				) {
 
 				if (tx.status == 1 && tx.txid) {
 					var receipt = await this._web3.eth.getTransactionReceipt(tx.txid);
@@ -179,7 +186,11 @@ export class Web3Tx implements WatchCat {
 			var fn = contract.methods[method as string](...(args||[]));
 			var r = await fn.call(opts); // try call
 			return {
-				receipt: await this.queue.push(e=>fn.post({...opts, ...e}, hash), opts)
+				receipt: await this.queue.push(({nonceTimeout, ...e})=>fn.post({
+					tineout: nonceTimeout, ...opts, ...e
+				}, hash), {
+					queueTimeout: 0, ...opts
+				}),
 			};
 		}, cb_ || tx.cb);
 	}
@@ -188,7 +199,11 @@ export class Web3Tx implements WatchCat {
 		return this._push(tx.id, tx, async (hash)=>{
 			var opts: TxOptions = JSON.parse(tx.opts);
 			return {
-				receipt: await this.queue.push(e=>this._web3.sendSignTransaction({...opts, ...e}, hash), opts),
+				receipt: await this.queue.push(({nonceTimeout, ...e})=>this._web3.sendSignTransaction({
+					tineout: nonceTimeout, ...opts, ...e
+				}, hash), {
+					queueTimeout: 0, ...opts
+				}),
 			};
 		}, cb_ || tx.cb);
 	}

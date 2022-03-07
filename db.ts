@@ -57,15 +57,16 @@ export function initialize(db?: DatabaseTools) {
 	`, [
 		`alter table tx_async     add time    bigint DEFAULT (0) NOT NULL`,
 		`alter table tx_async     add chain   int    default (1)  not null`,
+		`alter table tx_async     add active  bigint  default (0)  not null`,
 		`alter table auth_user    add keyType varchar (32) default ('') not null`,
 		`alter table auth_user    add ref     varchar (128) default ('') not null`,
 		`alter table auth_user    add key2    varchar (128)`,
 		`alter table callback_url add active  bigint  default (0)  not null`,
-		`alter table tx_async     add active  bigint  default (0)  not null`,
 	], [
 		'create        index callback_url_status on callback_url (status)',
 		'create        index tx_async_status on tx_async (status)',
 		'create        index tx_async_time   on tx_async (time)',
+		'create        index tx_async_chain  on tx_async (chain)',
 		'create unique index auth_user_name on auth_user (name)',
 		'create        index auth_user_mode on auth_user (mode)',
 	], 'bclib');
