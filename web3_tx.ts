@@ -78,7 +78,7 @@ export class Web3Tx implements WatchCat {
 	}
 
 	private isMatchWorker(from: string) {
-		return this._worker == somes.hashCode(from) % this._workers;
+		return this._worker == Math.abs(somes.hashCode(from)) % this._workers;
 	}
 
 	private async _Dequeue(size: number = 1) {
