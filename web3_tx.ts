@@ -16,6 +16,7 @@ import {WatchCat} from './watch';
 
 export interface IBcWeb3 extends IWeb3Z {
 	readonly tx: Web3Tx;
+	readonly chain: number;
 	contract(address: string): Promise<Contract>;
 }
 
@@ -86,7 +87,7 @@ export class Web3Tx implements WatchCat {
 		
 		while (size && this._sendTransactionExecuting.size < this._sendTransactionExecutingLimit) {
 			var [tx] = await db.query<TxAsync>(
-				`select * from tx_async where id>=${offset} and status < 2 order by id limit 1`);
+				`select * from tx_async where id>=${offset} and chain=${this._web3.chain} and status < 2 order by id limit 1`);
 			if (!tx) break;
 
 			if (this.isMatchWorker(tx.account) && !this._sendTransactionExecuting.has(tx.id)) {
