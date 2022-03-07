@@ -175,7 +175,7 @@ export class Web3Tx implements WatchCat {
 			var opts: Options = JSON.parse(tx.opts);
 			var contract = await this._web3.contract(address as string);
 			var fn = contract.methods[method as string](...(args||[]));
-			await fn.call(opts); // try call
+			var r = await fn.call(opts); // try call
 			return {
 				receipt: await this.queue.push(e=>fn.post({...opts, ...e}, hash), opts)
 			};
@@ -206,6 +206,7 @@ export class Web3Tx implements WatchCat {
 			opts: JSON.stringify(opts || {}),
 			cb: typeof cb == 'string' ? cb: null,
 			time: Date.now(),
+			chain: this._web3.chain,
 		});
 		this._Dequeue();
 		return String(id);
@@ -217,6 +218,7 @@ export class Web3Tx implements WatchCat {
 			opts: JSON.stringify(opts),
 			cb: typeof cb == 'string' ? cb: null,
 			time: Date.now(),
+			chain: this._web3.chain,
 		});
 		this._Dequeue();
 		return String(id);
