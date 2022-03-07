@@ -71,9 +71,11 @@ export class Web3Tx implements WatchCat {
 	}
 
 	async review(id: string): Promise<PostResult> {
-		var [row] = await db.select('tx_async', { id: Number(id) }) as { status: number; data: string }[];
+		var [row] = await db.select('tx_async', { id: Number(id) }) as { status: number; data: string; txid: string }[];
 		somes.assert(row, errno.ERR_WEB3_API_POST_NON_EXIST);
-		somes.assert(row.status == 2 || row.status == 3, errno.ERR_WEB3_API_POST_PENDING);
+		if (row.status < 2)
+			throw Error.new(errno.ERR_WEB3_API_POST_PENDING).ext({ txid: row.txid });
+		// somes.assert(row.status == 2 || row.status == 3, errno.ERR_WEB3_API_POST_PENDING);
 		var data = JSON.parse(row.data) as PostResult;
 		return data;
 	}
