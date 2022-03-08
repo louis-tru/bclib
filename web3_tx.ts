@@ -4,8 +4,9 @@
  */
 
 import somes from 'somes';
-import {IWeb3Z,Contract} from 'web3z';
-import { TransactionReceipt,TxOptions as RawTxOptions } from 'web3z';
+import { TransactionReceipt,
+		TxOptions as RawTxOptions,
+		IWeb3Z,Contract,SendCallback } from 'web3z';
 import errno_web3z from 'web3z/errno';
 import { TransactionQueue } from 'web3z/queue';
 import errno from './errno';
@@ -22,7 +23,7 @@ export interface IBcWeb3 extends IWeb3Z {
 }
 
 export interface PostResult {
-	receipt: TransactionReceipt;
+	receipt?: TransactionReceipt;
 	error?: Error;
 	id?: string;
 }
@@ -53,6 +54,7 @@ interface TxAsync {
 	time: number;
 	active: number;
 	chain: number;
+	nonce: number;
 };
 
 export class Web3Tx implements WatchCat {
@@ -73,12 +75,12 @@ export class Web3Tx implements WatchCat {
 	}
 
 	async review(id: string): Promise<PostResult> {
-		var [row] = await db.select('tx_async', { id: Number(id) }) as { status: number; data: string; txid: string }[];
+		var [row] = await db.select<TxAsync>('tx_async', { id: Number(id) });
 		somes.assert(row, errno.ERR_WEB3_API_POST_NON_EXIST);
 		if (row.status < 2)
-			throw Error.new(errno.ERR_WEB3_API_POST_PENDING).ext({ txid: row.txid });
+			throw Error.new(errno.ERR_WEB3_API_POST_PENDING).ext({ txid: row.txid, nonce: row.nonce });
 		// somes.assert(row.status == 2 || row.status == 3, errno.ERR_WEB3_API_POST_PENDING);
-		var data = JSON.parse(row.data) as PostResult;
+		var data = JSON.parse(row.data || '') as PostResult;
 		return data;
 	}
 
@@ -94,40 +96,59 @@ export class Web3Tx implements WatchCat {
 		while (size && this._sendTransactionExecuting.size < this._sendTransactionExecutingLimit) {
 			var [tx] = await db.query<TxAsync>(
 				`select * from tx_async where id>=${offset} and status < 2 order by id limit 1`);
-			if (!tx) break;
+			if (!tx) break; // none
+			try {
+				if (await this._DequeueItem(tx)) {
+					size--;
+				}
+			} catch(err) {
+				console.warn('web3_tx#Web3Tx#_Dequeue', err);
+			}
+			offset = tx.id + 1;
+		}
+	}
 
-			if (tx.chain == this._web3.chain && 
-					this.isMatchWorker(tx.account) && 
-					!this._sendTransactionExecuting.has(tx.id)
-				) {
+	private async _DequeueItem(tx: TxAsync) {
+		if (tx.chain != this._web3.chain) return;
+		if (!this.isMatchWorker(tx.account)) return;
 
-				if (tx.status == 1 && tx.txid) {
-					var receipt = await this._web3.eth.getTransactionReceipt(tx.txid);
-					if (receipt) {
-						var result = { id: String(tx.id) } as PostResult;
-						if (receipt.status) {
-							result.receipt = receipt;
-						} else {
-							result.error = Error.new(errno_web3z.ERR_ETH_TRANSACTION_FAIL);
-						}
-						await this._pushAfter(tx.id, result, tx.cb);
+		if (
+			!this._sendTransactionExecuting.has(tx.id)
+		) {
+			if (tx.status == 1 && tx.txid) {
+				var receipt = await this._web3.eth.getTransactionReceipt(tx.txid);
+				if (receipt) {
+					var result = { id: String(tx.id), receipt } as PostResult;
+					if (!receipt.status) {
+						result.error = Error.new(errno_web3z.ERR_TRANSACTION_STATUS_FAIL);
 					}
-					if (tx.active + 1e8 > Date.now()) { // 100000秒, 30小时
-						offset = tx.id + 1;
-						continue; // not timeout
+					await this._pushAfter(tx.id, result, tx.cb);
+				}
+
+				if (tx.nonce) {
+					var nonce = await this._web3.getNonce(tx.account);
+					if (nonce > tx.nonce) {
+						var error = Error.new(errno_web3z.ERR_TRANSACTION_INVALID);
+						await this._pushAfter(tx.id, { error }, tx.cb);
 					}
 				}
 
+				if (Date.now() > tx.active + 1e8) { // 100000秒, 超过30小时后丢弃此交易
+					var error = Error.new(errno.ERR_ETH_TRANSACTION_DISCARD);
+					await this._pushAfter(tx.id, { error }, tx.cb);
+				}
+			}
+			else {
+				// exec
 				if (tx.contract) {
 					this._post(tx);
 				} else {
 					this._sendTx(tx);
 				}
-				size--;
 			}
-
-			offset = tx.id + 1;
 		}
+
+		return true;
 	}
 
 	private async _pushAfter(id: number, result: PostResult, cb?: Callback) {
@@ -135,11 +156,13 @@ export class Web3Tx implements WatchCat {
 		if (r.status != 1) {
 			return;
 		}
-		var u = { status: result.error ? 3: 2, data: JSON.stringify(result) } as Dict;
-		if (result.receipt) {
-			u.txid = result.receipt.transactionHash;
-		}
-		await db.update('tx_async', u, { id }); // 
+
+		result.id = String(id);
+
+		await db.update('tx_async', {
+			status: result.error ? 3: 2, data: JSON.stringify(result)
+		}, { id });
+
 		if (cb) {
 			if (typeof cb == 'string') { // callback url
 				callbackURI(result, cb);
@@ -150,7 +173,7 @@ export class Web3Tx implements WatchCat {
 	}
 
 	private async _push(id: number, tx: TxAsync,
-		sendQueue: (hash?: (hash: string)=>void)=>Promise<PostResult>, cb?: Callback)
+		sendQueue: (cb?: SendCallback)=>Promise<PostResult>, cb?: Callback)
 	{
 		if (tx.status > 1) return;
 		if (this._sendTransactionExecuting.has(id)) return;
@@ -163,48 +186,59 @@ export class Web3Tx implements WatchCat {
 
 			try {
 				await db.update('tx_async', { status: 1, active: Date.now() }, { id }); // update status
-				var r = await sendQueue(txid=>{
-					db.update('tx_async', { txid }, { id }); // 已经发送到链上，把`txid`记录下来
+				var r = await sendQueue((txid, opts)=>{
+					var nonce = opts.nonce || 0;
+					db.update('tx_async', { txid, nonce }, { id }); // 已经发送到链上，把`txid`记录下来
 				});
 				Object.assign(result, r);
 			} catch(error) {
-				Object.assign(result, {error});
+				if (error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0]) {
+					Object.assign(result, { receipt: error.receipt, error });
+				} else {
+					return; // continue watch
+				}
 			}
 
 			await this._pushAfter(id, result, cb);
+
 		} finally {
 			this._sendTransactionExecuting.delete(id);
 		}
 	}
 
 	private _post(tx: TxAsync, cb_?: Callback) {
-		return this._push(tx.id, tx, async (hash)=>{
+		return this._push(tx.id, tx, async (cb)=>{
+
 			var {contract: address,method} = tx;
 			var args: any[] = JSON.parse(tx.args as string);
 			var opts: Options = JSON.parse(tx.opts);
 			var contract = await this._web3.contract(address as string);
 			var fn = contract.methods[method as string](...(args||[]));
 			var r = await fn.call(opts); // try call
+
 			return {
 				receipt: await this.queue.push(({nonceTimeout, ...e})=>fn.post({
 					tineout: nonceTimeout, ...opts, ...e
-				}, hash), {
+				}, cb), {
 					queueTimeout: 0, ...opts
 				}),
 			};
+			
 		}, cb_ || tx.cb);
 	}
 
 	private _sendTx(tx: TxAsync, cb_?: Callback) {
-		return this._push(tx.id, tx, async (hash)=>{
+		return this._push(tx.id, tx, async (cb)=>{
+
 			var opts: TxOptions = JSON.parse(tx.opts);
 			return {
 				receipt: await this.queue.push(({nonceTimeout, ...e})=>this._web3.sendSignTransaction({
 					tineout: nonceTimeout, ...opts, ...e
-				}, hash), {
+				}, cb), {
 					queueTimeout: 0, ...opts
 				}),
 			};
+
 		}, cb_ || tx.cb);
 	}
 
