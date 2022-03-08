@@ -191,7 +191,7 @@ export class Web3Tx implements WatchCat {
 					db.update('tx_async', { txid, nonce }, { id }); // 已经发送到链上，把`txid`记录下来
 				});
 				Object.assign(result, r);
-			} catch(error) {
+			} catch(error: any) {
 				if (error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0]) {
 					Object.assign(result, { receipt: error.receipt, error });
 				} else {

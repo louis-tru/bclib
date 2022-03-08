@@ -4,7 +4,6 @@
  */
 
 import APIController from '../api';
-import {STOptions} from 'web3z';
 import web3 from '../web3+';
 import {TxOptions} from '../web3_tx';
 import buffer from 'somes/buffer';
@@ -89,7 +88,7 @@ export default class extends APIController {
 		return await web3[chain].sendSignTransaction(tx);
 	}
 
-	sendSignedTransactionSync({chain,serializedTx,opts}: {chain: number,serializedTx: string, opts?: STOptions}) {
+	sendSignedTransactionSync({chain,serializedTx,opts}: {chain: number,serializedTx: string, opts?: TxOptions}) {
 		return web3[chain].sendSignedTransaction(buffer.from(serializedTx.slice(2), 'hex'), opts);
 	}
 
