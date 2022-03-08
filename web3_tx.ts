@@ -192,7 +192,9 @@ export class Web3Tx implements WatchCat {
 				});
 				Object.assign(result, r);
 			} catch(error: any) {
-				if (error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0]) {
+				if (error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0]
+					|| error.errno == errno.ERR_SOLIDITY_EXEC_ERROR[0]
+				) {
 					Object.assign(result, { receipt: error.receipt, error });
 				} else {
 					return; // continue watch
@@ -214,8 +216,14 @@ export class Web3Tx implements WatchCat {
 			var opts: Options = JSON.parse(tx.opts);
 			var contract = await this._web3.contract(address as string);
 			var fn = contract.methods[method as string](...(args||[]));
-			var r = await fn.call(opts); // try call
-
+			try {
+				var r = await fn.call(opts); // try call
+			} catch(err: any) {
+				if (err.message.indexOf('execution reverted:') != -1) {
+					err.errno = errno.ERR_SOLIDITY_EXEC_ERROR[0];
+				}
+				throw err;
+			}
 			return {
 				receipt: await this.queue.push(({nonceTimeout, ...e})=>fn.post({
 					tineout: nonceTimeout, ...opts, ...e
