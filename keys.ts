@@ -14,6 +14,7 @@ import errno from './errno';
 import * as crypto from 'crypto';
 import {DatabaseTools} from 'somes/db';
 import {rng} from 'somes/rng';
+import {escape} from 'somes/db';
 import db from './db';
 
 const crypto_tx = require('crypto-tx');
@@ -27,6 +28,7 @@ export interface ISecretKey {
 	readonly address: string;
 	readonly addressBtc: string;
 	offset(offset: number): ISecretKey;
+	derive(part_key: string): ISecretKey;
 	hasUnlock(): boolean;
 	lock(): void;
 	unlock(pwd: string): void;
@@ -166,12 +168,28 @@ export class SecretKey implements ISecretKey {
 	}
 }
 
+interface keystore_list {
+	id: number;
+	name: string;
+	keystore: string;
+	address: string;
+	offset_size: number;
+}
+
+export interface AccountObj {
+	id: number;
+	name: string;
+	address: string;
+	addressBtc: string;
+	offset: number;
+	part_key: string;
+}
+
 export class KeychainManager {
 
 	private _keys: Map<string, SecretKey> = new Map(); // name => key, user root key
-	private _addresss_cache: Map<string, string[]> = new Map(); // name => [address]
-	private _part_key_cache: Map<string, string> = new Map(); // part_key => [address]
-	private _address_indexed: Map<string, [string, number, string]> = new Map(); // address => [name,offset,part_key]
+	private _part_key_cache: Map<string, string> = new Map(); // part_key => address
+	private _address_indexed: Map<string, AccountObj> = new Map(); // address => AddressObj
 	private _db = db;
 
 	async initialize(new_db?: DatabaseTools) {
@@ -182,31 +200,36 @@ export class KeychainManager {
 
 		await this._db.load(`
 			create table if not exists keystore_list (
-				name        VARCHAR (64) PRIMARY KEY NOT NULL, -- 用户名称
-				keystore    VARCHAR (1024) NOT NULL
+				id          INT PRIMARY KEY AUTO_INCREMENT,
+				name        VARCHAR (64)             NOT NULL, -- 用户名称
+				keystore    VARCHAR (1024)           NOT NULL,
+				address     VARCHAR (42) default ('') NOT NULL, -- 根key地址
+				offset_size int          default (0)  NOT NULL  -- 通过偏移方式生成的key数量
 			);
 			CREATE TABLE if not exists address_list ( -- 所有的地址列表
-				address     VARCHAR (42) PRIMARY KEY NOT NULL,
-				addressBtc  VARCHAR (42)             NOT NULL,
+				id          INT PRIMARY KEY AUTO_INCREMENT,
 				name        VARCHAR (64)             NOT NULL, -- 用户名称
+				address     VARCHAR (42)             NOT NULL,
+				addressBtc  VARCHAR (42)             NOT NULL,
 				offset      INTEGER                  NOT NULL, -- 与主key的偏移值，如果为0表示使用key生成密钥
 				part_key    VARCHAR (64)             NOT NULL  -- 密钥相关的部分key
-			);
-			CREATE TABLE if not exists root_keys (
-				address     VARCHAR (42) PRIMARY KEY NOT NULL, -- 根key地址
-				name        VARCHAR (64)             NOT NULL, -- 用户名称
-				offset_size INTEGER                  NOT NULL  -- 通过偏移方式生成的key数量
 			);
 			CREATE TABLE if not exists unlock_pwd ( -- 自动 unlock keys
 				name       VARCHAR (64) PRIMARY KEY NOT NULL, -- 用户名称 appid user
 				pwd        VARCHAR (64)                       -- unlock pwd
 			);
 		`, [
-			'alter table address_list add part_key VARCHAR (64) NOT NULL',
+			`alter table keystore_list add address  varchar (42) default ('') NOT NULL`,
+			`alter table keystore_list add offset_size int default (0)  NOT NULL`,
+			'alter table address_list  add part_key varchar (64) NOT NULL',
 		], [
+			'create unique index keystore_list_name      on keystore_list (name)',
+			'create unique index keystore_list_address   on keystore_list (address)',
+			'create unique index address_list_address    on address_list (address)',
 			'create unique index address_list_addressBtc on address_list (addressBtc)',
 			'create unique index address_list_part_key   on address_list (part_key)',
-			'create        index address_list_part_key   on address_list (part_key)',
+			'create        index address_list_name       on address_list (name)',
+			'create        index address_list_idx1       on address_list (name,offset)',
 		], 'keys');
 	}
 
@@ -231,37 +254,31 @@ export class KeychainManager {
 		if (!size) {
 			return [];
 		}
-		var root = await this.root(name);
+		var root = await this.root(name, true);
 		var address: string[] = [];
-		var keys = (await this._db.select('root_keys', { address: root.address }))[0];
-		var start: number = keys ? keys.offset_size: 0;
+		var [keys] = await this._db.select('keystore_list', { name });
+		var start: number = keys.offset_size;
 
 		size += start;
 
 		somes.assert(size < 10000, errno.ERR_GEN_KEYS_SIZE_LIMIT);
 
-		this._addresss_cache.delete(name); // clear cache
-
 		for (var i = start; i < size; i++) {
 			var key = root.offset(i + 1);
 			var t = await this._db.select('address_list', { address: key.address });
 			if (t.length === 0) {
-				await this._db.insert('address_list', {
+				await db.insert('address_list', {
 					address: key.address,
 					addressBtc: key.addressBtc,
 					name: name,
 					offset: i + 1,
-					part_key: '', // this.getPart_Key(name, 'offset:' + i + 1)
+					part_key: this.getPart_Key(name, 'offset:' + i + 1)
 				});
 			}
 			address.push(key.address);
 		}
 
-		if (keys) {
-			await this._db.update('root_keys', { offset_size: size, name }, {address: root.address});
-		} else {
-			await this._db.insert('root_keys', { address: root.address, offset_size: size, name });
-		}
+		await this._db.update('keystore_list', { offset_size: size }, {name});
 
 		return address;
 	}
@@ -285,7 +302,7 @@ export class KeychainManager {
 		if (data) {
 			address = data.address;
 		} else {
-			var root = await this.root(name);
+			var root = await this.root(name, true);
 			var key = root.derive(part_key);
 			await this._db.insert('address_list', {
 				address: key.address,
@@ -298,86 +315,67 @@ export class KeychainManager {
 		}
 
 		// set cache
-		var list = this._addresss_cache.get(name);
-		if (list) {
-			list.push(address);
-		} else {
-			this._addresss_cache.set(name, [address])
-		}
 		this._part_key_cache.set(part_key, address);
 
 		return address;
 	}
 
 	async addressList(name: string) {
-		if (this._addresss_cache.has(name)) {
-			return this._addresss_cache.get(name) as string[];
-		} else {
-			var address = [] as string[];
-			for (var item of await this._db.select('address_list', { name })) {
-				address.push(item.address);
-			}
-			this._addresss_cache.set(name, address); // cache
-			return address;
-		}
+		var list = await this._db.query(`select address from address_list where name=${escape(name)}`);
+		return list.map(e=>e.address as string);
 	}
 
 	async address(name: string, part_key?: string) { // get random address
 		if (part_key) {
 			return await this.genSecretKeyFromPartKey(name, part_key);
 		} else {
-			var addresss = await this.addressList(name);
-			somes.assert(addresss.length, errno.ERR_NO_ADDRESS_IS_CREATED);
-			return addresss[somes.random(0, addresss.length - 1)];
+			var [key] = await this._db.select('keystore_list', {name});
+			somes.assert(key && key.offset_size, errno.ERR_NO_ADDRESS_IS_CREATED);
+			var offset = somes.random(1, key.offset_size);
+			var addr = await this._db.selectOne('address_list', { name, offset });
+			somes.assert(addr, errno.ERR_NO_ADDRESS_IS_CREATED);
+			return (addr as any).address as string;
 		}
 	}
 
 	async getSecretKey(addressOrAddressBtc: string) {
 		var r = await this.getAddressIndexed(addressOrAddressBtc);
-		return r ? await this._getSecretKeyByIndexed(r.name, r.offset, r.part_key): null;
-	}
-
-	async getAddressIndexed(addressOrAddressBtc: string): Promise<{
-		name: string;
-		offset: number;
-		part_key: string;
-	} | null> {
-		var indexed = this._address_indexed.get(addressOrAddressBtc);
-		if (indexed) {
-			var [name,offset,part_key] = indexed;
-			return {
-				name, offset, part_key,
-			}
-		}
-		var r = (await this._db.select('address_list', { address: addressOrAddressBtc }))[0];
-		if (!r)
-			r =   (await this._db.select('address_list', { addressBtc: addressOrAddressBtc }))[0];
 		if (r) {
-			this._address_indexed.set(r.address, [r.name, r.offset, r.part_key]);
-			this._address_indexed.set(r.addressBtc, [r.name, r.offset, r.part_key]);
-			return r as any;
+			return await this._getSecretKeyBy(r.name, r.offset, r.part_key);
 		}
 		return null;
 	}
 
-	private async _getSecretKeyByIndexed(name: string, offset: number, part_key: string) {
-		var root = await this.root(name);
-		if (!root.hasUnlock() && cfg.keys_auto_unlock) {
-			var [row] = await this._db.select('unlock_pwd', { name });
-			if (row && row.pwd) {
-				root.unlock(row.pwd);
-			}
+	async getAddressIndexed(addressOrAddressBtc: string): Promise<AccountObj | null> {
+		var indexed = this._address_indexed.get(addressOrAddressBtc);
+		if (indexed) {
+			return indexed;
 		}
+		var [r] = await this._db.query<AccountObj>(`
+			select * from address_list
+				where address=${escape(addressOrAddressBtc)}
+				or addressBtc=${escape(addressOrAddressBtc)}`);
+		if (r) {
+			this._address_indexed.set(r.address, r);
+			this._address_indexed.set(r.addressBtc, r);
+			return r;
+		}
+		return null;
+	}
+
+	private async _getSecretKeyBy(name: string, offset: number, part_key: string) {
+		var root = await this.root(name, true);
+
 		if (offset) {
 			return { name, key: root.offset(offset) };
 		} else {
-			somes.assert(part_key, '_getSecretKeyByOffset(), part_key cannot be empty ');
+			somes.assert(part_key, '_getSecretKeyBy(), part_key cannot be empty ');
 			return { name, key: root.derive(part_key as string) };
 		}
 	}
 
 	async setPassword(name: string, oldPwd: string, newPwd: string) {
-		var key = await this.root(name);
+		var key = await this.root(name, false);
 		key.unlock(oldPwd);
 		var keystore = JSON.stringify(await key.exportKeystore(newPwd));
 		await this._db.update('keystore_list', {keystore}, {name});
@@ -397,16 +395,17 @@ export class KeychainManager {
 		}
 	}
 
-	async root(name: string) {
+	async root(name: string, tryUnlock?: boolean) {
 		var key = this._keys.get(name);
 		if (!key) {
 			var [r] = await this._db.select('keystore_list', {name});
 			if (!r) {
 				// gen root key
-				var privkey = buffer.from(crypto_tx.genPrivateKey());
-				var keystore = JSON.stringify(await SecretKey.from(privkey).exportKeystore('0000'), null, 2); // default
+				var skey = SecretKey.from(buffer.from(crypto_tx.genPrivateKey()));
+				var keyobj = await skey.exportKeystore('0000');
+				var keystore = JSON.stringify(keyobj); // default
 				try {
-					await this._db.insert('keystore_list', {name, keystore});
+					await this._db.insert('keystore_list', {name, keystore, address: skey.address});
 				} catch(err: any) {
 					var [r] = await this._db.select('keystore_list', {name});
 					somes.assert(r, err);
@@ -418,7 +417,19 @@ export class KeychainManager {
 			}
 			this._keys.set(name, key);
 		}
-		return key as SecretKey;
+
+		if (tryUnlock && !key.hasUnlock() && cfg.keys_auto_unlock) {
+			var [row] = await this._db.select('unlock_pwd', { name });
+			if (row && row.pwd) {
+				try {
+					key.unlock(row.pwd);
+				} catch(err: any) {
+					console.warn('bclib/keys#root', err);
+				}
+			}
+		}
+
+		return key as ISecretKey;
 	}
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
@@ -426,7 +437,7 @@ export class KeychainManager {
 		var k = await this.getAddressIndexed(addressOrAddressBtc as string) as { name: string; offset: number, part_key: string };
 		somes.assert(k && k.name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
 		if (cfg.enable_strict_keys_permission_check) {
-			await this._getSecretKeyByIndexed(k.name, k.offset, k.part_key);
+			await this._getSecretKeyBy(k.name, k.offset, k.part_key);
 		}
 	}
 }
