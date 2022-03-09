@@ -42,7 +42,8 @@ export function initialize(db?: DatabaseTools) {
 			time       bigint DEFAULT (0) NOT NULL,
 			active     bigint default (0) NOT null,
 			chain      int    default (1) NOT null,
-			nonce      int    default (0) NOT null
+			nonce      int    default (0) NOT null,
+			noneConfirm int   default (0) NOT null
 		);
 		create table if not exists auth_user(
 			id         int PRIMARY KEY AUTO_INCREMENT,
@@ -60,6 +61,7 @@ export function initialize(db?: DatabaseTools) {
 		`alter table tx_async     add chain   int    default (1)  not null`,
 		`alter table tx_async     add active  bigint  default (0)  not null`,
 		`alter table tx_async     add nonce   int     default (0)  not null`,
+		`alter table tx_async     add noneConfirm int     default (0)  not null`,
 		`alter table auth_user    add keyType varchar (32) default ('') not null`,
 		`alter table auth_user    add ref     varchar (128) default ('') not null`,
 		`alter table auth_user    add key2    varchar (128)`,

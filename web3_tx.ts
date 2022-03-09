@@ -55,6 +55,7 @@ interface TxAsync {
 	active: number;
 	chain: number;
 	nonce: number;
+	noneConfirm: number;
 };
 
 export class Web3Tx implements WatchCat {
@@ -128,8 +129,18 @@ export class Web3Tx implements WatchCat {
 				if (tx.nonce) {
 					var nonce = await this._web3.getNonce(tx.account);
 					if (nonce > tx.nonce) {
-						var error = Error.new(errno_web3z.ERR_TRANSACTION_INVALID);
-						await this._pushAfter(tx.id, { error }, tx.cb);
+						var blockNumber = await this._web3.getBlockNumber();
+						if (tx.noneConfirm) {
+							if (blockNumber > tx.noneConfirm) {
+								var error = Error.new(errno_web3z.ERR_TRANSACTION_INVALID);
+								await this._pushAfter(tx.id, { error }, tx.cb);
+							}
+						} else {
+							tx.noneConfirm = blockNumber;
+							await db.update('tx_async', { noneConfirm: blockNumber}, { id: tx.id });
+						}
+
+						return true;
 					}
 				}
 
