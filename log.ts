@@ -18,16 +18,6 @@ export class Console extends ConsoleBase {
 		} else {
 			super(path || `${paths.var}/${cfg.name}.log`);
 		}
-
-		somes.onUncaughtException.on((e)=>{
-			this.error(e.data);
-			this.reportException(cfg.name, e.data);
-		});
-
-		somes.onUnhandledRejection.on((e)=>{
-			this.error(e.data.reason);
-			this.reportException(cfg.name, e.data);
-		});
 	}
 
 	async watch(logPaht: string, tty: number) {
@@ -44,6 +34,19 @@ export class Console extends ConsoleBase {
 		// private _sentry_instances: Dict<SentryClient> = {};
 	}
 
-	async initialize() {}
+	initialize() {
+
+		// catch Exception
+
+		somes.onUncaughtException.on((e)=>{
+			this.error(e.data);
+			this.reportException(cfg.name, e.data);
+		});
+
+		somes.onUnhandledRejection.on((e)=>{
+			this.error(e.data.reason);
+			this.reportException(cfg.name, e.data);
+		});
+	}
 
 }
