@@ -23,10 +23,11 @@ export function initialize(db?: DatabaseTools) {
 	return db.load(`
 		CREATE TABLE if not exists callback_url (
 			id           INT PRIMARY KEY AUTO_INCREMENT,
-			url          VARCHAR (255) NOT NULL,
-			data         TEXT NOT NULL,
-			status       INT DEFAULT 0 NOT NULL, -- 0没完成,1完成,2丢弃,3处理中
-			active       bigint default (0) NOT NULL
+			url          varchar (255) not null,
+			data         text   not null,
+			state        int    DEFAULT (0) NOT NULL, -- 0init,1处理中,2完成,3丢弃
+			active       bigint default (0) NOT NULL,
+			retry        int    default (0) NOT NULL
 		);
 		CREATE TABLE if not exists tx_async (
 			id         INT PRIMARY KEY AUTO_INCREMENT,
@@ -66,6 +67,8 @@ export function initialize(db?: DatabaseTools) {
 		`alter table auth_user    add ref     varchar (128) default ('') not null`,
 		`alter table auth_user    add key2    varchar (128)`,
 		`alter table callback_url add active  bigint  default (0)  not null`,
+		`alter table callback_url add retry   int     default (0)  not null`,
+		`alter table callback_url add state   int     default (0)  not null`,
 	], [
 		'create        index callback_url_status on callback_url (status)',
 		'create        index tx_async_status on tx_async (status)',

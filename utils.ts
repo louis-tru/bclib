@@ -11,6 +11,7 @@ import db from './db';
 import storage from './storage';
 import keys from './keys+';
 import {BcRequest, post} from './request';
+import {WatchCat} from './watch';
 
 const crypto_tx = require('crypto-tx');
 
@@ -176,53 +177,57 @@ class SignerIMPL implements Signer {
 	}
 }
 
-var signer = new SignerIMPL();
+class CallbackTask implements WatchCat {
+	cattime = 1;
+	signer = new SignerIMPL();
 
-async function lockDataState(table: string, id: number, state: {name: string, value: string}) {
-	var active = Date.now();
-	await db.query(
-		`update ${table} set ${state.name}=${state.value},active=${active}
-				where id=${id} and (${state.name}=0 or active < ${active-(10 * 60 * 1e3)})
-	`);
-	var it = await db.selectOne(table, { id, [state.name]: state.value, active });
-	return !!it;
-}
-
-async function callbackURL_impl(data: any, url: string, id: number) {
-	if (!await lockDataState('callback_url', id, {name: 'status', value: '3'})) return; // Multi worker lock
-	var sleep = 10;
-	var retry = 144;
-	while (--retry) {
-		if (!url.match(/^https?:\/\//i))
-			break;
-		try {
-			var r = await post(url, { params: data, urlencoded: false, signer });
-			if (r.statusCode == 200) {
-				await db.delete('callback_url', {id});
-				return;
-			}
-			await db.update('callback_url', { active: Date.now() }, { id });
-		} catch(err) {}
-		await utils.sleep(sleep * 1e3);
-		sleep = Math.min(600, parseInt(String(sleep * 1.5)));
+	private async lockDataState(table: string, id: number, lockTimeout = 10 * 60 * 1e3/*default 10m*/) {
+		var active = Date.now() + utils.random(0, 1e3);
+		var [r] = await db.exec(
+			`update ${table} set state=1,active=${active}
+					where id=${id} and (state=0 or (state=1 and active<${active-lockTimeout}))
+		`);
+		if (!r || !r.affectedRows) {
+			var it = await db.selectOne(table, { id, state: 1, active });
+			return !!it;
+		}
+		return true;
 	}
-	await db.update('callback_url', { status: 2 }, { id });
-}
 
-export async function callbackURI(data: any, url: string) {
-	var id = await db.insert('callback_url', { url, data: JSON.stringify(data) }) as number;
-	await callbackURL_impl(data, url, id);
-}
-
-export async function initialize() {
-	var items = await db.select('callback_url', { status: 0 });
-	for (var item of items) {
+	private async _exec(data: any, url: string, id: number, retry: number) {
 		try {
-			callbackURL_impl(JSON.parse(item.data), item.url, item.id);
+			var timeout = Math.min(3600, retry * 1.5) * 1e3; // max 3600s
+			if (!await this.lockDataState('callback_url', id, timeout)) return; // Multi worker lock
+
+			var r = await post(url, { params: data, urlencoded: false, signer: this.signer });
+			if (r.statusCode == 200) {
+				await db.delete('callback_url', {id}); return;
+			}
+		} catch(err: any) {
+			console.warn('CallbackTask#_exec', err);
+		}
+		await db.update('callback_url', { retry: retry+1, state: retry < 144 ? 1: 3/*丢弃*/ }, { id });
+	}
+
+	async add(data: any, url: string) {
+		try {
+			utils.assert(url.match(/^https?:\/\/.+/i), 'callbackURI uri invalid');
+			var id = await db.insert('callback_url', { url, data: JSON.stringify(data) }) as number;
+			await this._exec(data, url, id, 0);
 		} catch(err) {
-			await db.update('callback_url', { status: 2 }, { id: item.id });
+			console.warn('CallbackTask#callbackURI', err);
 		}
 	}
+
+	async cat() {
+		var items = await db.query(`select * from callback_url where state=0 or state=1`);
+		for (var item of items) {
+			await this._exec(JSON.parse(item.data), item.url, item.id, item.retry);
+		}
+		return true;
+	}
 }
+
+export const callbackTask = new CallbackTask();
 
 export default utils;

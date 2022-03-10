@@ -83,15 +83,6 @@ function get_sql_params(
 	};
 }
 
-function get_select_table_name(sql: string, defaultTable: string): string {
-	if (!defaultTable) {
-		var m = sql.match(/from\s+([^\s]+)/i) as RegExpMatchArray;
-		utils.assert(m);
-		defaultTable = m[1];
-	}
-	return defaultTable;
-}
-
 function parseJSON(json: string | null) {
 	if (json) {
 		try {
@@ -223,7 +214,7 @@ export class SQLiteTools implements DatabaseTools {
 
 	async exec(sql: string) {
 		// TODO not impl ..
-		console.warn('Incomplete implementation');
+		// console.warn('Incomplete implementation');
 		var r = await this._Query(sql);
 		if (r && Array.isArray(r))
 			return [{ rows: r }] as Result[];
@@ -322,9 +313,9 @@ export class SQLiteTools implements DatabaseTools {
 		return s || null;
 	}
 
-	async query<T = Dict>(sql: string, table: string = ''): Promise<T[]> {
-		table = get_select_table_name(sql, table);
-		return selectAfter(this.check(table), await this._Query(sql)) as T[];
+	query<T = Dict>(sql: string): Promise<T[]> {
+		// table = get_select_table_name(sql, table);
+		return this._Query(sql);
 	}
 
 	async deleteById(table: string, id: number): Promise<any> {
@@ -343,7 +334,7 @@ export class SQLiteTools implements DatabaseTools {
 
 	// @obsolete
 	gets(sql: string, table: string = '') {
-		return this.query(sql, table);
+		return this.query(sql);
 	}
 
 	async clear() {

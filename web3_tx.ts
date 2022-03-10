@@ -10,7 +10,7 @@ import { TransactionReceipt,
 import errno_web3z from 'web3z/errno';
 import { TransactionQueue } from 'web3z/queue';
 import errno from './errno';
-import {callbackURI} from './utils';
+import {callbackTask} from './utils';
 import {workers} from './env';
 import db from './db';
 import {WatchCat} from './watch';
@@ -174,7 +174,7 @@ export class Web3Tx implements WatchCat {
 
 		if (cb) {
 			if (typeof cb == 'string') { // callback url
-				callbackURI(result, cb);
+				callbackTask.add(result, cb);
 			} else {
 				cb(result);
 			}
@@ -248,7 +248,7 @@ export class Web3Tx implements WatchCat {
 			}
 
 			this.queue.push(({nonceTimeout, ...e})=>{
-				return fn.post({ tineout: nonceTimeout, ...opts, ...e }, before).then(complete).catch(err);
+				return fn.post({ timeout: nonceTimeout, ...opts, ...e }, before).then(complete).catch(err);
 			},
 			{
 				queueTimeout: 0, ...opts
@@ -261,7 +261,7 @@ export class Web3Tx implements WatchCat {
 			var opts: TxOptions = JSON.parse(tx.opts);
 
 			this.queue.push(({nonceTimeout, ...e})=>{
-				return this._web3.sendSignTransaction({ tineout: nonceTimeout, ...opts, ...e }, before).then(complete).catch(err);
+				return this._web3.sendSignTransaction({ timeout: nonceTimeout, ...opts, ...e }, before).then(complete).catch(err);
 			},
 			{
 				queueTimeout: 0, ...opts
