@@ -105,6 +105,11 @@ export class Web3Tx implements WatchCat {
 			var [tx] = await db.query<TxAsync>(
 				`select * from tx_async where id>=${offset} and status < 2 order by id limit 1`);
 			if (!tx) break; // none
+
+			if (tx.account=='0x729e82FBBcAa0Af5C6057B326Ba4D536266EB74B' && tx.id==436) {
+				debugger;
+			}
+
 			try {
 				await this._DequeueItem(tx);
 			} catch(err) {
