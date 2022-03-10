@@ -20,6 +20,7 @@ interface Args {
 	retry?: number;
 	callback?: string;
 	blockRange?: number;
+	noTryCall?: boolean;
 }
 
 export default class extends APIController {
@@ -63,9 +64,9 @@ export default class extends APIController {
 
 	// async tx
 
-	async post({chain,address, method, args,callback,...opts}: Args) {
+	async post({chain,address, method, args,callback, noTryCall, ...opts}: Args) {
 		await keys.impl.checkPermission(this.userName, opts.from);
-		return await web3[chain].tx.post(address, method, args, opts, callback);
+		return await web3[chain].tx.post(address, method, args, opts, callback, noTryCall);
 	}
 
 	async sendTx({chain,tx, callback}: {chain: number, tx: TxOptions, callback?: string}) {
