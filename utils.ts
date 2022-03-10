@@ -178,13 +178,13 @@ class SignerIMPL implements Signer {
 
 var signer = new SignerIMPL();
 
-export async function lockDataState(table: string, id: number, state: {name: string, value: string}) {
-	var action = Date.now();
+async function lockDataState(table: string, id: number, state: {name: string, value: string}) {
+	var active = Date.now();
 	await db.query(
-		`update ${table} set ${state.name}=${state.value},active=${action}
-				where ${state.name}=0 or active < ${action-(10 * 60 * 1e3)}
+		`update ${table} set ${state.name}=${state.value},active=${active}
+				where id=${id} and (${state.name}=0 or active < ${active-(10 * 60 * 1e3)})
 	`);
-	var it = await db.selectOne(table, {id,[state.name]:state.value,action});
+	var it = await db.selectOne(table, { id, [state.name]: state.value, active });
 	return !!it;
 }
 
@@ -201,6 +201,7 @@ async function callbackURL_impl(data: any, url: string, id: number) {
 				await db.delete('callback_url', {id});
 				return;
 			}
+			await db.update('callback_url', { active: Date.now() }, { id });
 		} catch(err) {}
 		await utils.sleep(sleep * 1e3);
 		sleep = Math.min(600, parseInt(String(sleep * 1.5)));
