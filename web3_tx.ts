@@ -106,9 +106,9 @@ export class Web3Tx implements WatchCat {
 				`select * from tx_async where id>=${offset} and status < 2 order by id limit 1`);
 			if (!tx) break; // none
 
-			if (tx.account=='0x729e82FBBcAa0Af5C6057B326Ba4D536266EB74B' && tx.id==436) {
-				debugger;
-			}
+			// if (tx.account=='0x729e82FBBcAa0Af5C6057B326Ba4D536266EB74B' && tx.id==436) {
+			// 	debugger;
+			// }
 
 			try {
 				await this._DequeueItem(tx);
@@ -140,7 +140,7 @@ export class Web3Tx implements WatchCat {
 					var blockNumber = await this._web3.getBlockNumber();
 					if (tx.noneConfirm) {
 						if (blockNumber > tx.noneConfirm) {
-							var error = Error.new(errno_web3z.ERR_TRANSACTION_INVALID);
+							var error = Error.new(errno_web3z.ERR_TRANSACTION_INVALID); // 失效
 							await this._pushAfter(tx.id, { error }, tx.cb);
 						}
 					} else {
@@ -170,7 +170,6 @@ export class Web3Tx implements WatchCat {
 		if (r.status != 1) {
 			return;
 		}
-
 		result.id = String(id);
 
 		await db.update('tx_async', {
@@ -201,8 +200,11 @@ export class Web3Tx implements WatchCat {
 		async function complete(error?: any, r?: TransactionReceipt) {
 			try {
 				if (error) {
-					if (error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0]
-						|| error.errno == errno.ERR_SOLIDITY_EXEC_ERROR[0]
+					//if (err.errno == errno.ERR_TRANSACTION_STATUS_FAIL[0] // fail
+					//	|| err.errno == errno.ERR_TRANSACTION_BLOCK_RANGE_LIMIT[0] // block limit
+					//	|| err.errno == errno.ERR_REQUEST_TIMEOUT[0] // timeout
+					if (error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0] // 交易失效
+						|| error.errno == errno_web3z.ERR_SOLIDITY_EXEC_ERROR[0] // 合约执行错误
 					) {
 						Object.assign(result, { receipt: error.receipt, error });
 					} else {
@@ -220,6 +222,7 @@ export class Web3Tx implements WatchCat {
 		}
 	
 		try {
+			await db.update('tx_async', { status: 1 }, { id });
 			await sendQueue(async (txid, opts)=>{
 				var nonce = opts.nonce || 0;
 				try {
@@ -247,7 +250,7 @@ export class Web3Tx implements WatchCat {
 				var r = await fn.call(opts); // try call
 			} catch(err: any) {
 				if (err.message.indexOf('execution reverted:') != -1) {
-					err.errno = errno.ERR_SOLIDITY_EXEC_ERROR[0];
+					err.errno = errno_web3z.ERR_SOLIDITY_EXEC_ERROR[0];
 				}
 				throw err;
 			}
