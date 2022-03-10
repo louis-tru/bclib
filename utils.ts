@@ -181,8 +181,8 @@ var signer = new SignerIMPL();
 export async function lockDataState(table: string, id: number, state: {name: string, value: string}) {
 	var action = Date.now();
 	await db.query(
-		`update ${table} set ${state.name}=${state.value},action=${action} where \
-			where ${state.name}=0 or active < ${action-(10 * 60 * 1e3)}
+		`update ${table} set ${state.name}=${state.value},action=${action}
+				where ${state.name}=0 or active < ${action-(10 * 60 * 1e3)}
 	`);
 	var it = await db.selectOne(table, {id,[state.name]:state.value,action});
 	return !!it;
