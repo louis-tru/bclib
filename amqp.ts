@@ -24,10 +24,6 @@ export class Amqp {
 		return this._amqp;
 	}
 
-	get defaultChannel() {
-		return this.amqp.channel('default');
-	}
-
 	channel(name: string = 'default') {
 		return this.amqp.channel(name);
 	}
