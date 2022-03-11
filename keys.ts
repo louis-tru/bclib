@@ -325,6 +325,8 @@ export class KeychainManager {
 		return list.map(e=>e.address as string);
 	}
 
+	// private _addressCache: Map<string, string> = new Map();
+
 	async address(name: string, part_key?: string) { // get random address
 		if (part_key) {
 			return await this.genSecretKeyFromPartKey(name, part_key);
@@ -419,14 +421,18 @@ export class KeychainManager {
 		}
 
 		if (tryUnlock && !key.hasUnlock() && cfg.keys_auto_unlock) {
-			var [row] = await this._db.select('unlock_pwd', { name });
-			if (row && row.pwd) {
-				try {
-					key.unlock(row.pwd);
-				} catch(err: any) {
-					console.warn('bclib/keys#root', err);
+			await somes.scopeLock(key, async ()=>{
+				var _key = key as SecretKey;
+				if (_key.hasUnlock()) return;
+				var [row] = await this._db.select('unlock_pwd', { name });
+				if (row && row.pwd) {
+					try {
+						_key.unlock(row.pwd);
+					} catch(err: any) {
+						console.warn('bclib/keys#root', err);
+					}
 				}
-			}
+			});
 		}
 
 		return key as ISecretKey;
