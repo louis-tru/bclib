@@ -70,7 +70,7 @@ export function initialize(db?: DatabaseTools) {
 		`alter table callback_url add retry   int     default (0)  not null`,
 		`alter table callback_url add state   int     default (0)  not null`,
 	], [
-		'create        index callback_url_status on callback_url (status)',
+		'create        index callback_url_status on callback_url (state)',
 		'create        index tx_async_status on tx_async (status)',
 		'create        index tx_async_time   on tx_async (time)',
 		'create        index tx_async_chain  on tx_async (chain)',
