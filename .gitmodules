@@ -8,9 +8,9 @@
 	url = http://gitlab.stars-mine.com/hardware/crypto-tx.git
 	# url = https://github.com/louis-tru/crypto-tx.git
 
-[submodule "web3z"]
-	path = deps/web3z
-	url = http://gitlab.stars-mine.com/hardware/web3z.git
+[submodule "web3-tx"]
+	path = deps/web3-tx
+	url = http://gitlab.stars-mine.com/hardware/web3-tx.git
 	# url = https://github.com/louis-tru/web3z.git
 
 [submodule "node-sqlite3"]
