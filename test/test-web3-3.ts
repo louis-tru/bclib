@@ -10,7 +10,7 @@ import solidity from './contracts';
 
 export default async function({ num, tx }:{ num: number, tx?:number }) {
 	var blockNumber = Number(num) || 1863;
-	var web3 = web3z.impl.web3;
+	var web3 = web3z.impl.raw;
 	var [address, address1] = keys.impl.addresss;
 
 	var tx1: TransactionReceipt | null = null;

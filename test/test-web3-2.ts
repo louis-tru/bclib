@@ -12,7 +12,7 @@ export default async function({ num, from, to, value }: {
 	num: number, from?: string, to?: string, value?: number
 }) {
 	var blockNumber = Number(num) || 1863;
-	var web3 = web3z.impl.web3;
+	var web3 = web3z.impl.raw;
 	var accounts = keys.impl.addresss;
 	var address = accounts[0];
 	var _value = Number(value) || 0;

@@ -3,7 +3,7 @@
  * @date 2020-11-28
  */
 
-import {Web3} from 'web3-tx';
+import {Web3Raw as Web3} from 'web3-tx';
 import * as utils from 'web3-utils';
 import cfg from '../cfg';
 

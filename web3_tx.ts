@@ -6,7 +6,7 @@
 import somes from 'somes';
 import { TransactionReceipt,
 		TxOptions as RawTxOptions,
-		IWeb3Tx, Contract,SendCallback } from 'web3-tx';
+		IWeb3, Contract,SendCallback } from 'web3-tx';
 import errno_web3z from 'web3-tx/errno';
 import { TransactionQueue } from 'web3-tx/queue';
 import errno from './errno';
@@ -18,7 +18,7 @@ import {web3_tx_dequeue} from './env';
 import local_storage from './storage';
 // import util from 'somes';
 
-export interface IBcWeb3 extends IWeb3Tx {
+export interface IBcWeb3 extends IWeb3 {
 	readonly tx: Web3AsyncTx;
 	readonly chain: number;
 	contract(address: string): Promise<Contract>;

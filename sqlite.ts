@@ -4,9 +4,51 @@
  */
 
 import utils from 'somes';
-import sqlite3 from './sqlite_ext';
 import errno from './errno';
-import {DatabaseCRUD,DatabaseTools,Where,Database,SelectOptions,Result} from 'somes/db';
+import {DatabaseCRUD,DatabaseTools,
+	Where,Database,SelectOptions,Result} from 'somes/db';
+
+var sqlite3 = require('sqlite3');
+
+function asyncext(clazz: any, name: string) {
+	var func = clazz.prototype[name];
+	clazz.prototype[name + '2'] = function(...args: any[]) {
+		return new Promise<void>((resolve, reject)=>{
+			try {
+				func.call(this, ...args, function(err: Error, ...args2: any[]) {
+					if (err) {
+						err.ext({args});
+						reject(err);
+					} else {
+						resolve(...args2);
+					}
+				});
+			} catch(err: any) {
+				err.ext({args});
+				reject(err);
+			}
+		});
+	};
+}
+
+[
+	'serialize',
+	'close',
+	'run',
+	'get',
+	'all',
+	'exec',
+	'prepare',
+].forEach(asyncext.bind(null, sqlite3.Database));
+
+[
+	'bind',
+	'reset',
+	'finalize',
+	'run',
+	'get',
+	'all',
+].forEach(asyncext.bind(null, sqlite3.Statement));
 
 interface DBStructColumn {
 	name: string;

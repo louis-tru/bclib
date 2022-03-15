@@ -463,7 +463,7 @@ export default async function() {
 
 	// debugger;
 
-	var web3 = ()=>web3z.impl.web3;
+	var web3 = ()=>web3z.impl.raw;
 
 	var log = web3().eth.abi.decodeLog([
 		{name: 'identity',  type: "address", "indexed": true },

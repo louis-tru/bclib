@@ -9,11 +9,11 @@ import cfg from './cfg';
 import keys from './keys+';
 import {IBuffer} from 'somes/buffer';
 import {Signature} from 'web3-tx';
-import {Web3Tx, Contract} from 'web3-tx';
+import {Web3, Contract} from 'web3-tx';
 import {getAbiByAddress} from './abi';
 import {WatchCat} from 'bclib/watch';
 
-export class BcWeb3 extends Web3Tx implements IBcWeb3, WatchCat {
+export class BcWeb3 extends Web3 implements IBcWeb3, WatchCat {
 	TRANSACTION_CHECK_TIME = 5e3;
 
 	readonly tx: Web3AsyncTx = new Web3AsyncTx(this);
