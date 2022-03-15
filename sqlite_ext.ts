@@ -35,14 +35,16 @@ function asyncext(clazz: any, name: string) {
 	clazz.prototype[name + '2'] = function(...args: any[]) {
 		return new Promise<void>((resolve, reject)=>{
 			try {
-				func.call(this, ...args, function(err: Error, ...args: any[]) {
+				func.call(this, ...args, function(err: Error, ...args2: any[]) {
 					if (err) {
+						err.ext({args});
 						reject(err);
 					} else {
-						resolve(...args);
+						resolve(...args2);
 					}
 				});
-			} catch(err) {
+			} catch(err: any) {
+				err.ext({args});
 				reject(err);
 			}
 		});
