@@ -4,7 +4,7 @@
  */
 
 import web3z from '../web3+';
-import {TransactionReceipt} from 'web3z';
+import {TransactionReceipt} from 'web3-tx';
 import keys from '../keys+';
 import solidity from './contracts';
 

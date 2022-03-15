@@ -3,23 +3,20 @@
  * @date 2020-11-29
  */
 
-import {Web3Tx, IBcWeb3} from './web3_tx';
+import {Web3AsyncTx, IBcWeb3} from './web3_tx';
 import {createCache} from './utils';
 import cfg from './cfg';
 import keys from './keys+';
 import {IBuffer} from 'somes/buffer';
-import {Signature} from 'web3z';
-import {Web3Z} from 'web3z';
-import { Contract } from 'web3z';
-// import { provider } from 'web3-core';
+import {Signature} from 'web3-tx';
+import {Web3Tx, Contract} from 'web3-tx';
 import {getAbiByAddress} from './abi';
-// import {StaticObject} from './obj';
 import {WatchCat} from 'bclib/watch';
 
-export class BcWeb3 extends Web3Z implements IBcWeb3, WatchCat {
+export class BcWeb3 extends Web3Tx implements IBcWeb3, WatchCat {
 	TRANSACTION_CHECK_TIME = 5e3;
 
-	readonly tx: Web3Tx = new Web3Tx(this);
+	readonly tx: Web3AsyncTx = new Web3AsyncTx(this);
 	readonly chain: number;
 	private _contracts: Map<string, {timeout: number, value: Contract}> = new Map();
 	private _contractCacneTimeout = 3e4; // 30s
@@ -43,7 +40,7 @@ export class BcWeb3 extends Web3Z implements IBcWeb3, WatchCat {
 		return keys.impl.sign(message, from);
 	}
 
-	givenProvider() {
+	defaultProvider() {
 		return Array.isArray(cfg.web3) ? cfg.web3[0]: cfg.web3;
 	}
 
@@ -54,7 +51,7 @@ export class BcWeb3 extends Web3Z implements IBcWeb3, WatchCat {
 
 	getBlockNumber() {
 		var fn = createCache(this._FetchBlockNumber, {
-			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber_' + this.givenProvider(),
+			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber_' + this.provider.rpc,
 		});
 		return fn();
 	}

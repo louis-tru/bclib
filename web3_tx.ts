@@ -6,9 +6,9 @@
 import somes from 'somes';
 import { TransactionReceipt,
 		TxOptions as RawTxOptions,
-		IWeb3Z,Contract,SendCallback } from 'web3z';
-import errno_web3z from 'web3z/errno';
-import { TransactionQueue } from 'web3z/queue';
+		IWeb3Tx, Contract,SendCallback } from 'web3-tx';
+import errno_web3z from 'web3-tx/errno';
+import { TransactionQueue } from 'web3-tx/queue';
 import errno from './errno';
 import {callbackTask} from './utils';
 import {workers} from './env';
@@ -16,10 +16,10 @@ import db from './db';
 import {WatchCat} from './watch';
 import {web3_tx_dequeue} from './env';
 import local_storage from './storage';
-import util from 'somes';
+// import util from 'somes';
 
-export interface IBcWeb3 extends IWeb3Z {
-	readonly tx: Web3Tx;
+export interface IBcWeb3 extends IWeb3Tx {
+	readonly tx: Web3AsyncTx;
 	readonly chain: number;
 	contract(address: string): Promise<Contract>;
 }
@@ -45,8 +45,6 @@ export type Callback = ((r: PostResult)=>void) | string;
 type TxComplete = (r: TransactionReceipt)=>void;
 type TxError = (r: Error)=>void;
 
-// type BeforeCb = (err?: Error)=>void;
-
 interface TxAsync {
 	id: number;
 	account: string;
@@ -63,9 +61,9 @@ interface TxAsync {
 	chain: number;
 	nonce: number;
 	noneConfirm: number;
-};
+}
 
-export class Web3Tx implements WatchCat {
+export class Web3AsyncTx implements WatchCat {
 	private _web3: IBcWeb3;
 	// multi worker env
 	private _workers = workers ? workers.workers: 1;
@@ -200,11 +198,11 @@ export class Web3Tx implements WatchCat {
 		async function complete(error?: any, r?: TransactionReceipt) {
 			try {
 				if (error) {
-					//if (err.errno == errno.ERR_TRANSACTION_STATUS_FAIL[0] // fail
-					//	|| err.errno == errno.ERR_TRANSACTION_BLOCK_RANGE_LIMIT[0] // block limit
-					//	|| err.errno == errno.ERR_REQUEST_TIMEOUT[0] // timeout
-					if (error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0] // 交易失效
+					if ( error.errno == errno_web3z.ERR_TRANSACTION_STATUS_FAIL[0] // fail
+						|| error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0] // 交易失效
 						|| error.errno == errno_web3z.ERR_SOLIDITY_EXEC_ERROR[0] // 合约执行错误
+						//|| err.errno == errno_web3z.ERR_TRANSACTION_BLOCK_RANGE_LIMIT[0] // block limit
+						//|| err.errno == errno_web3z.ERR_REQUEST_TIMEOUT[0] // timeout
 					) {
 						Object.assign(result, { receipt: error.receipt, error });
 					} else {

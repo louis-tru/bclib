@@ -5,7 +5,7 @@
 
 import somes from 'somes';
 import keys from 'somes/keys';
-import {Signature} from 'web3z';
+import {Signature} from 'web3-tx';
 import buffer, {IBuffer} from 'somes/buffer';
 import * as fs from 'somes/fs2';
 import cfg from './cfg';

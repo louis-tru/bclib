@@ -3,8 +3,8 @@
  * @date 2020-12-08
  */
 
-import {TransactionReceipt} from 'web3z';
-import {Result} from 'web3z/happy';
+import {TransactionReceipt} from 'web3-tx';
+import {Result} from 'web3-tx/happy';
 import {Address} from '../../solidity_types';
 
 export * from '../../solidity_types';

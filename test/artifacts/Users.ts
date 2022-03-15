@@ -3,7 +3,7 @@
  * @date 2020-12-08
  */
 
-import {Result} from 'web3z/happy';
+import {Result} from 'web3-tx/happy';
 import {Primitive, Address, Bytes32} from './Primitive';
 import * as json from './Users.json';
 

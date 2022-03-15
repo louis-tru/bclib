@@ -4,7 +4,7 @@
  */
 
 import web3 from '../web3+';
-import Happy from 'web3z/happy';
+import Happy from 'web3-tx/happy';
 
 import * as LicenseTypes from './artifacts/LicenseTypes';
 import * as Users from './artifacts/Users';
