@@ -478,10 +478,32 @@ interface PostResult {
 	receipt: TransactionReceipt;
 	error?: Error;
 	id?: string;
+	tx: TxAsync;
 }
 ```
 
 
+## PostResult
+
+```ts
+interface TxAsync {
+	id: number;
+	account: string;
+	contract?: string;
+	method?: string;
+	args?: string;
+	opts: string;
+	data?: string;
+	cb?: string;
+	txid?: string;
+	status: number;
+	time: number;
+	active: number;
+	chain: number;
+	nonce: number;
+	noneConfirm: number;
+}
+```
 
 
 ## Transaction
