@@ -88,7 +88,7 @@ export class Web3AsyncTx implements WatchCat {
 			throw Error.new(errno.ERR_WEB3_API_POST_PENDING).ext({ txid: tx.txid, nonce: tx.nonce });
 		// somes.assert(tx.status == 2 || tx.status == 3, errno.ERR_WEB3_API_POST_PENDING);
 		var data = JSON.parse(tx.data || '');
-		return { ...data, id: tx.id, tx };
+		return { ...data, id: String(tx.id), tx };
 	}
 
 	private isMatchWorker(from: string) {
