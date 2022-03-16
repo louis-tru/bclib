@@ -291,7 +291,7 @@ export class Web3AsyncTx implements WatchCat {
 
 	async post(address: string, method: string, args?: any[], opts?: Options, cb?: Callback, noTryCall?: boolean) {
 		if (!noTryCall)
-			await this.get(address, method, args, opts); // try call
+			await this.get(address, method, args, Object.assign({}, opts)); // try call
 		var id = await db.insert('tx_async', {
 			account: opts?.from || '',
 			contract: address, method: method,
