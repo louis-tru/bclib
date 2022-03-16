@@ -28,6 +28,7 @@ export interface PostResult {
 	receipt?: TransactionReceipt;
 	error?: Error;
 	id?: string;
+	tx: TxAsync;
 }
 
 export interface Options {
@@ -81,13 +82,13 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	async review(id: string): Promise<PostResult> {
-		var [row] = await db.select<TxAsync>('tx_async', { id: Number(id) });
-		somes.assert(row, errno.ERR_WEB3_API_POST_NON_EXIST);
-		if (row.status < 2)
-			throw Error.new(errno.ERR_WEB3_API_POST_PENDING).ext({ txid: row.txid, nonce: row.nonce });
-		// somes.assert(row.status == 2 || row.status == 3, errno.ERR_WEB3_API_POST_PENDING);
-		var data = JSON.parse(row.data || '') as PostResult;
-		return data;
+		var [tx] = await db.select<TxAsync>('tx_async', { id: Number(id) });
+		somes.assert(tx, errno.ERR_WEB3_API_POST_NON_EXIST);
+		if (tx.status < 2)
+			throw Error.new(errno.ERR_WEB3_API_POST_PENDING).ext({ txid: tx.txid, nonce: tx.nonce });
+		// somes.assert(tx.status == 2 || tx.status == 3, errno.ERR_WEB3_API_POST_PENDING);
+		var data = JSON.parse(tx.data || '');
+		return { ...data, id: tx.id, tx };
 	}
 
 	private isMatchWorker(from: string) {
@@ -107,7 +108,6 @@ export class Web3AsyncTx implements WatchCat {
 			// if (tx.account=='0x729e82FBBcAa0Af5C6057B326Ba4D536266EB74B' && tx.id==436) {
 			// 	debugger;
 			// }
-
 			try {
 				await this._DequeueItem(tx);
 			} catch(err) {
@@ -124,34 +124,37 @@ export class Web3AsyncTx implements WatchCat {
 
 		if (tx.status == 1 && tx.txid) {
 			var receipt = await somes.timeout(this._web3.eth.getTransactionReceipt(tx.txid), 1e4);
+			var result: PostResult = { id: String(tx.id), receipt, tx };
 			if (receipt) {
-				var result = { id: String(tx.id), receipt } as PostResult;
 				if (!receipt.status) {
 					result.error = Error.new(errno_web3z.ERR_TRANSACTION_STATUS_FAIL);
 				}
 				await this._pushAfter(tx.id, result, tx.cb);
-			}
 
-			if (tx.nonce) {
-				var nonce = await this._web3.getNonce(tx.account);
-				if (nonce > tx.nonce) {
-					var blockNumber = await this._web3.getBlockNumber();
-					if (tx.noneConfirm) {
-						if (blockNumber > tx.noneConfirm) {
-							var error = Error.new(errno_web3z.ERR_TRANSACTION_INVALID); // 失效
-							await this._pushAfter(tx.id, { error }, tx.cb);
+			} else {
+				if (tx.nonce) { // 如果记录过写入时的`nonce`，当`nonce`小于当前`nonce`视交易被替换
+					var nonce = await this._web3.getNonce(tx.account);
+					if (nonce > tx.nonce) {
+						// 但不能立即执行这个判定，因为可能区块链节点的部分数据下载有延迟，也许这笔交易成功了，等到下一个区块再进行判定
+						var blockNumber = await this._web3.getBlockNumber();
+						if (tx.noneConfirm) {
+							if (blockNumber > tx.noneConfirm) {
+								result.error = Error.new(errno_web3z.ERR_TRANSACTION_INVALID); // 失效
+								await this._pushAfter(tx.id, result, tx.cb);
+							}
+						} else { // 先写入确认判定失效的先决条件,在开始判定前需要等待一个区块
+							tx.noneConfirm = blockNumber;
+							await db.update('tx_async', { noneConfirm: blockNumber}, { id: tx.id });
 						}
-					} else {
-						tx.noneConfirm = blockNumber;
-						await db.update('tx_async', { noneConfirm: blockNumber}, { id: tx.id });
+						return;
 					}
-					return;
 				}
-			}
 
-			if (Date.now() > tx.active + 1e8) { // 100000秒, 超过30小时后丢弃此交易
-				var error = Error.new(errno.ERR_ETH_TRANSACTION_DISCARD);
-				await this._pushAfter(tx.id, { error }, tx.cb);
+				if (Date.now() > tx.active + 1e8) {
+					// 100000（30小时）后丢弃此交易，超过30小时都没有人处理这比交易，再等更多时间也没有意义
+					result.error = Error.new(errno.ERR_ETH_TRANSACTION_DISCARD);
+					await this._pushAfter(tx.id, result, tx.cb);
+				}
 			}
 		}
 		else {
@@ -168,10 +171,15 @@ export class Web3AsyncTx implements WatchCat {
 		if (r.status != 1) {
 			return;
 		}
+
+		let {error, receipt} = result;
+
 		result.id = String(id);
+		result.tx.status = error ? 3: 2;
+		result.tx.data = JSON.stringify({ error, receipt });
 
 		await db.update('tx_async', {
-			status: result.error ? 3: 2, data: JSON.stringify(result)
+			status: result.tx.status, data: result.tx.data,
 		}, { id });
 
 		if (cb) {
@@ -193,7 +201,7 @@ export class Web3AsyncTx implements WatchCat {
 		this._sendTransactionExecuting.add(id);
 
 		var self = this;
-		var result = { id: String(id) } as PostResult;
+		var result: PostResult = { id: String(id), tx };
 
 		async function complete(error?: any, r?: TransactionReceipt) {
 			try {
