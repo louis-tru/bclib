@@ -196,7 +196,7 @@ class CallbackTask implements WatchCat {
 
 	private async _exec(data: any, url: string, id: number, retry: number) {
 		try {
-			var timeout = Math.min(3600, retry * 1.5) * 1e3; // max 3600s
+			var timeout = Math.min(3600, Math.pow(1.5, retry)) * 1e3; // max 3600s
 			if (!await this.lockDataState('callback_url', id, timeout)) return; // Multi worker lock
 
 			var r = await post(url, { params: data, urlencoded: false, signer: this.signer });
