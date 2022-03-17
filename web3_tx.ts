@@ -8,7 +8,7 @@ import { TransactionReceipt,
 		TxOptions as RawTxOptions,
 		IWeb3, Contract,SendCallback } from 'web3-tx';
 import errno_web3z from 'web3-tx/errno';
-import { TransactionQueue } from 'web3-tx/queue';
+import { MemoryTransactionQueue } from 'web3-tx/queue';
 import errno from './errno';
 import {callbackTask} from './utils';
 import {workers} from './env';
@@ -16,7 +16,9 @@ import db from './db';
 import {WatchCat} from './watch';
 import {web3_tx_dequeue} from './env';
 import local_storage from './storage';
-// import util from 'somes';
+import buffer from 'somes/buffer';
+
+const crypto_tx = require('crypto-tx')
 
 export interface IBcWeb3 extends IWeb3 {
 	readonly tx: Web3AsyncTx;
@@ -34,9 +36,10 @@ export interface PostResult {
 export interface Options {
 	from: string;
 	value?: string;
-	retry?: number;
+	retry?: number; // queue retry
 	timeout?: number;
 	blockRange?: number;
+	nonceTimeout?: number;
 }
 
 export type TxOptions = Options & RawTxOptions;
@@ -72,13 +75,13 @@ export class Web3AsyncTx implements WatchCat {
 	private _sendTransactionExecuting = new Set<number>();
 	private _sendTransactionExecutingLimit = 1e5; // 10000
 
-	readonly queue: TransactionQueue;
+	readonly queue: MemoryTransactionQueue;
 
 	cattime = 1; // 1 minute call cat()
 
 	constructor(web3: IBcWeb3) {
 		this._web3 = web3;
-		this.queue = new TransactionQueue(web3);
+		this.queue = new MemoryTransactionQueue(web3);
 	}
 
 	async review(id: string): Promise<PostResult> {
@@ -161,7 +164,7 @@ export class Web3AsyncTx implements WatchCat {
 			if (tx.contract) {
 				await this._post(tx);
 			} else {
-				await this._sendTx(tx);
+				await this._sendSignTransaction(tx);
 			}
 		}
 	}
@@ -211,6 +214,7 @@ export class Web3AsyncTx implements WatchCat {
 						|| error.errno == errno_web3z.ERR_SOLIDITY_EXEC_ERROR[0] // 合约执行错误
 						//|| err.errno == errno_web3z.ERR_TRANSACTION_BLOCK_RANGE_LIMIT[0] // block limit
 						//|| err.errno == errno_web3z.ERR_REQUEST_TIMEOUT[0] // timeout
+						|| error.errno == errno_web3z.ERR_INSUFFICIENT_FUNDS_FOR_TX[0] // insufficient funds for transaction
 					) {
 						Object.assign(result, { receipt: error.receipt, error });
 					} else {
@@ -251,35 +255,21 @@ export class Web3AsyncTx implements WatchCat {
 			var opts: Options = JSON.parse(tx.opts);
 			var contract = await this._web3.contract(address as string);
 			var fn = contract.methods[method as string](...(args||[]));
+			var r = await fn.call(opts); // try call
 
-			try {
-				var r = await fn.call(opts); // try call
-			} catch(err: any) {
-				if (err.message.indexOf('execution reverted:') != -1) {
-					err.errno = errno_web3z.ERR_SOLIDITY_EXEC_ERROR[0];
-				}
-				throw err;
-			}
-
-			this.queue.push(({nonceTimeout, ...e})=>{
-				return fn.post({ timeout: nonceTimeout, ...opts, ...e }, before).then(complete).catch(err);
-			},
-			{
-				queueTimeout: 0, ...opts
-			});
+			this.queue.push(e=>
+				fn.post({ ...opts, ...e }, before)
+			, opts).then(complete).catch(err);
 		}, cb || tx.cb);
 	}
 
-	private _sendTx(tx: TxAsync, cb?: Callback) {
+	private _sendSignTransaction(tx: TxAsync, cb?: Callback) {
 		return this._pushTo(tx.id, tx, async (before, complete, err)=>{
 			var opts: TxOptions = JSON.parse(tx.opts);
 
-			this.queue.push(({nonceTimeout, ...e})=>{
-				return this._web3.sendSignTransaction({ timeout: nonceTimeout, ...opts, ...e }, before).then(complete).catch(err);
-			},
-			{
-				queueTimeout: 0, ...opts
-			});
+			this.queue.push(e=>
+				this._web3.sendSignTransaction({ ...opts, ...e }, before)
+			, opts).then(complete).catch(err);
 		}, cb || tx.cb);
 	}
 
@@ -304,7 +294,7 @@ export class Web3AsyncTx implements WatchCat {
 		return String(id);
 	}
 
-	async sendTx(opts: TxOptions, cb?: Callback) {
+	async sendSignTransaction(opts: TxOptions, cb?: Callback) {
 		var id = await db.insert('tx_async', {
 			account: opts.from,
 			opts: JSON.stringify(opts),

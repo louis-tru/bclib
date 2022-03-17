@@ -16,10 +16,11 @@ interface Args {
 	method: string;
 	args?: any[];
 	value?: string;
-	timeout?: number; // timeout
 	retry?: number;
-	callback?: string;
+	timeout?: number; // timeout
 	blockRange?: number;
+	nonceTimeout?: number;
+	callback?: string;
 	noTryCall?: boolean;
 }
 
@@ -69,9 +70,9 @@ export default class extends APIController {
 		return await web3[chain].tx.post(address, method, args, opts, callback, noTryCall);
 	}
 
-	async sendTx({chain,tx, callback}: {chain: number, tx: TxOptions, callback?: string}) {
+	async sendSignTransaction({chain,tx, callback}: {chain: number, tx: TxOptions, callback?: string}) {
 		await keys.impl.checkPermission(this.userName, tx.from);
-		return await web3[chain].tx.sendTx(tx, callback);
+		return await web3[chain].tx.sendSignTransaction(tx, callback);
 	}
 
 	// sync tx, no enqueue
@@ -89,7 +90,7 @@ export default class extends APIController {
 		return await web3[chain].sendSignTransaction(tx);
 	}
 
-	sendSignedTransactionSync({chain,serializedTx,opts}: {chain: number,serializedTx: string, opts?: TxOptions}) {
+	sendSignedTransactionSync({chain,serializedTx,opts}: {chain: number, serializedTx: string, opts?: TxOptions}) {
 		return web3[chain].sendSignedTransaction(buffer.from(serializedTx.slice(2), 'hex'), opts);
 	}
 

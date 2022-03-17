@@ -337,12 +337,12 @@ review({ id: string }): PostResult;
 查看定义[`PostResult`]
 
 
-## tx/sendTx
+## tx/sendSignTransaction
 
 签名交易数据并发送，发送交易立即返回服务查询`review(id)`句柄id
 
 ```ts
-sendTx({
+sendSignTransaction({
 	chain: number;
 	tx: {
 		// timeout: 这个属性有两层意义，web3中所有的`timeout`都有同样的性质
