@@ -165,7 +165,7 @@ export class WSAPI extends WSService implements API {
 	user() { return this._au.user() }
 	userNotErr() { return this._au.userNotErr() }
 
-	requestAuth(_: RuleResult): Promise<boolean> {
+	onRequestAuth(_: RuleResult): Promise<boolean> {
 		return this._au.auth(_.service, null);
 	}
 }
@@ -177,7 +177,7 @@ export default class APIController extends ViewController implements API {
 	user() { return this._au.user() }
 	userNotErr() { return this._au.userNotErr() }
 
-	auth(_: RuleResult) {
+	onAuth(_: RuleResult) {
 		return this._au.auth(_.service + '/' + _.action, this.form);
 	}
 }
