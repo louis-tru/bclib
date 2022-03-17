@@ -16,9 +16,9 @@ import db from './db';
 import {WatchCat} from './watch';
 import {web3_tx_dequeue} from './env';
 import local_storage from './storage';
-import buffer from 'somes/buffer';
+// import buffer from 'somes/buffer';
 
-const crypto_tx = require('crypto-tx')
+// const crypto_tx = require('crypto-tx')
 
 export interface IBcWeb3 extends IWeb3 {
 	readonly tx: Web3AsyncTx;
@@ -209,12 +209,14 @@ export class Web3AsyncTx implements WatchCat {
 		async function complete(error?: any, r?: TransactionReceipt) {
 			try {
 				if (error) {
+					// error.ERR_ETH_TRANSACTION_DISCARD
 					if ( error.errno == errno_web3z.ERR_TRANSACTION_STATUS_FAIL[0] // fail
 						|| error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0] // 交易失效
+						|| error.errno == errno_web3z.ERR_EXECUTION_REVERTED[0] // exec 
 						|| error.errno == errno_web3z.ERR_SOLIDITY_EXEC_ERROR[0] // 合约执行错误
-						//|| err.errno == errno_web3z.ERR_TRANSACTION_BLOCK_RANGE_LIMIT[0] // block limit
-						//|| err.errno == errno_web3z.ERR_REQUEST_TIMEOUT[0] // timeout
 						|| error.errno == errno_web3z.ERR_INSUFFICIENT_FUNDS_FOR_TX[0] // insufficient funds for transaction
+						//|| err.errno == errno_web3z.ERR_TRANSACTION_BLOCK_RANGE_LIMIT[0] // block limit
+						//|| err.errno == errno_web3z.ERR_TRANSACTION_TIMEOUT[0] // timeout
 					) {
 						Object.assign(result, { receipt: error.receipt, error });
 					} else {
