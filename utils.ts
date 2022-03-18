@@ -12,6 +12,7 @@ import storage from './storage';
 import keys from './keys+';
 import {BcRequest, post} from './request';
 import {WatchCat} from './watch';
+import {MysqlTools} from 'somes/mysql';
 
 const crypto_tx = require('crypto-tx');
 
@@ -187,11 +188,12 @@ class CallbackTask implements WatchCat {
 			`update ${table} set state=1,active=${active}
 					where id=${id} and (state=0 or (state=1 and active<${active-lockTimeout}))
 		`);
-		if (!r || !r.affectedRows) {
-			var it = await db.selectOne(table, { id, state: 1, active });
-			return !!it;
+		if (db instanceof MysqlTools) {
+			if (!r || !r.affectedRows)
+				return false;
 		}
-		return true;
+		var it = await db.selectOne(table, { id, state: 1, active });
+		return !!it;
 	}
 
 	private async _exec(data: any, url: string, id: number, retry: number) {
