@@ -11,7 +11,7 @@ export default class extends ApiController {
 
 	private _web3() { return web3s[Number(this.params.chain || this.headers.chain) || 1] };
 
-	auth() {
+	onAuth() {
 		return Promise.resolve(true);
 	}
 
