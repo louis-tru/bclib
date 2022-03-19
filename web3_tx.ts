@@ -49,7 +49,7 @@ export type Callback = ((r: PostResult)=>void) | string;
 type TxComplete = (r: TransactionReceipt)=>void;
 type TxError = (r: Error)=>void;
 
-interface TxAsync {
+export interface TxAsync {
 	id: number;
 	account: string;
 	contract?: string;

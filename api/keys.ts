@@ -20,7 +20,7 @@ export default class extends ApiController {
 		return keys.impl.keychain.addressList(this.userName);
 	}
 
-	address({part_key}:{part_key?: string}) {
+	address({part_key, chain}:{part_key?: string, chain?: number}) {
 		return keys.impl.keychain.address(this.userName, part_key);
 	}
 

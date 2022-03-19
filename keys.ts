@@ -16,6 +16,7 @@ import {DatabaseTools} from 'somes/db';
 import {rng} from 'somes/rng';
 import {escape} from 'somes/db';
 import db from './db';
+// import web3s from './web3+';
 
 const crypto_tx = require('crypto-tx');
 const crypto_tx_sign = require('crypto-tx/sign');
@@ -327,7 +328,7 @@ export class KeychainManager {
 
 	// private _addressCache: Map<string, string> = new Map();
 
-	async address(name: string, part_key?: string) { // get random address
+	async address(name: string, part_key?: string, chain?: number) { // get random address
 		if (part_key) {
 			return await this.genSecretKeyFromPartKey(name, part_key);
 		} else {
