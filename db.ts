@@ -46,6 +46,10 @@ export function initialize(db?: DatabaseTools) {
 			nonce      int    default (0) NOT null,
 			noneConfirm int   default (0) NOT null
 		);
+		create table if not exists tx_async_queue(
+			id          int PRIMARY KEY AUTO_INCREMENT,
+			tx_async_id int     not null
+		);
 		create table if not exists auth_user(
 			id         int PRIMARY KEY AUTO_INCREMENT,
 			name       varchar (64)         not null,
@@ -71,11 +75,12 @@ export function initialize(db?: DatabaseTools) {
 		`alter table callback_url add state   int     default (0)  not null`,
 	], [
 		'create        index callback_url_status on callback_url (state)',
-		'create        index tx_async_status on tx_async (status)',
-		'create        index tx_async_time   on tx_async (time)',
-		'create        index tx_async_chain  on tx_async (chain)',
-		'create unique index auth_user_name on auth_user (name)',
-		'create        index auth_user_mode on auth_user (mode)',
+		'create        index tx_async_status on tx_async(status)',
+		'create        index tx_async_time   on tx_async(time)',
+		'create        index tx_async_chain  on tx_async(chain)',
+		'create unique index auth_user_name  on auth_user(name)',
+		'create        index auth_user_mode  on auth_user(mode)',
+		'create unique index tx_async_queue_idx0 on tx_async_queue(tx_async_id)',
 	], 'bclib');
 }
 

@@ -74,6 +74,7 @@ export class Web3AsyncTx implements WatchCat {
 	private _worker = workers ? workers.worker: 0;
 	private _sendTransactionExecuting = new Set<number>();
 	private _sendTransactionExecutingLimit = 1e5; // 10000
+	private _offset_id = 0;
 
 	readonly queue: MemoryTransactionQueue;
 
@@ -102,21 +103,23 @@ export class Web3AsyncTx implements WatchCat {
 		if (!web3_tx_dequeue) return;
 
 		var offset = 0;
-
 		while (this._sendTransactionExecuting.size < this._sendTransactionExecutingLimit) {
-			var [tx] = await db.query<TxAsync>(
-				`select * from tx_async where id>=${offset} and status < 2 order by id limit 1`);
-			if (!tx) break; // none
+			var txs = await db.query<TxAsync&{qid:number}>(`
+				select q.id as qid, tx_async.* from tx_async_queue as q left join tx_async on q.tx_async_id = tx_async.id where q.id > ${offset} limit 1000`
+			);
+			if (txs.length == 0) break; // none
 
-			// if (tx.account=='0x729e82FBBcAa0Af5C6057B326Ba4D536266EB74B' && tx.id==436) {
-			// 	debugger;
-			// }
-			try {
-				await this._DequeueItem(tx);
-			} catch(err) {
-				console.warn('web3_tx#Web3Tx#_Dequeue', err);
+			for (var tx of txs) {
+				try {
+					if (tx.id)
+						await this._DequeueItem(tx);
+					else
+						await db.delete('tx_async_queue', { id: tx.qid });
+				} catch(err) {
+					console.warn('web3_tx#Web3Tx#_Dequeue', err);
+				}
+				offset = tx.id;
 			}
-			offset = tx.id + 1;
 		}
 	}
 
@@ -170,7 +173,7 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	private async _pushAfter(id: number, result: PostResult, cb?: Callback) {
-		var [r] = await db.select('tx_async', {id}) as TxAsync[];
+		var [r] = await db.select<TxAsync>('tx_async', {id});
 		if (r.status != 1) {
 			return;
 		}
@@ -192,6 +195,8 @@ export class Web3AsyncTx implements WatchCat {
 				cb(result);
 			}
 		}
+
+		await db.delete('tx_async_queue', {tx_async_id: id}); // delete queue
 	}
 
 	private async _pushTo(id: number, tx: TxAsync,
@@ -284,25 +289,33 @@ export class Web3AsyncTx implements WatchCat {
 	async post(address: string, method: string, args?: any[], opts?: Options, cb?: Callback, noTryCall?: boolean) {
 		if (!noTryCall)
 			await this.get(address, method, args, Object.assign({}, opts)); // try call
-		var id = await db.insert('tx_async', {
-			account: opts?.from || '',
-			contract: address, method: method,
-			args: JSON.stringify(args || []),
-			opts: JSON.stringify(opts || {}),
-			cb: typeof cb == 'string' ? cb: null,
-			time: Date.now(),
-			chain: this._web3.chain,
+		var id = await db.transaction(async db=>{
+			var id = await db.insert('tx_async', {
+				account: opts?.from || '',
+				contract: address, method: method,
+				args: JSON.stringify(args || []),
+				opts: JSON.stringify(opts || {}),
+				cb: typeof cb == 'string' ? cb: null,
+				time: Date.now(),
+				chain: this._web3.chain,
+			});
+			await db.insert('tx_async_queue', { tx_async_id: id });
+			return id;
 		});
 		return String(id);
 	}
 
 	async sendSignTransaction(opts: TxOptions, cb?: Callback) {
-		var id = await db.insert('tx_async', {
-			account: opts.from,
-			opts: JSON.stringify(opts),
-			cb: typeof cb == 'string' ? cb: null,
-			time: Date.now(),
-			chain: this._web3.chain,
+		var id = await db.transaction(async db=>{
+			var id = await db.insert('tx_async', {
+				account: opts.from,
+				opts: JSON.stringify(opts),
+				cb: typeof cb == 'string' ? cb: null,
+				time: Date.now(),
+				chain: this._web3.chain,
+			});
+			await db.insert('tx_async_queue', { tx_async_id: id });
+			return id;
 		});
 		return String(id);
 	}
