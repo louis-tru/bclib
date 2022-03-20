@@ -202,9 +202,13 @@ export class Web3AsyncTx implements WatchCat {
 	private async _pushTo(id: number, tx: TxAsync,
 		sendQueue: (before: SendCallback, c: TxComplete, e: TxError)=>Promise<void>, cb?: Callback)
 	{
-		if (tx.status > 1) return;
-		if (!this.isMatchWorker(tx.account)) return;
 		if (this._sendTransactionExecuting.has(id)) return;
+		if (!this.isMatchWorker(tx.account)) return;
+
+		if (tx.status > 1) {
+			await db.delete('tx_async_queue', { tx_async_id: id });
+			return;
+		}
 
 		this._sendTransactionExecuting.add(id);
 
