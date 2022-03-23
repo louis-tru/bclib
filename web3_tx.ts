@@ -144,7 +144,7 @@ export class Web3AsyncTx implements WatchCat {
 						// 但不能立即执行这个判定，因为可能区块链节点的部分数据下载有延迟，也许这笔交易成功了，等到下一个区块再进行判定
 						var blockNumber = await this._web3.getBlockNumber();
 						if (tx.noneConfirm) {
-							if (blockNumber > tx.noneConfirm) {
+							if (blockNumber > tx.noneConfirm + 32) {
 								result.error = Error.new(errno_web3z.ERR_TRANSACTION_INVALID); // 失效
 								await this._pushAfter(tx.id, result, tx.cb);
 							}
