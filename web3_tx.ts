@@ -163,7 +163,7 @@ export class Web3AsyncTx implements WatchCat {
 				}
 			}
 		}
-		else {
+		else if (tx.status <= 1) {
 			if (tx.contract) {
 				await this._post(tx);
 			} else {
