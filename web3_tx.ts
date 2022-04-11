@@ -218,7 +218,7 @@ export class Web3AsyncTx implements WatchCat {
 		async function complete(error?: any, r?: TransactionReceipt) {
 			try {
 				if (error) {
-					// error.ERR_ETH_TRANSACTION_DISCARD
+					// 
 					if ( error.errno == errno_web3z.ERR_TRANSACTION_STATUS_FAIL[0] // fail
 						|| error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0] // 交易失效
 						|| error.errno == errno_web3z.ERR_EXECUTION_REVERTED[0] // exec 
@@ -226,6 +226,9 @@ export class Web3AsyncTx implements WatchCat {
 						|| error.errno == errno_web3z.ERR_INSUFFICIENT_FUNDS_FOR_TX[0] // insufficient funds for transaction
 						//|| err.errno == errno_web3z.ERR_TRANSACTION_BLOCK_RANGE_LIMIT[0] // block limit
 						//|| err.errno == errno_web3z.ERR_TRANSACTION_TIMEOUT[0] // timeout
+						|| error.errno == error.ERR_ETH_TRANSACTION_DISCARD[0] // 丢弃交易
+						|| error.errno == errno.ERR_STAR_ADDRESS_NOT_FOUND[0] // 协议地址未定义
+						|| error.errno == error.ERR_GET_ABI_NOT_FOUND[0] // abi不存在
 						|| error.errno == errno.ERR_ETH_CONTRACT_METHOD_NO_EXIST[0] // 协约方法不存在
 						|| error.errno == errno.ERR_ETH_CONTRACT_METHOD_ARGS_ERR[0] // 协约参数错误
 					) {
