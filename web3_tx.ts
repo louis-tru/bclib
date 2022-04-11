@@ -226,9 +226,12 @@ export class Web3AsyncTx implements WatchCat {
 						|| error.errno == errno_web3z.ERR_INSUFFICIENT_FUNDS_FOR_TX[0] // insufficient funds for transaction
 						//|| err.errno == errno_web3z.ERR_TRANSACTION_BLOCK_RANGE_LIMIT[0] // block limit
 						//|| err.errno == errno_web3z.ERR_TRANSACTION_TIMEOUT[0] // timeout
+						|| error.errno == errno.ERR_ETH_CONTRACT_METHOD_NO_EXIST[0] // 协约方法不存在
+						|| error.errno == errno.ERR_ETH_CONTRACT_METHOD_ARGS_ERR[0] // 协约参数错误
 					) {
 						Object.assign(result, { receipt: error.receipt, error });
 					} else {
+						console.warn('Web3AsyncTx#_pushTo', error);
 						return; // continue watch
 					}
 				} else {
@@ -258,14 +261,27 @@ export class Web3AsyncTx implements WatchCat {
 		}
 	}
 
+	private async verificMethodArguments(address: string, method: string, args?: any[]) {
+		var contract = await this._web3.contract(address);
+		var fn = contract.methods[method as string];
+		somes.assert(fn, errno.ERR_ETH_CONTRACT_METHOD_NO_EXIST);
+		try {
+			var fnSend = fn(...(args||[]));
+			return fnSend;
+		} catch(err: any) {
+			err.errno = errno.ERR_ETH_CONTRACT_METHOD_ARGS_ERR[0];
+			throw err;
+		}
+	}
+
 	private _post(tx: TxAsync, cb?: Callback) {
 		return this._pushTo(tx.id, tx, async (before, complete, err)=>{
 
 			var {contract: address,method} = tx;
 			var args: any[] = JSON.parse(tx.args as string);
 			var opts: Options = JSON.parse(tx.opts);
-			var contract = await this._web3.contract(address as string);
-			var fn = contract.methods[method as string](...(args||[]));
+
+			var fn = await this.verificMethodArguments(address as string, method as string, args);
 			var r = await fn.call(opts); // try call
 
 			this.queue.push(e=>
@@ -285,14 +301,16 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	async get(address: string, method: string, args?: any[], opts?: Options) {
-		var contract = await this._web3.contract(address);
-		var fn = contract.methods[method](...(args||[]));
+		var fn = await this.verificMethodArguments(address, method, args);
 		return await fn.call(opts);
 	}
 
 	async post(address: string, method: string, args?: any[], opts?: Options, cb?: Callback, noTryCall?: boolean) {
-		if (!noTryCall)
+		if (noTryCall) {
+			await this.verificMethodArguments(address, method, args);
+		} else {
 			await this.get(address, method, args, Object.assign({}, opts)); // try call
+		}
 		var id = await db.transaction(async db=>{
 			var id = await db.insert('tx_async', {
 				account: opts?.from || '',
