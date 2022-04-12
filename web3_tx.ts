@@ -218,20 +218,21 @@ export class Web3AsyncTx implements WatchCat {
 		async function complete(error?: any, r?: TransactionReceipt) {
 			try {
 				if (error) {
-					// 
-					if ( error.errno == errno_web3z.ERR_TRANSACTION_STATUS_FAIL[0] // fail
-						|| error.errno == errno_web3z.ERR_TRANSACTION_INVALID[0] // 交易失效
-						|| error.errno == errno_web3z.ERR_EXECUTION_REVERTED[0] // exec 
-						|| error.errno == errno_web3z.ERR_SOLIDITY_EXEC_ERROR[0] // 合约执行错误
-						|| error.errno == errno_web3z.ERR_INSUFFICIENT_FUNDS_FOR_TX[0] // insufficient funds for transaction
-						//|| err.errno == errno_web3z.ERR_TRANSACTION_BLOCK_RANGE_LIMIT[0] // block limit
-						//|| err.errno == errno_web3z.ERR_TRANSACTION_TIMEOUT[0] // timeout
-						|| error.errno == error.ERR_ETH_TRANSACTION_DISCARD[0] // 丢弃交易
-						|| error.errno == errno.ERR_STAR_ADDRESS_NOT_FOUND[0] // 协议地址未定义
-						|| error.errno == error.ERR_GET_ABI_NOT_FOUND[0] // abi不存在
-						|| error.errno == errno.ERR_ETH_CONTRACT_METHOD_NO_EXIST[0] // 协约方法不存在
-						|| error.errno == errno.ERR_ETH_CONTRACT_METHOD_ARGS_ERR[0] // 协约参数错误
-					) {
+					var errnos: ErrnoCode[] = [
+						errno_web3z.ERR_TRANSACTION_STATUS_FAIL, // fail
+						errno_web3z.ERR_TRANSACTION_SEND_FAIL, // send fail
+						errno_web3z.ERR_TRANSACTION_INVALID, // 交易失效
+						errno_web3z.ERR_EXECUTION_REVERTED,  // exec require fail
+						errno_web3z.ERR_SOLIDITY_EXEC_ERROR, // 合约执行错误
+						errno_web3z.ERR_INSUFFICIENT_FUNDS_FOR_TX, // insufficient funds for transaction
+						errno_web3z.ERR_GAS_REQUIRED_LIMIT, // gas limit
+						error.ERR_ETH_TRANSACTION_DISCARD, // 丢弃交易
+						errno.ERR_STAR_ADDRESS_NOT_FOUND, // 协议地址未定义
+						error.ERR_GET_ABI_NOT_FOUND, // abi不存在
+						errno.ERR_ETH_CONTRACT_METHOD_NO_EXIST, // 协约方法不存在
+						errno.ERR_ETH_CONTRACT_METHOD_ARGS_ERR, // 协约参数错误
+					];
+					if ( errnos.find(([e])=>error.errno==e) ) {
 						Object.assign(result, { receipt: error.receipt, error });
 					} else {
 						console.warn('Web3AsyncTx#_pushTo', error);
