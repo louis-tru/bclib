@@ -180,6 +180,9 @@ export class Web3AsyncTx implements WatchCat {
 
 		let {error, receipt} = result;
 
+		if (receipt)
+			receipt.logs = [];
+
 		result.id = String(id);
 		result.tx.status = error ? 3: 2;
 		result.tx.data = JSON.stringify({ error, receipt });
