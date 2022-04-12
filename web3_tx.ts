@@ -181,7 +181,7 @@ export class Web3AsyncTx implements WatchCat {
 		let {error, receipt} = result;
 
 		if (receipt)
-			receipt.logs = [];
+			receipt.logs = []; // logs数据太大存不了
 
 		result.id = String(id);
 		result.tx.status = error ? 3: 2;
