@@ -1,6 +1,6 @@
 {
 	"name": "bclib",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "dphoto block chain bass service libs",
 	"main": "utils.js",
 	"types": "utils",
@@ -18,10 +18,12 @@
 		"node-xlsx": "~0.15.0",
 		"qiniu": "~7.4.0",
 		"solc": "~0.7.5",
-		"sqlite3": "file:deps/node-sqlite3",
 		"supervisor": "^0.12.0",
+		"sqlite3": "file:deps/node-sqlite3",
 		"crypto-tx": "file:deps/crypto-tx",
 		"somes": "file:deps/somes",
-		"web3-tx": "file:deps/web3-tx"
+		"web3-tx": "file:deps/web3-tx",
+		"zswjs": "^1.3.0",
+		"node-fetch": "^3.2.3"
 	}
 }
