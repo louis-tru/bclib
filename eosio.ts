@@ -3,8 +3,8 @@
  * @date 2022-04-13
  */
 
-import fetch from 'node-fetch'; //你需要安装：npm install --save node-fetch@2 zswjs
-import {Api, JsonRpc} from 'zswjs'; //你需要安装：npm install --save node-fetch@2 zswjs
+import fetch from 'node-fetch';
+import {Api, JsonRpc} from 'zswjs';
 import {JsSignatureProvider} from 'zswjs/dist/zswjs-jssig';
 
 async function runTransaction() {
@@ -45,7 +45,7 @@ async function runTransaction() {
 					"actor": "zsw.admin",
 					"permission": "active"
 				}
-			]
+			],
 		},
 		{
 			"account": "zswhq",
