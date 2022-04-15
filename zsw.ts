@@ -4,10 +4,14 @@
  */
 
 import fetch from 'node-fetch';
-import {Api, JsonRpc} from 'zswjs';
-import {JsSignatureProvider} from 'zswjs/dist/zswjs-jssig';
+import {Api, JsonRpc, ApiInterfaces, RpcInterfaces} from 'zswjs';
+import {JsSignatureProvider} from 'zswjs/src/zswjs-jssig';
+import {KeysManager} from './keys';
 
-async function runTransaction() {
+type PushTransactionArgs = RpcInterfaces.PushTransactionArgs;
+type SignatureProviderArgs = ApiInterfaces.SignatureProviderArgs;
+
+async function test() {
 	const rpcURL = 'http://127.0.0.1:3031';
 	const privateKeys = ['PVT_GM_2AThMitUvftLxZvyX4GE8WHqrMftihuKQT7wcmHduMJCkNjgFB'];
 	const actions = [
@@ -126,10 +130,23 @@ async function runTransaction() {
 	return result;
 }
 
-runTransaction().then((r)=>{
-	console.log("RESULT:\n"+JSON.stringify(r, null, 2));
-	process.exit(0);
-}).catch((error)=>{
-	console.error("ERROR: \n",error);
-	process.exit(1);
-});
+export default class ZSWApi extends Api implements ApiInterfaces.SignatureProvider {
+
+	private _keys: KeysManager;
+
+	constructor(rpc: string, keys: KeysManager) {
+		super({ rpc: new JsonRpc(rpc, { fetch }), signatureProvider: null as any });
+		this._keys = keys;
+		this.signatureProvider = this;
+	}
+
+	async getAvailableKeys(): Promise<string[]> {
+		return [];
+	}
+
+	async sign(args: SignatureProviderArgs): Promise<PushTransactionArgs> {
+		// keys.impl.sign(message, from);
+		throw '';
+	}
+
+}
