@@ -5,7 +5,7 @@
 
 import fetch from 'node-fetch';
 import {Api, JsonRpc, ApiInterfaces, RpcInterfaces} from 'zswjs';
-import {JsSignatureProvider} from 'zswjs/src/zswjs-jssig';
+import {JsSignatureProvider} from 'zswjs/dist/zswjs-jssig';
 import {KeysManager} from './keys';
 
 type PushTransactionArgs = RpcInterfaces.PushTransactionArgs;
