@@ -16,13 +16,18 @@ import {DatabaseTools} from 'somes/db';
 import {rng} from 'somes/rng';
 import {escape} from 'somes/db';
 import db from './db';
-// import web3s from './web3+';
+import * as crypto_tx from 'crypto-tx';
+import * as gm from 'crypto-tx/gm';
+import * as crypto_tx_sign from 'crypto-tx/sign';
 
-const crypto_tx = require('crypto-tx');
-const crypto_tx_sign = require('crypto-tx/sign');
 const btc = require('crypto-tx/btc');
 const keystore = require('crypto-tx/keystore');
 const iv = rng(16);
+
+export enum KeyType {
+	k1 = 0,
+	gm = 1,
+}
 
 export interface ISecretKey {
 	readonly publicKey: IBuffer;
@@ -34,7 +39,7 @@ export interface ISecretKey {
 	lock(): void;
 	unlock(pwd: string): void;
 	exportKeystore(pwd: string): Promise<object>;
-	sign(message: IBuffer): Promise<Signature>;
+	sign(message: IBuffer, type?: KeyType): Promise<Signature>;
 }
 
 const default_traitKey = 'b4dd53f2fefde37c07ac4824cf7086465633e3a357daacc3adf16418275a9e51';
@@ -149,7 +154,7 @@ export class SecretKey implements ISecretKey {
 
 	get address() {
 		if (!this._address)
-			this._address = crypto_tx.getAddress(this.privateKey());
+			this._address = crypto_tx.getAddress(this.privateKey()) as string;
 		return this._address as string;
 	}
 
@@ -160,12 +165,14 @@ export class SecretKey implements ISecretKey {
 		return this._addressBtc as string;
 	}
 
-	async sign(message: IBuffer): Promise<Signature> {
-		var signature = crypto_tx.sign(message, this.privateKey());
-		return Promise.resolve({
-			signature: buffer.from(signature.signature),
-			recovery: signature.recovery,
-		} as Signature);
+	async sign(message: IBuffer, type?: KeyType): Promise<Signature> {
+		if (type == KeyType.gm) { // gm
+			let signature = gm.sign(message, this.privateKey());
+			return Promise.resolve({ signature: buffer.from(signature, 'hex'), recovery: 0 });
+		} else { // k1
+			let signature = crypto_tx.sign(message, this.privateKey());
+			return Promise.resolve({ signature: signature.signature, recovery: signature.recovery });
+		}
 	}
 }
 
@@ -581,9 +588,9 @@ export class KeysManager {
 		return !(await this.getKey(addressOrAddressBtc)).isDefault;
 	}
 
-	async sign(message: IBuffer, from?: string): Promise<Signature> {
+	async sign(message: IBuffer, from?: string, type?: KeyType): Promise<Signature> {
 		var _key = await this.getKey(from);
-		var signature = await _key.key.sign(message);
+		var signature = await _key.key.sign(message, type);
 		return {
 			signature: buffer.from(signature.signature),
 			recovery: signature.recovery,
@@ -625,6 +632,6 @@ export class KeysManager {
 	}
 
 	signArgumentsFromTypes(data: any[], types: string[], from?: string) {
-		return this.signRSV(crypto_tx_sign.message(data, types), from);
+		return this.signRSV(crypto_tx_sign.message(data, types as crypto_tx_sign.Types[]), from);
 	}
 }

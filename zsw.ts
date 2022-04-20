@@ -7,6 +7,9 @@ import fetch from 'node-fetch';
 import {Api, JsonRpc, ApiInterfaces, RpcInterfaces} from 'zswjs';
 import {JsSignatureProvider} from 'zswjs/dist/zswjs-jssig';
 import {KeysManager} from './keys';
+import buffer from 'somes/buffer';
+import {k1,sm2} from 'crypto-tx';
+import {sha256} from 'somes/hash';
 
 type PushTransactionArgs = RpcInterfaces.PushTransactionArgs;
 type SignatureProviderArgs = ApiInterfaces.SignatureProviderArgs;
@@ -130,9 +133,27 @@ async function test() {
 	return result;
 }
 
+
+// --------------------------------------
+
+import { ec } from 'elliptic';
+
+/** expensive to construct; so we do it once and reuse it */
+const defaultEc = new ec('secp256k1');
+import {
+	PrivateKey,
+	PublicKey,
+	Signature,
+} from 'zswjs/dist/zswjs-key-conversions';
+import { convertLegacyPublicKey } from 'zswjs/dist/zswjs-numeric';
+
+
 export default class ZSWApi extends Api implements ApiInterfaces.SignatureProvider {
 
 	private _keys: KeysManager;
+
+	public keys = new Map<string, ec.KeyPair>();
+	public availableKeys = [] as string[];
 
 	constructor(rpc: string, keys: KeysManager) {
 		super({ rpc: new JsonRpc(rpc, { fetch }), signatureProvider: null as any });
@@ -140,13 +161,39 @@ export default class ZSWApi extends Api implements ApiInterfaces.SignatureProvid
 		this.signatureProvider = this;
 	}
 
-	async getAvailableKeys(): Promise<string[]> {
-		return [];
+	async getAvailableKeys(): Promise<string[]> { debugger
+		return this.availableKeys;
+	}
+
+	/** Construct the digest from transaction details */
+	private hash(args: SignatureProviderArgs) {
+		const { chainId, serializedTransaction, serializedContextFreeData } = args;
+		const signBuf = buffer.concat([
+				buffer.from(chainId, 'hex'),
+				buffer.from(serializedTransaction),
+				serializedContextFreeData ?
+					new Uint8Array(k1.ec.hash().update(serializedContextFreeData).digest()) :
+					new Uint8Array(32),
+		]);
+		var hash = buffer.from(k1.ec.hash().update(signBuf).digest());
+		// var hash = sha256(signBuf);
+		return hash;
 	}
 
 	async sign(args: SignatureProviderArgs): Promise<PushTransactionArgs> {
-		// keys.impl.sign(message, from);
-		throw '';
+		const {requiredKeys, serializedTransaction, serializedContextFreeData } = args;
+		const digest = this.hash(args);
+
+		const signatures = [] as string[];
+		for (const key of requiredKeys) {
+				const publicKey = PublicKey.fromString(key);
+				const ellipticPrivateKey = this.keys.get(convertLegacyPublicKey(key))!;
+				const privateKey = PrivateKey.fromElliptic(ellipticPrivateKey, publicKey.getType());
+				const signature = privateKey.sign(digest, false);
+				signatures.push(signature.toString());
+		}
+
+		return { signatures, serializedTransaction, serializedContextFreeData };
 	}
 
 }

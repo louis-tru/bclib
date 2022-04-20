@@ -74,7 +74,7 @@ export class Web3AsyncTx implements WatchCat {
 	private _worker = workers ? workers.worker: 0;
 	private _sendTransactionExecuting = new Set<number>();
 	private _sendTransactionExecutingLimit = 1e5; // 10000
-	private _offset_id = 0;
+	//private _offset_id = 0;
 
 	readonly queue: MemoryTransactionQueue;
 
@@ -83,16 +83,6 @@ export class Web3AsyncTx implements WatchCat {
 	constructor(web3: IBcWeb3) {
 		this._web3 = web3;
 		this.queue = new MemoryTransactionQueue(web3);
-	}
-
-	async review(id: string): Promise<PostResult> {
-		var [tx] = await db.select<TxAsync>('tx_async', { id: Number(id) });
-		somes.assert(tx, errno.ERR_WEB3_API_POST_NON_EXIST);
-		if (tx.status < 2)
-			throw Error.new(errno.ERR_WEB3_API_POST_PENDING).ext({ txid: tx.txid, nonce: tx.nonce });
-		// somes.assert(tx.status == 2 || tx.status == 3, errno.ERR_WEB3_API_POST_PENDING);
-		var data = JSON.parse(tx.data || '');
-		return { ...data, id: String(tx.id), tx };
 	}
 
 	private isMatchWorker(from: string) {
@@ -305,6 +295,18 @@ export class Web3AsyncTx implements WatchCat {
 				this._web3.sendSignTransaction({ ...opts, ...e }, before)
 			, opts).then(complete).catch(err);
 		}, cb || tx.cb);
+	}
+
+	// ------------------ public ------------------
+
+	async review(id: string): Promise<PostResult> {
+		var [tx] = await db.select<TxAsync>('tx_async', { id: Number(id) });
+		somes.assert(tx, errno.ERR_WEB3_API_POST_NON_EXIST);
+		if (tx.status < 2)
+			throw Error.new(errno.ERR_WEB3_API_POST_PENDING).ext({ txid: tx.txid, nonce: tx.nonce });
+		// somes.assert(tx.status == 2 || tx.status == 3, errno.ERR_WEB3_API_POST_PENDING);
+		var data = JSON.parse(tx.data || '');
+		return { ...data, id: String(tx.id), tx };
 	}
 
 	async get(address: string, method: string, args?: any[], opts?: Options) {
