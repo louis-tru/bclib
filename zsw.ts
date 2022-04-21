@@ -3,197 +3,111 @@
  * @date 2022-04-13
  */
 
-import fetch from 'node-fetch';
-import {Api, JsonRpc, ApiInterfaces, RpcInterfaces} from 'zswjs';
-import {JsSignatureProvider} from 'zswjs/dist/zswjs-jssig';
+import {Api, JsonRpc as JsonRpcBase, ApiInterfaces, RpcInterfaces} from 'zswjs';
+import {Request, Result} from 'somes/request';
+import {SignatureProvider} from 'zswjs/src/zswjs-api-interfaces';
+import { RpcError } from 'zswjs/src/zswjs-rpcerror';
+import buffer, {Buffer} from 'somes/buffer';
+import {sm2} from 'crypto-tx';
+import * as gm from 'crypto-tx/gm';
+import errno from './errno';
 import {KeysManager} from './keys';
-import buffer from 'somes/buffer';
-import {k1,sm2} from 'crypto-tx';
-import {sha256} from 'somes/hash';
 
 type PushTransactionArgs = RpcInterfaces.PushTransactionArgs;
 type SignatureProviderArgs = ApiInterfaces.SignatureProviderArgs;
 
-async function test() {
-	const rpcURL = 'http://127.0.0.1:3031';
-	const privateKeys = ['PVT_GM_2AThMitUvftLxZvyX4GE8WHqrMftihuKQT7wcmHduMJCkNjgFB'];
-	const actions = [
-		{
-			"account": "zswhq",
-			"name": "newaccount",
-			"data": {
-				"creator": "zsw.admin",
-				"name": "chuxuewenlou",
-				"owner": {
-					"threshold": 1,
-					"keys": [
-						{
-							"key": "PUB_GM_7XYxTKU4fC1h7mtrgMG8wsQzMS5SBoAkXcJ2gZM7kF476CuXCr",
-							"weight": 1
-						}
-					],
-					"accounts": [],
-					"waits": []
-				},
-				"active": {
-					"threshold": 1,
-					"keys": [
-						{
-							"key": "PUB_GM_5jzZrffbUkNWrGrutUPk2xwk3xS56xbSq2kSeGZobwMCLdxnQt",
-							"weight": 1
-						}
-					],
-					"accounts": [],
-					"waits": []
-				}
-			},
-			"authorization": [
-				{
-					"actor": "zsw.admin",
-					"permission": "active"
-				}
-			],
-		},
-		{
-			"account": "zswhq",
-			"name": "buyrambytes",
-			"data": {
-				"payer": "zsw.admin",
-				"receiver": "chuxuewenlou",
-				"bytes": 1000000
-			},
-			"authorization": [
-				{
-					"actor": "zsw.admin",
-					"permission": "active"
-				}
-			]
-		},
-		{
-			"account": "zswhq",
-			"name": "delegatebw",
-			"data": {
-				"from": "zsw.admin",
-				"receiver": "chuxuewenlou",
-				"stake_net_quantity": "100.0000 ZSWCC",
-				"stake_cpu_quantity": "10000.0000 ZSWCC",
-				"transfer": true
-			},
-			"authorization": [
-				{
-					"actor": "zsw.admin",
-					"permission": "active"
-				}
-			]
-		},
-		{
-			"account": "zsw.perms",
-			"name": "setperms",
-			"data": {
-				"sender": "zsw.admin",
-				"scope": "zsw.prmcore",
-				"user": "chuxuewenlou",
-				"perm_bits": 524271
-			},
-			"authorization": [
-				{
-					"actor": "zsw.admin",
-					"permission": "active"
-				}
-			]
-		},
-		{
-			"account": "zswhq.token",
-			"name": "transfer",
-			"data": {
-				"from": "zsw.admin",
-				"to": "chuxuewenlou",
-				"quantity": "10000.0000 ZSWCC",
-				"memo": ""
-			},
-			"authorization": [
-				{
-					"actor": "zsw.admin",
-					"permission": "active"
-				}
-			]
+class RpcFetch extends Request {
+	parseResponseData(buf: Buffer, r: Result) {
+		if (r.statusCode != 200) {
+			throw Error.new(errno.ERR_HTTP_STATUS_NO_200);
 		}
-	];
-	const rpc = new JsonRpc(rpcURL, { fetch });
-	const signatureProvider = new JsSignatureProvider(privateKeys);
-	const api = new Api({ rpc, signatureProvider});
-	const result = await api.transact(
-		{ actions },
-		{
-			blocksBehind: 3,
-			expireSeconds: 30,
-		}
-	);
-
-	return result;
+		var json = buf.toString('utf8');
+		var res = JSON.parse(json);
+		return res;
+	}
 }
 
+export class JsonRpc extends JsonRpcBase {
+	private _fetch: RpcFetch;
 
-// --------------------------------------
-
-import { ec } from 'elliptic';
-
-/** expensive to construct; so we do it once and reuse it */
-const defaultEc = new ec('secp256k1');
-import {
-	PrivateKey,
-	PublicKey,
-	Signature,
-} from 'zswjs/dist/zswjs-key-conversions';
-import { convertLegacyPublicKey } from 'zswjs/dist/zswjs-numeric';
-
-
-export default class ZSWApi extends Api implements ApiInterfaces.SignatureProvider {
-
-	private _keys: KeysManager;
-
-	public keys = new Map<string, ec.KeyPair>();
-	public availableKeys = [] as string[];
-
-	constructor(rpc: string, keys: KeysManager) {
-		super({ rpc: new JsonRpc(rpc, { fetch }), signatureProvider: null as any });
-		this._keys = keys;
-		this.signatureProvider = this;
+	constructor(endpoint: string) {
+		super(endpoint);
+		this._fetch = new RpcFetch(endpoint);
+		this._fetch.urlencoded = false;
 	}
 
-	async getAvailableKeys(): Promise<string[]> { debugger
-		return this.availableKeys;
+	async fetch(path: string, body: any): Promise<any> {
+		try {
+			var {data: json} = await this._fetch.post(path, body);
+			if (json.processed && json.processed.except) {
+					throw new RpcError(json);
+			} else if (json.result && json.result.except) {
+					throw new RpcError(json);
+			}
+			return json;
+		} catch (e: any) {
+			e.isFetchError = true;
+			throw e;
+		}
+	}
+}
+
+export class Signer implements SignatureProvider {
+
+	private _keys: Map<string, Buffer> = new Map;
+	private _availableKeys: string[] = [];
+
+	constructor(privateKeys: string[]) {
+		var _keys = privateKeys.map(e=>buffer.from(e.replace(/^PVT_GM_/, ''), 'base58').slice(0, 32));
+		for (const key of _keys) {
+			var pub = gm.keyToString(sm2.publicKeyCreate(key), 'GM', 'PUB_GM_');
+			this._keys.set(pub, key);
+			this._availableKeys.push(pub);
+		}
 	}
 
-	/** Construct the digest from transaction details */
-	private hash(args: SignatureProviderArgs) {
+	async getAvailableKeys() {
+		return this._availableKeys;
+	}
+
+	static digestData(args: SignatureProviderArgs) {
 		const { chainId, serializedTransaction, serializedContextFreeData } = args;
 		const signBuf = buffer.concat([
 				buffer.from(chainId, 'hex'),
 				buffer.from(serializedTransaction),
 				serializedContextFreeData ?
-					new Uint8Array(k1.ec.hash().update(serializedContextFreeData).digest()) :
+					new Uint8Array(sm2.ec.hash().update(serializedContextFreeData).digest()) :
 					new Uint8Array(32),
 		]);
-		var hash = buffer.from(k1.ec.hash().update(signBuf).digest());
-		// var hash = sha256(signBuf);
-		return hash;
+		var hash = sm2.ec.hash().update(signBuf).digest();
+		return buffer.from(hash);
 	}
 
 	async sign(args: SignatureProviderArgs): Promise<PushTransactionArgs> {
 		const {requiredKeys, serializedTransaction, serializedContextFreeData } = args;
-		const digest = this.hash(args);
+		const digest = Signer.digestData(args);
 
 		const signatures = [] as string[];
 		for (const key of requiredKeys) {
-				const publicKey = PublicKey.fromString(key);
-				const ellipticPrivateKey = this.keys.get(convertLegacyPublicKey(key))!;
-				const privateKey = PrivateKey.fromElliptic(ellipticPrivateKey, publicKey.getType());
-				const signature = privateKey.sign(digest, false);
-				signatures.push(signature.toString());
+			const privKey = this._keys.get(key)!;
+			const pubKeyDataHex = sm2.publicKeyCreate(privKey).toString('hex');
+			const sign = gm.sign(digest, privKey);
+			const signature = buffer.from((pubKeyDataHex + sign + '000000000000000000000000000000000000').substring(0,105*2), 'hex');
+			const signatureStr = gm.keyToString(signature, 'GM', 'SIG_GM_');
+			signatures.push(signatureStr);
 		}
 
 		return { signatures, serializedTransaction, serializedContextFreeData };
+	}
+}
+
+export default class ZSWApi extends Api {
+
+	private _keys: KeysManager;
+
+	constructor(rpc: string, keys: KeysManager) {
+		super({ rpc: new JsonRpc(rpc), signatureProvider: null as any });
+		this._keys = keys;
 	}
 
 }
