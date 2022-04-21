@@ -16,9 +16,6 @@ import db from './db';
 import {WatchCat} from './watch';
 import {web3_tx_dequeue} from './env';
 import local_storage from './storage';
-// import buffer from 'somes/buffer';
-
-// const crypto_tx = require('crypto-tx')
 
 export interface IBcWeb3 extends IWeb3 {
 	readonly tx: Web3AsyncTx;
@@ -157,7 +154,7 @@ export class Web3AsyncTx implements WatchCat {
 			if (tx.contract) {
 				await this._post(tx);
 			} else {
-				await this._sendSignTransaction(tx);
+				await this._send(tx);
 			}
 		}
 	}
@@ -287,7 +284,7 @@ export class Web3AsyncTx implements WatchCat {
 		}, cb || tx.cb);
 	}
 
-	private _sendSignTransaction(tx: TxAsync, cb?: Callback) {
+	private _send(tx: TxAsync, cb?: Callback) {
 		return this._pushTo(tx.id, tx, async (before, complete, err)=>{
 			var opts: TxOptions = JSON.parse(tx.opts);
 
@@ -336,7 +333,8 @@ export class Web3AsyncTx implements WatchCat {
 		return String(id);
 	}
 
-	async sendSignTransaction(opts: TxOptions, cb?: Callback) {
+	// send tx
+	async send(opts: TxOptions, cb?: Callback) {
 		var id = await db.transaction(async db=>{
 			var id = await db.insert('tx_async', {
 				account: opts.from,

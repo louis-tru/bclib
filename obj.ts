@@ -7,13 +7,17 @@ export interface DefaultConstructor<T> {
 	new(): T;
 }
 
-export class StaticObject<T> {
+export class LazyObject<T> {
 
 	private _impl?: T;
 	private _defaultIMPL: DefaultConstructor<T>;
 
 	constructor(defaultIMPL: DefaultConstructor<T>) {
 		this._defaultIMPL = defaultIMPL;
+	}
+
+	get instance() {
+		return this.impl;
 	}
 
 	get impl() {
@@ -28,3 +32,5 @@ export class StaticObject<T> {
 	}
 
 }
+
+export const StaticObject = LazyObject;

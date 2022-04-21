@@ -13,6 +13,7 @@ const cfg = {
 	x_api: 'https://api.cryptoapis.io/v1/bc',
 	x_api_key: '6ca420ec851339a7589675bc06afff846957bb6a',
 	web3: 'http://127.0.0.1:7777',
+	zsw_rpc: 'http://127.0.0.1:3031',
 	enable_strict_keys_permission_check: true,
 	enable_auth: true,
 	moreLog: true,

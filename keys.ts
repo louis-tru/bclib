@@ -33,6 +33,7 @@ export interface ISecretKey {
 	readonly publicKey: IBuffer;
 	readonly address: string;
 	readonly addressBtc: string;
+	getPublicKey(type?: KeyType): IBuffer;
 	offset(offset: number): ISecretKey;
 	derive(part_key: string): ISecretKey;
 	hasUnlock(): boolean;
@@ -146,19 +147,27 @@ export class SecretKey implements ISecretKey {
 		return keystore.encryptPrivateKey(Buffer.from(this.privateKey()), pwd);
 	}
 
-	get publicKey() {
+	get publicKey() { // k1 public key
 		if (!this._publicKey)
 			this._publicKey = crypto_tx.getPublic(this.privateKey());
 		return this._publicKey as IBuffer;
 	}
 
-	get address() {
+	getPublicKey(type?: KeyType) {
+		if (type == KeyType.gm) {
+			return crypto_tx.sm2.publicKeyCreate(this.privateKey());
+		} else {
+			return this.publicKey;
+		}
+	}
+
+	get address() { // k1 address
 		if (!this._address)
 			this._address = crypto_tx.getAddress(this.privateKey()) as string;
 		return this._address as string;
 	}
 
-	get addressBtc() {
+	get addressBtc() { // k1 btc address
 		if (!this._addressBtc)
 			this._addressBtc = (btc.getAddressFromPrivateKey(
 				this.privateKey(), true, false) as IBuffer).toString('base58');
@@ -193,7 +202,7 @@ export interface AccountObj {
 	part_key: string;
 }
 
-export class KeychainManager {
+export class Keychain {
 
 	private _keys: Map<string, SecretKey> = new Map(); // name => key, user root key
 	private _part_key_cache: Map<string, string> = new Map(); // part_key => address
@@ -328,6 +337,12 @@ export class KeychainManager {
 		return address;
 	}
 
+	async hasPartKey(name: string, part_key: string) {
+		part_key = this.getPart_Key(name, part_key);
+		var data = await this._db.selectOne('address_list', { part_key });
+		return !!data;
+	}
+
 	async addressList(name: string) {
 		var list = await this._db.query(`select address from address_list where name=${escape(name)}`);
 		return list.map(e=>e.address as string);
@@ -335,7 +350,7 @@ export class KeychainManager {
 
 	// private _addressCache: Map<string, string> = new Map();
 
-	async address(name: string, part_key?: string, chain?: number) { // get random address
+	async address(name: string, part_key?: string) { // get random address
 		if (part_key) {
 			return await this.genSecretKeyFromPartKey(name, part_key);
 		} else {
@@ -351,7 +366,7 @@ export class KeychainManager {
 	async getSecretKey(addressOrAddressBtc: string) {
 		var r = await this.getAddressIndexed(addressOrAddressBtc);
 		if (r) {
-			return await this._getSecretKeyBy(r.name, r.offset, r.part_key);
+			return await this.getSecretKeyBy(r.name, r.offset, r.part_key);
 		}
 		return null;
 	}
@@ -373,9 +388,8 @@ export class KeychainManager {
 		return null;
 	}
 
-	private async _getSecretKeyBy(name: string, offset: number, part_key: string) {
+	async getSecretKeyBy(name: string, offset: number, part_key: string) {
 		var root = await this.root(name, true);
-
 		if (offset) {
 			return { name, key: root.offset(offset) };
 		} else {
@@ -451,14 +465,14 @@ export class KeychainManager {
 		var k = await this.getAddressIndexed(addressOrAddressBtc as string) as { name: string; offset: number, part_key: string };
 		somes.assert(k && k.name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
 		if (cfg.enable_strict_keys_permission_check) {
-			await this._getSecretKeyBy(k.name, k.offset, k.part_key);
+			await this.getSecretKeyBy(k.name, k.offset, k.part_key);
 		}
 	}
 }
 
 export class KeysManager {
 	private _keys: ISecretKey[];
-	private _keychain = new KeychainManager();
+	private _keychain = new Keychain();
 	private _useSystemPermission = true;
 
 	get useSystemPermission() { return this._useSystemPermission }
@@ -545,7 +559,7 @@ export class KeysManager {
 		var key: ISecretKey | undefined | null;
 		var name = '__system';
 		if (addressOrAddressBtc) {
-			if (addressOrAddressBtc.substr(0, 2) == '0x') { // eth address
+			if (addressOrAddressBtc.substring(0, 2) == '0x') { // eth address
 				key = this._keys.find(e=>e.address == addressOrAddressBtc);
 			} else {// btc
 				key = this._keys.find(e=>e.addressBtc == addressOrAddressBtc);
@@ -559,9 +573,9 @@ export class KeysManager {
 			}
 			somes.assert(key, errno.ERR_KEY_NOT_FOUND);
 
-			return { name, key: key as SecretKey, isDefault: false }; 
+			return { name, key: key as SecretKey, isDefault: false };
 		} else {
-			return { name, key: this._defaultKey, isDefault: true};
+			return { name, key: this._defaultKey, isDefault: true };
 		}
 	}
 
@@ -569,7 +583,7 @@ export class KeysManager {
 		if (this._useSystemPermission) {
 			var key: ISecretKey | undefined;
 			if (addressOrAddressBtc) {
-				if (addressOrAddressBtc.substr(0, 2) == '0x') { // eth address
+				if (addressOrAddressBtc.substring(0, 2) == '0x') { // eth address
 					key = this._keys.find(e=>e.address == addressOrAddressBtc);
 				} else {// btc
 					key = this._keys.find(e=>e.addressBtc == addressOrAddressBtc);

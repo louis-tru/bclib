@@ -5,16 +5,31 @@
 
 import {Api, JsonRpc as JsonRpcBase, ApiInterfaces, RpcInterfaces} from 'zswjs';
 import {Request, Result} from 'somes/request';
-import {SignatureProvider} from 'zswjs/src/zswjs-api-interfaces';
+import {SignatureProvider,TransactResult} from 'zswjs/src/zswjs-api-interfaces';
+import {ReadOnlyTransactResult} from 'zswjs/src/zswjs-rpc-interfaces';
 import { RpcError } from 'zswjs/src/zswjs-rpcerror';
 import buffer, {Buffer} from 'somes/buffer';
-import {sm2} from 'crypto-tx';
+import {k1,sm2, publicToAddress} from 'crypto-tx';
 import * as gm from 'crypto-tx/gm';
 import errno from './errno';
-import {KeysManager} from './keys';
+import somes from 'somes';
+import {KeysManager, KeyType} from './keys';
+import cfg from './cfg';
+import keys from './keys+';
+import {LazyObject} from './obj';
 
 type PushTransactionArgs = RpcInterfaces.PushTransactionArgs;
 type SignatureProviderArgs = ApiInterfaces.SignatureProviderArgs;
+
+export interface Options {
+	from: string;
+	timeout?: number;
+}
+
+export interface From {
+	base: string;
+	name: string;
+}
 
 class RpcFetch extends Request {
 	parseResponseData(buf: Buffer, r: Result) {
@@ -54,20 +69,14 @@ export class JsonRpc extends JsonRpcBase {
 
 export class Signer implements SignatureProvider {
 
-	private _keys: Map<string, Buffer> = new Map;
-	private _availableKeys: string[] = [];
+	private _keys: KeysManager;
 
-	constructor(privateKeys: string[]) {
-		var _keys = privateKeys.map(e=>buffer.from(e.replace(/^PVT_GM_/, ''), 'base58').slice(0, 32));
-		for (const key of _keys) {
-			var pub = gm.keyToString(sm2.publicKeyCreate(key), 'GM', 'PUB_GM_');
-			this._keys.set(pub, key);
-			this._availableKeys.push(pub);
-		}
+	constructor(keys: KeysManager) {
+		this._keys = keys;
 	}
 
 	async getAvailableKeys() {
-		return this._availableKeys;
+		return [];
 	}
 
 	static digestData(args: SignatureProviderArgs) {
@@ -83,17 +92,31 @@ export class Signer implements SignatureProvider {
 		return buffer.from(hash);
 	}
 
+	static parsePublicKey(key: string) {
+		var m = key.match(/^PUB_(GM|K1)_(.+)/)!;
+		somes.assert(m, errno.ERR_ZSW_PUBLIC_KEY_INVALID);
+		somes.assert(m[1] == 'K1', errno.ERR_ONLY_SUPPORT_K1_PUBLIC_KEY);
+		var publicKey = buffer.from(m[2], 'base58').slice(0,32);
+		var address = publicToAddress(publicKey) as string;
+		return {
+			type: KeyType.k1,
+			address,
+			publicKey,
+		};
+	}
+
 	async sign(args: SignatureProviderArgs): Promise<PushTransactionArgs> {
 		const {requiredKeys, serializedTransaction, serializedContextFreeData } = args;
 		const digest = Signer.digestData(args);
 
 		const signatures = [] as string[];
 		for (const key of requiredKeys) {
-			const privKey = this._keys.get(key)!;
-			const pubKeyDataHex = sm2.publicKeyCreate(privKey).toString('hex');
-			const sign = gm.sign(digest, privKey);
+			const {type, address, publicKey} = Signer.parsePublicKey(key)!;
+			const sign = await this._keys.sign(digest, address, type);
+			const pubKeyDataHex = publicKey.toString('hex');
 			const signature = buffer.from((pubKeyDataHex + sign + '000000000000000000000000000000000000').substring(0,105*2), 'hex');
-			const signatureStr = gm.keyToString(signature, 'GM', 'SIG_GM_');
+			const suffix = type == KeyType.gm ? 'GM': 'K1';
+			const signatureStr = gm.keyToString(signature, suffix, `SIG_${suffix}_`);
 			signatures.push(signatureStr);
 		}
 
@@ -101,13 +124,65 @@ export class Signer implements SignatureProvider {
 	}
 }
 
-export default class ZSWApi extends Api {
+export class ZSWApi extends Api {
 
 	private _keys: KeysManager;
 
 	constructor(rpc: string, keys: KeysManager) {
-		super({ rpc: new JsonRpc(rpc), signatureProvider: null as any });
+		super({ rpc: new JsonRpc(rpc), signatureProvider: new Signer(keys) });
 		this._keys = keys;
 	}
 
+	async publicKey(from: From) {
+		const {base, name} = from;
+		var key = await this._keys.keychain.getSecretKeyBy(base, 0, name);
+		const pub = gm.keyToString(key.key.publicKey, 'K1', 'PUB_K1_');
+		return pub;
+	}
+
+	async hasAccount(from: From) {
+		const {base, name} = from;
+		return await this._keys.keychain.hasPartKey(base, name);
+	}
+
+	async genAccount(from: From) {
+		const {base, name} = from;
+		await this._keys.keychain.genSecretKeyFromPartKey(base, name);
+		const pub = await this.publicKey(from);
+		// call zsw api gen account
+		return pub;
+	}
+
+	async post(from: From, to: string, method: string, args?: any) {
+		somes.assert(await this.hasAccount(from), errno.ERR_ZSW_FROM_ACCOUNT_NOT_EXIST);
+		const requiredKeys = [await this.publicKey(from)];
+
+		const actions = [{
+			account: to,
+			name: method,
+			data: args || {},
+			authorization: [{
+				actor: from.name,
+				permission: 'active',
+			}],
+		}];
+
+		await this.transact({actions}, {requiredKeys, readOnlyTrx: true}) as ReadOnlyTransactResult; // try call
+
+		const result = await this.transact({ actions }, {
+			blocksBehind: 3,
+			expireSeconds: 30,
+			requiredKeys, readOnlyTrx: false,
+		}) as TransactResult;
+
+		return result;
+	}
 }
+
+class DefaultZSWApi extends ZSWApi {
+	constructor() {
+		super(cfg.zsw_rpc || 'http://127.0.0.1:3031', keys.instance);
+	}
+}
+
+export default new LazyObject(DefaultZSWApi);

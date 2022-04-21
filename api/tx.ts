@@ -70,9 +70,9 @@ export default class extends APIController {
 		return await web3[chain].tx.post(address, method, args, opts, callback, noTryCall);
 	}
 
-	async sendSignTransaction({chain,tx, callback}: {chain: number, tx: TxOptions, callback?: string}) {
+	async send({chain,tx, callback}: {chain: number, tx: TxOptions, callback?: string}) {
 		await keys.impl.checkPermission(this.userName, tx.from);
-		return await web3[chain].tx.sendSignTransaction(tx, callback);
+		return await web3[chain].tx.send(tx, callback);
 	}
 
 	// sync tx, no enqueue
@@ -85,9 +85,19 @@ export default class extends APIController {
 		return await fn.post(opts);
 	}
 
-	async sendSignTransactionSync({chain,tx}: {chain: number,tx: TxOptions}) {
+	async sendSync({chain,tx}: {chain: number,tx: TxOptions}) {
 		await keys.impl.checkPermission(this.userName, tx.from);
 		return await web3[chain].sendSignTransaction(tx);
+	}
+
+	// extends api
+
+	sendSignTransaction(opts: {chain: number, tx: TxOptions, callback?: string}) {
+		return this.send(opts);
+	}
+
+	sendSignTransactionSync(opts: {chain: number,tx: TxOptions}) {
+		return this.sendSync(opts);
 	}
 
 	sendSignedTransactionSync({chain,serializedTx,opts}: {chain: number, serializedTx: string, opts?: TxOptions}) {
