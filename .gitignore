@@ -19,4 +19,3 @@ var
 tools/aleth/ethereum
 tools/openeth/ethereum
 deps/node_modules
-deps/zswjs

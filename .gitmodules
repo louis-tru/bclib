@@ -16,3 +16,7 @@
 [submodule "node-sqlite3"]
 	path = deps/node-sqlite3
 	url = http://gitlab.stars-mine.com/yuyongpeng/node-sqlite3.git
+
+[submodule "zswjs"]
+	path = deps/zswjs
+	url = http://gitlab.stars-mine.com/chuxuewen/zswjs.git
