@@ -8,7 +8,7 @@ import {createCache} from './utils';
 import cfg from './cfg';
 import keys from './keys+';
 import {IBuffer} from 'somes/buffer';
-import {Signature} from 'web3-tx';
+import {Signature} from 'crypto-tx/sign';
 import {Web3, Contract} from 'web3-tx';
 import {getAbiByAddress} from './abi';
 import {WatchCat} from 'bclib/watch';

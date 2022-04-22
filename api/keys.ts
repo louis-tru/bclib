@@ -25,11 +25,11 @@ export default class extends ApiController {
 	}
 
 	async unlock({pwd}:{pwd: string}) {
-		(await keys.impl.keychain.root(this.userName)).unlock(pwd);
+		await keys.impl.keychain.unlock(this.userName, pwd);
 	}
 
 	async lock() {
-		(await keys.impl.keychain.root(this.userName)).lock();
+		await keys.impl.keychain.lock(this.userName);
 	}
 
 	setPassword({oldPwd, newPwd}: {oldPwd: string, newPwd: string}) {

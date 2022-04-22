@@ -5,7 +5,7 @@
 
 import somes from 'somes';
 import keys from 'somes/keys';
-import {Signature} from 'web3-tx';
+import {Signature} from 'crypto-tx/sign';
 import buffer, {IBuffer} from 'somes/buffer';
 import * as fs from 'somes/fs2';
 import cfg from './cfg';
@@ -17,17 +17,12 @@ import {rng} from 'somes/rng';
 import {escape} from 'somes/db';
 import db from './db';
 import * as crypto_tx from 'crypto-tx';
-import * as gm from 'crypto-tx/gm';
+import {KeyType} from 'crypto-tx/sign';
 import * as crypto_tx_sign from 'crypto-tx/sign';
 
 const btc = require('crypto-tx/btc');
 const keystore = require('crypto-tx/keystore');
 const iv = rng(16);
-
-export enum KeyType {
-	k1 = 0,
-	gm = 1,
-}
 
 export interface ISecretKey {
 	readonly publicKey: IBuffer;
@@ -149,12 +144,12 @@ export class SecretKey implements ISecretKey {
 
 	get publicKey() { // k1 public key
 		if (!this._publicKey)
-			this._publicKey = crypto_tx.getPublic(this.privateKey());
+			this._publicKey = crypto_tx.getPublic(this.privateKey(), true);
 		return this._publicKey as IBuffer;
 	}
 
 	getPublicKey(type?: KeyType) {
-		if (type == KeyType.gm) {
+		if (type == KeyType.GM) {
 			return crypto_tx.sm2.publicKeyCreate(this.privateKey());
 		} else {
 			return this.publicKey;
@@ -175,22 +170,8 @@ export class SecretKey implements ISecretKey {
 	}
 
 	async sign(message: IBuffer, type?: KeyType): Promise<Signature> {
-		if (type == KeyType.gm) { // gm
-			let signature = gm.sign(message, this.privateKey());
-			return Promise.resolve({ signature: buffer.from(signature, 'hex'), recovery: 0 });
-		} else { // k1
-			let signature = crypto_tx.sign(message, this.privateKey());
-			return Promise.resolve({ signature: signature.signature, recovery: signature.recovery });
-		}
+		return crypto_tx_sign.sign(message, this.privateKey(), {type});
 	}
-}
-
-interface keystore_list {
-	id: number;
-	name: string;
-	keystore: string;
-	address: string;
-	offset_size: number;
 }
 
 export interface AccountObj {
@@ -417,6 +398,14 @@ export class Keychain {
 		} else {
 			await this._db.insert('unlock_pwd', { pwd, name });
 		}
+	}
+
+	async unlock(name: string, pwd: string) {
+		(await this.root(name)).unlock(pwd);
+	}
+
+	async lock(name: string) {
+		(await this.root(name)).lock();
 	}
 
 	async root(name: string, tryUnlock?: boolean) {

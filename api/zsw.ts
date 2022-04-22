@@ -4,23 +4,23 @@
  */
 
 import APIController from '../api';
-import zsw from '../zsw';
+import zsw, {Action} from '../zsw';
 
 export default class extends APIController {
 	
-	publicKey({account}: {account:string}) {
-		return zsw.impl.publicKey({base: this.name, name: account});
+	getPublicKey({account}: {account:string}) {
+		return zsw.impl.getPublicKey(this.name, account);
 	}
 
 	hasAccount({account}: {account:string}) {
-		return zsw.impl.hasAccount({base: this.name, name: account});
+		return zsw.impl.hasAccount(this.name, account);
 	}
 
 	genAccount({account}: {account:string}) {
-		return zsw.impl.genAccount({base: this.name, name: account});
+		return zsw.impl.genAccount(this.name, account);
 	}
 
-	post({from, to, method, args}: {from: string, to: string, method: string, args?: any}) {
-		return zsw.impl.post({base: this.name, name: from}, to, method, args);
+	post({actions}: { actions: Action[] }) {
+		return zsw.impl.post(actions, this.name);
 	}
 }
