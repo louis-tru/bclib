@@ -37,8 +37,8 @@ class RpcFetch extends Request {
 	parseResponseData(buf: Buffer, r: Result) {
 		var json = buf.toString('utf8');
 		var res = JSON.parse(json);
-		if (r.statusCode != 200) {
-			throw Error.new(errno.ERR_HTTP_STATUS_NO_200).ext({...res.error, message: res.error.what, name: 'Error'});
+		if (r.statusCode < 200 || r.statusCode > 299) {
+			throw Error.new(errno.ERR_HTTP_STATUS_NO_200).ext({...res.error, message: res.error?.what, name: 'Error'});
 		}
 		return res;
 	}
