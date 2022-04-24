@@ -22,7 +22,6 @@
 		"sqlite3": "file:deps/node-sqlite3",
 		"crypto-tx": "file:deps/crypto-tx",
 		"somes": "file:deps/somes",
-		"web3-tx": "file:deps/web3-tx",
-		"zswjs": "file:deps/zswjs"
+		"web3-tx": "file:deps/web3-tx"
 	}
 }

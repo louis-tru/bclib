@@ -17,7 +17,7 @@ import {rng} from 'somes/rng';
 import {escape} from 'somes/db';
 import db from './db';
 import * as crypto_tx from 'crypto-tx';
-import {KeyType} from 'crypto-tx/sign';
+import {KeyType,Options} from 'crypto-tx/sign';
 import * as crypto_tx_sign from 'crypto-tx/sign';
 
 const btc = require('crypto-tx/btc');
@@ -28,6 +28,7 @@ export interface ISecretKey {
 	readonly publicKey: IBuffer;
 	readonly address: string;
 	readonly addressBtc: string;
+	readonly type: KeyType;
 	getPublicKey(type?: KeyType): IBuffer;
 	offset(offset: number): ISecretKey;
 	derive(part_key: string): ISecretKey;
@@ -35,7 +36,7 @@ export interface ISecretKey {
 	lock(): void;
 	unlock(pwd: string): void;
 	exportKeystore(pwd: string): Promise<object>;
-	sign(message: IBuffer, type?: KeyType): Promise<Signature>;
+	sign(message: IBuffer, opts?: Options): Promise<Signature>;
 }
 
 const default_traitKey = 'b4dd53f2fefde37c07ac4824cf7086465633e3a357daacc3adf16418275a9e51';
@@ -47,8 +48,13 @@ export class SecretKey implements ISecretKey {
 	private _address?: string;
 	private _addressBtc?: string;
 	private _aes256key = rng(32); // random key
+	readonly type: KeyType;
 
-	static keystore(keystore: object) {
+	constructor(type?: KeyType) {
+		this.type = type || KeyType.K1;
+	}
+
+	static keystore(keystore: object, type?: KeyType) {
 		somes.assert(keystore, 'Keystore cannot be empty');
 		/*
 			{
@@ -67,13 +73,13 @@ export class SecretKey implements ISecretKey {
 				"meta":"{}"
 			}
 		*/
-		var key = new SecretKey();
+		var key = new SecretKey(type);
 		key._keystore = keystore;
 		return key;
 	}
 
-	static from(privKey: IBuffer) {
-		return new SecretKey().setPrivKey(privKey);
+	static from(privKey: IBuffer, type?: KeyType) {
+		return new SecretKey(type).setPrivKey(privKey);
 	}
 
 	private setPrivKey(key: IBuffer) {
@@ -142,17 +148,18 @@ export class SecretKey implements ISecretKey {
 		return keystore.encryptPrivateKey(Buffer.from(this.privateKey()), pwd);
 	}
 
-	get publicKey() { // k1 public key
-		if (!this._publicKey)
-			this._publicKey = crypto_tx.getPublic(this.privateKey(), true);
+	get publicKey() {
+		if (!this._publicKey) {
+			this._publicKey = this.getPublicKey(this.type);
+		}
 		return this._publicKey as IBuffer;
 	}
 
-	getPublicKey(type?: KeyType) {
+	getPublicKey(type: KeyType = this.type) {
 		if (type == KeyType.GM) {
 			return crypto_tx.sm2.publicKeyCreate(this.privateKey());
 		} else {
-			return this.publicKey;
+			return crypto_tx.getPublic(this.privateKey(), true);
 		}
 	}
 
@@ -169,8 +176,8 @@ export class SecretKey implements ISecretKey {
 		return this._addressBtc as string;
 	}
 
-	async sign(message: IBuffer, type?: KeyType): Promise<Signature> {
-		return crypto_tx_sign.sign(message, this.privateKey(), {type});
+	async sign(message: IBuffer, opts?: Options): Promise<Signature> {
+		return crypto_tx_sign.sign(message, this.privateKey(), { type: this.type, ...opts });
 	}
 }
 
@@ -347,7 +354,7 @@ export class Keychain {
 	async getSecretKey(addressOrAddressBtc: string) {
 		var r = await this.getAddressIndexed(addressOrAddressBtc);
 		if (r) {
-			return await this.getSecretKeyBy(r.name, r.offset, r.part_key);
+			return await this.getSecretKeyBy_0(r.name, r.offset, r.part_key);
 		}
 		return null;
 	}
@@ -369,14 +376,18 @@ export class Keychain {
 		return null;
 	}
 
-	async getSecretKeyBy(name: string, offset: number, part_key: string) {
+	private async getSecretKeyBy_0(name: string, offset: number, part_key: string) {
 		var root = await this.root(name, true);
 		if (offset) {
 			return { name, key: root.offset(offset) };
 		} else {
-			somes.assert(part_key, '_getSecretKeyBy(), part_key cannot be empty ');
+			somes.assert(part_key, 'getSecretKeyBy_0(), part_key cannot be empty ');
 			return { name, key: root.derive(part_key as string) };
 		}
+	}
+
+	async getSecretKeyBy(name: string, offset: number, part_key: string) {
+		return this.getSecretKeyBy_0(name, offset, part_key ? this.getPart_Key(name, part_key): '')
 	}
 
 	async setPassword(name: string, oldPwd: string, newPwd: string) {
@@ -454,13 +465,13 @@ export class Keychain {
 		var k = await this.getAddressIndexed(addressOrAddressBtc as string) as { name: string; offset: number, part_key: string };
 		somes.assert(k && k.name == keychainName, errno.ERR_NO_ACCESS_KEY_PERMISSION);
 		if (cfg.enable_strict_keys_permission_check) {
-			await this.getSecretKeyBy(k.name, k.offset, k.part_key);
+			await this.getSecretKeyBy_0(k.name, k.offset, k.part_key);
 		}
 	}
 }
 
 export class KeysManager {
-	private _keys: ISecretKey[];
+	readonly defaultKeys: ISecretKey[];
 	private _keychain = new Keychain();
 	private _useSystemPermission = true;
 
@@ -472,7 +483,7 @@ export class KeysManager {
 	}
 
 	constructor(keys_?: ISecretKey[]) {
-		this._keys = keys_ || [];
+		this.defaultKeys = keys_ || [];
 		this._loadCfgKeys();
 	}
 
@@ -483,14 +494,14 @@ export class KeysManager {
 			var strs = keys.parseFile(path) as string[];
 			if (Array.isArray(strs)) {
 				for (var priv of strs) {
-					if (priv.substr(0,2) == '0x') {
+					if (priv.substring(0,2) == '0x') {
 						priv = priv.slice(2); // slice 0x
 					}
 					// add key
 					var privKey = buffer.from(priv, 'hex');
 					var address = crypto_tx.getAddress(privKey);
-					if (!this._keys.find(e=>e.address == address)) {
-						this._keys.push( SecretKey.from(privKey) );
+					if (!this.defaultKeys.find(e=>e.address == address)) {
+						this.defaultKeys.push( SecretKey.from(privKey) );
 					}
 				}
 			}
@@ -504,12 +515,12 @@ export class KeysManager {
 	}
 
 	private _randomIndex() {
-		return somes.random(0, this._keys.length - 1);
+		return somes.random(0, this.defaultKeys.length - 1);
 	}
 
 	private get _defaultKey() {
-		somes.assert(this._keys[0], errno.ERR_NO_DEFAULT_SECRET_KEY);
-		return this._keys[0];
+		somes.assert(this.defaultKeys[0], errno.ERR_NO_DEFAULT_SECRET_KEY);
+		return this.defaultKeys[0];
 	}
 
 	get defauleAddressBtc() {
@@ -521,27 +532,27 @@ export class KeysManager {
 	}
 
 	get publicKeys() {
-		return this._keys.map(e=>e.publicKey);
+		return this.defaultKeys.map(e=>e.publicKey);
 	}
 
 	get addresss() {
-		return this._keys.map(e=>e.address);
+		return this.defaultKeys.map(e=>e.address);
 	}
 
 	get addressBtcs() {
-		return this._keys.map(e=>e.addressBtc);
+		return this.defaultKeys.map(e=>e.addressBtc);
 	}
 
 	get publicKey() {
-		return this._keys[this._randomIndex()].publicKey;
+		return this.defaultKeys[this._randomIndex()].publicKey;
 	}
 
 	get address() {
-		return this._keys[this._randomIndex()].address;
+		return this.defaultKeys[this._randomIndex()].address;
 	}
 
 	get addressBtc() {
-		return this._keys[this._randomIndex()].addressBtc;
+		return this.defaultKeys[this._randomIndex()].addressBtc;
 	}
 
 	async getKey(addressOrAddressBtc?: string) {
@@ -549,9 +560,9 @@ export class KeysManager {
 		var name = '__system';
 		if (addressOrAddressBtc) {
 			if (addressOrAddressBtc.substring(0, 2) == '0x') { // eth address
-				key = this._keys.find(e=>e.address == addressOrAddressBtc);
+				key = this.defaultKeys.find(e=>e.address == addressOrAddressBtc);
 			} else {// btc
-				key = this._keys.find(e=>e.addressBtc == addressOrAddressBtc);
+				key = this.defaultKeys.find(e=>e.addressBtc == addressOrAddressBtc);
 			}
 			if (!key) {
 				var k = await this.keychain.getSecretKey(addressOrAddressBtc);
@@ -573,9 +584,9 @@ export class KeysManager {
 			var key: ISecretKey | undefined;
 			if (addressOrAddressBtc) {
 				if (addressOrAddressBtc.substring(0, 2) == '0x') { // eth address
-					key = this._keys.find(e=>e.address == addressOrAddressBtc);
+					key = this.defaultKeys.find(e=>e.address == addressOrAddressBtc);
 				} else {// btc
-					key = this._keys.find(e=>e.addressBtc == addressOrAddressBtc);
+					key = this.defaultKeys.find(e=>e.addressBtc == addressOrAddressBtc);
 				}
 				// can use system permission
 			} else {
@@ -591,9 +602,9 @@ export class KeysManager {
 		return !(await this.getKey(addressOrAddressBtc)).isDefault;
 	}
 
-	async sign(message: IBuffer, from?: string, type?: KeyType): Promise<Signature> {
+	async sign(message: IBuffer, from?: string, opts?: Options): Promise<Signature> {
 		var _key = await this.getKey(from);
-		var signature = await _key.key.sign(message, type);
+		var signature = await _key.key.sign(message, opts);
 		return {
 			signature: buffer.from(signature.signature),
 			recovery: signature.recovery,
