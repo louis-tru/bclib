@@ -216,9 +216,9 @@ export class Web3AsyncTx implements WatchCat {
 						errno_web3z.ERR_SOLIDITY_EXEC_ERROR, // 合约执行错误
 						errno_web3z.ERR_INSUFFICIENT_FUNDS_FOR_TX, // insufficient funds for transaction
 						errno_web3z.ERR_GAS_REQUIRED_LIMIT, // gas limit
-						error.ERR_ETH_TRANSACTION_DISCARD, // 丢弃交易
+						errno.ERR_ETH_TRANSACTION_DISCARD, // 丢弃交易
 						errno.ERR_STAR_ADDRESS_NOT_FOUND, // 协议地址未定义
-						error.ERR_GET_ABI_NOT_FOUND, // abi不存在
+						errno.ERR_GET_ABI_NOT_FOUND, // abi不存在
 						errno.ERR_ETH_CONTRACT_METHOD_NO_EXIST, // 协约方法不存在
 						errno.ERR_ETH_CONTRACT_METHOD_ARGS_ERR, // 协约参数错误
 					];
