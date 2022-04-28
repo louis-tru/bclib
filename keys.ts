@@ -559,7 +559,8 @@ export class KeysManager {
 		var key: ISecretKey | undefined | null;
 		var name = '__system';
 		if (addressOrAddressBtc) {
-			if (addressOrAddressBtc.substring(0, 2) == '0x') { // eth address
+			const isEth = addressOrAddressBtc.substring(0, 2) == '0x';
+			if (isEth) { // eth address
 				key = this.defaultKeys.find(e=>e.address == addressOrAddressBtc);
 			} else {// btc
 				key = this.defaultKeys.find(e=>e.addressBtc == addressOrAddressBtc);
@@ -571,7 +572,9 @@ export class KeysManager {
 					key = k.key;
 				}
 			}
+			
 			somes.assert(key, errno.ERR_KEY_NOT_FOUND);
+			somes.assert((isEth ? key!.address: key!.addressBtc) == addressOrAddressBtc, errno.ERR_ADDRESS_NOT_MATCH_PRIV_KEY);
 
 			return { name, key: key as SecretKey, isDefault: false };
 		} else {
