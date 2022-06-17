@@ -4,20 +4,18 @@
  */
 
 import somes from 'somes';
-import {Console as ConsoleBase} from 'somes/log';
+import {Console as Log} from 'somes/log';
 import paths from './paths';
 import cfg from './cfg';
 import { exec } from 'somes/syscall';
-import { workers } from './env';
+import { workers, type } from './env';
 
-export class UncaughtException extends ConsoleBase {
+export class UncaughtException extends Log {
 
 	private _abortOnUncaughtException = false;
 
 	constructor(path?: string) {
-		super(
-			path || (workers ? `${paths.var}/${cfg.name}_${workers.id}.log`: `${paths.var}/${cfg.name}.log`)
-		);
+		super(path || `${paths.var}/${cfg.name}.log`, type + '-' + (workers?.id || 0));
 		somes.onUncaughtException.on((e)=>this._Err(e.data));
 		somes.onUnhandledRejection.on((e)=>this._Err(e.data.reason));
 	}
@@ -37,6 +35,11 @@ export class UncaughtException extends ConsoleBase {
 			} catch(err) {}
 			await somes.sleep(1e3);
 		}
+	}
+
+	fault(msg: any, ...args: any[]) {
+		// warning email
+		return super.fault(msg, ...args);
 	}
 
 	private reportException(tty: string, err: any): void {
