@@ -3,6 +3,7 @@ import somes from 'somes';
 
 const cfg = {
 	name: 'bclib',
+	type: 'web',
 	var: '/data/bclib/var',
 	server: { port: 8000, host: '127.0.0.1' },
 	chain: 'http://chainapi-dev.stars-mine.com/v1',
