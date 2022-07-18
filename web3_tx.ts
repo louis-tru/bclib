@@ -14,7 +14,7 @@ import {callbackTask} from './utils';
 import {workers} from './env';
 import db from './db';
 import {WatchCat} from './watch';
-import {web3_tx_dequeue} from './env';
+import {tx_dequeue} from './env';
 import local_storage from './storage';
 
 export interface IBcWeb3 extends IWeb3 {
@@ -87,7 +87,7 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	private async _Dequeue() {
-		if (!web3_tx_dequeue) return;
+		if (!tx_dequeue) return;
 
 		var offset = 0;
 		while (this._sendTransactionExecuting.size < this._sendTransactionExecutingLimit) {

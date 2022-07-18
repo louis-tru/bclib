@@ -29,6 +29,7 @@ export class LazyObject<T> {
 
 	set_impl(impl: T) {
 		this._impl = impl;
+		return this._impl;
 	}
 
 }

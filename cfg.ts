@@ -34,6 +34,7 @@ const cfg = {
 	filesSecurityKey: '0xedc86f52e40fb6f031dd429e24c42a1901ee522654cb23a3b51e98aabe7d2d3b',
 	qiniu: undefined as { scope: string, zone: string, accessKey: string, secretKey: string } | undefined,
 	fastStart: false,
+	redis: 'redis://127.0.0.1:6379/0', // redis cfg
 };
 
 export default cfg;

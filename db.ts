@@ -11,10 +11,11 @@ import cfg from './cfg';
 var _default: DatabaseTools = new sqlite.SQLiteTools(`${paths.var}/bclib.db`);
 
 export function initialize(db?: DatabaseTools) {
-	if (db)
+	if (db) {
 		exports.default = _default = db;
-	else
+	} else {
 		db = _default;
+	}
 
 	if (cfg.fastStart) {
 		return db.load(``, [], [], 'bclib');
