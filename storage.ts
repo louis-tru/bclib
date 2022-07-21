@@ -31,15 +31,15 @@ export class Storage implements IStorage {
 		], 'bclib/storage');
 	}
 
-	async get(kkey: string, defaultValue?: any) {
+	async get<T = any>(kkey: string, defaultValue?: T) {
 		var its = await this.db.select('storage', {kkey}, {limit:1});
 		if (its.length) {
-			return JSON.parse(its[0].value);
+			return JSON.parse(its[0].value) as T;
 		} else {
 			if (defaultValue !== undefined) {
 				await this.set(kkey, defaultValue);
-				return defaultValue;
 			}
+			return defaultValue as T;
 		}
 	}
 
