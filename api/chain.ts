@@ -9,7 +9,7 @@ import {BlockNumber} from 'web3-core/types';
 
 export default class extends ApiController {
 
-	private _web3() { return web3s[Number(this.params.chain || this.headers.chain) || 1] };
+	protected _web3() { return web3s[Number(this.params.chain || this.headers.chain) || 1] };
 
 	onAuth() {
 		return Promise.resolve(true);
