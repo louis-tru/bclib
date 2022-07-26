@@ -49,7 +49,7 @@ export class Daemon {
 		do {
 			try {
 				var oldpid = String(await localStorage.get(`${this._name}_pid`, 0));
-				if (oldpid) {
+				if (oldpid != '0') {
 					if (process.platform == 'win32') {
 						await spawn('taskkill', ['/pid', oldpid]);
 					} else {
