@@ -59,17 +59,17 @@ export class Storage implements IStorage {
 		} else { // mysql
 			var ok = await this.db.update('storage', { value }, { kkey });
 			if (!ok) {
-				this.db.insert('storage', { value: value, kkey });
+				await this.db.insert('storage', { value: value, kkey });
 			}
 		}
 	}
 
 	async delete(kkey: string) {
-		this.db.delete('storage', { kkey });
+		await this.db.delete('storage', { kkey });
 	}
 
 	async clear() {
-		this.db.delete('storage');
+		await this.db.delete('storage');
 	}
 
 }
