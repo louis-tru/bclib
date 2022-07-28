@@ -17,12 +17,14 @@ import {List} from 'somes/event';
 import {workers} from './env';
 import path from 'somes/path';
 import cfg from './cfg';
+import uuid from 'somes/hash/uuid';
 
 var _server: LockServer | null = null;
 var _client: WSClient | null = null;
 
 class LockServer extends ServerIMPL {
-	private _scopeLockQueue = new Map<any, List<{lockOk: ()=>void, waitUnlock: ()=>Promise<void>}>>();
+	private _scopeLockQueue = new Map<string, List<{ lockOk: (id: string)=>void, waitUnlock: ()=>Promise<void>, id: string }>>();
+	private _locks = new Map<string, ()=>void>();
 
 	constructor(port: number, host: string) {
 		super({
@@ -44,55 +46,53 @@ class LockServer extends ServerIMPL {
 		let item = queue.first;
 		while( item ) {
 			let val = item.value;
-			val.lockOk();
+			val.lockOk(val.id);
 			await val.waitUnlock();
 			item = item.next;
 		}
 		this._scopeLockQueue.delete(mutex);
 	}
 
-	lock(conv: ConversationBasic, mutex: string) {
+	lock(conv: ConversationBasic, mutex: string): Promise<string> {
 		somes.assert(mutex, '#LockServer#scopeLock Bad argument');
-		return new Promise<void>((lockOk)=>{
-
-			let id = `_unlock_${mutex}`;
-			let unlockOk: (()=>void) | null = null;
-			//let timeout: any;
+		return new Promise<string>((lockOk)=>{
+			let self = this;
+			let id = uuid();
+			let unlockOk = ()=>{};
+			let timeout: any;
 			let isUnlock = false;
 
-			function unlock() {debugger
+			function unlock() {
 				isUnlock = true;
-				delete (conv as any)[id];
+				self._locks.delete(id);
 				conv.onClose.off(id);
-				if (unlockOk) {
-					unlockOk();
-					//clearTimeout(timeout);
-				}
+				clearTimeout(timeout);
+				unlockOk();
 			}
 
-			function waitUnlock() {debugger
+			function waitUnlock() {
 				if (isUnlock) {
 					return Promise.resolve();
 				} else {
-					//timeout = setTimeout(unlock, 180 * 1e3); // 180s
+					timeout = setTimeout(unlock, 180 * 1e3); // 180s
 					return new Promise<void>(r=>(unlockOk = r));
 				}
 			}
 
 			conv.onClose.on(unlock, id);
-			(conv as any)[id] = unlock;
+			this._locks.set(id, unlock);
 
 			if (this._scopeLockQueue.has(mutex)) {
-				this._scopeLockQueue.get(mutex)!.push({lockOk, waitUnlock});
+				this._scopeLockQueue.get(mutex)!.push({lockOk, waitUnlock, id});
 			} else {
-				this._scopeLockQueue.set(mutex, new List<any>().push({lockOk, waitUnlock}).host!);
+				this._scopeLockQueue.set(mutex, new List<any>().push({lockOk, waitUnlock, id}).host!);
 				this.lockDequeue(mutex); // dequeue
 			}
 		});
 	}
 
-	unlock(conv: ConversationBasic, mutex: string) {
-		let unlock = (conv as any)[`_unlock_${mutex}`];
+	unlock(id: string) {
+		let unlock = this._locks.get(id);
 		if (unlock) {
 			unlock();
 		}
@@ -106,14 +106,14 @@ class LockServer extends ServerIMPL {
 }
 
 class LockService extends WSService {
-	initialize() {
+	initialize() {``
 		/* noop */
 	}
 	lock({hash}: {hash: string}) {
 		return (this.server as LockServer).lock(this.conv, hash);
 	}
-	unlock({hash}: {hash: string}) {
-		return (this.server as LockServer).unlock(this.conv, hash);
+	unlock({id}: {id: string}) {
+		return (this.server as LockServer).unlock(id);
 	}
 }
 
@@ -127,7 +127,7 @@ export async function initializeClient(url = 'http://127.0.0.1:9801/') {
 	somes.assert(!_client, errno.ERR_ATOMIC_LOCK_CLIENT_INITIALIZE);
 	let conv = new WSConversation(url);
 	conv.onClose.on(()=>console.error('Atomic lock, Connection accidental disconnection'));
-	conv.keepAliveTime = 5e3; // 5s;
+	conv.keepAliveTime = 5e4; // 50s;
 	conv.autoReconnect = 50; // 50ms
 	_client = new WSClient('lock', conv);
 	await _client.call('initialize');
@@ -137,14 +137,14 @@ export async function scopeLock<R>(mutex: any, cb: ()=>Promise<R>|R): Promise<R>
 	somes.assert(_client, errno.ERR_ATOMIC_LOCK_CLIENT_NOT_INITIALIZE);
 	let cli = _client!;
 	let hash = somes.hash(mutex);
+	let id = 0;
 	try {
-		await cli.call('lock', {hash});
-		let r = await cb();
-		cli.call('unlock', {hash});
-		return r;
-	} catch(err) {
-		cli.call('unlock', {hash});
-		throw err;
+		id = await cli.call('lock', {hash});
+		return await cb();
+	} finally {
+		if (id) {
+			cli.call('unlock', {id});
+		}
 	}
 }
 
