@@ -1,6 +1,6 @@
 [submodule "somes"]
 	path = deps/somes
-	url = http://gitlab.stars-mine.com/hardware/somes.git
+	# url = http://gitlab.stars-mine.com/hardware/somes.git
 	url = https://gitlab.com/louis-tru/somes.git
 
 [submodule "crypto-tx"]
