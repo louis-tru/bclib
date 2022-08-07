@@ -35,6 +35,7 @@ const cfg = {
 	qiniu: undefined as { scope: string, zone: string, accessKey: string, secretKey: string } | undefined,
 	fastStart: false,
 	redis: 'redis://127.0.0.1:6379/0', // redis cfg
+	atomicLock: 'http://127.0.0.1:9801', // atomic lock service
 };
 
 export default cfg;
