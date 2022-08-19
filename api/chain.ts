@@ -48,7 +48,7 @@ export default class extends ApiController {
 
 	getBlock(
 		{blockNumber, returnTransactionObjects = false}: 
-		{blockNumber: BlockNumber, returnTransactionObjects?: boolean}
+		{blockNumber: BlockNumber, returnTransactionObjects?: false}
 	) { return this._web3().eth.getBlock(blockNumber, returnTransactionObjects); }
 
 	getBlockUncleCount(
