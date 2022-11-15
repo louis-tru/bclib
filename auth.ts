@@ -203,6 +203,12 @@ export class AuthorizationManager {
 		await this._SetCache(name, null);
 	}
 
+	async removeAuthorizationUserCopty(name: string) {
+		await this._cache.set(name, null);
+		await this._SetCache(name, null);
+		var user = await this._cache.get(name);
+	}
+
 	// ---- Authorization auth ----
 
 	private _request_auth_key = { value: '', st: 0, };
