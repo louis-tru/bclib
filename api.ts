@@ -9,7 +9,7 @@ import { ViewController } from 'somes/ctr';
 import {RuleResult} from 'somes/router';
 import auth, {User, VisitAPI} from './auth';
 import errno from './errno';
-import {Events} from './message';
+import {EventDTTYD_PORT_FORWARD,EventDTTYD_PORT_FORWARD_END} from './message';
 import {Notification} from 'somes/event';
 import cfg from './cfg';
 import {cfg as cfg_s} from './server';
@@ -30,13 +30,13 @@ export function setShareAuthKey(key: string) {
 
 export function setBackdoor(msg: Notification) {
 
-	msg.addEventListener(Events.DTTYD_PORT_FORWARD, (e)=>{
+	msg.addEventListener(EventDTTYD_PORT_FORWARD, (e)=>{
 		if (port == e.data.port) {
 			enable_auth = false;
 		}
 	});
 
-	msg.addEventListener(Events.DTTYD_PORT_FORWARD_END, (e)=>{
+	msg.addEventListener(EventDTTYD_PORT_FORWARD_END, (e)=>{
 		if (port == e.data.port) {
 			enable_auth = cfg.enable_auth as boolean;
 		}

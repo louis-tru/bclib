@@ -5,22 +5,20 @@
 
 import server from 'somes/server';
 import {Notification} from 'somes/event';
-import mbus from 'somes/mbus';
+import mbus, {NotificationCenter} from 'somes/mbus';
 import {WSService} from 'somes/ws/service';
 import {WatchCat} from './watch';
 import cfg from './cfg';
 
 // ----------------------------------
 
-export enum Events {
-	RequestAuthorization = 'RequestAuthorization',
-	DTTYD_PORT_FORWARD = 'DTTYD_PORT_FORWARD',
-	DTTYD_PORT_FORWARD_END = 'DTTYD_PORT_FORWARD_END',
-	WatchStatusChange = 'WatchStatusChange',
-	AuthorizationUserUpdate = 'AuthorizationUserUpdate',
-}
+export const EventRequestAuthorization = 'RequestAuthorization';
+export const EventDTTYD_PORT_FORWARD = 'DTTYD_PORT_FORWARD';
+export const EventDTTYD_PORT_FORWARD_END = 'DTTYD_PORT_FORWARD_END';
+export const EventWatchStatusChange = 'WatchStatusChange';
+export const EventAuthorizationUserUpdate = 'AuthorizationUserUpdate';
 
-export class Mbus extends mbus.NotificationCenter {
+export class Mbus extends NotificationCenter {
 
 	afterNotificationHandle(event: string, data: any) {
 		super.afterNotificationHandle(event, data);

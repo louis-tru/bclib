@@ -11,7 +11,7 @@ import buffer from 'somes/buffer';
 import db from './db';
 import {StaticObject} from './obj';
 import {Notification} from 'somes/event';
-import {Events} from './message';
+import {EventAuthorizationUserUpdate} from './message';
 
 export enum AuthorizationKeyType {
 	rsa = 'rsa', secp256k1 = 'secp256k1'
@@ -80,7 +80,7 @@ export class AuthorizationManager {
 	private async _SetCache(name: string, user: User | null) {
 		await this._cache.set(name, user);
 		if (this._msg) {
-			this._msg.trigger(Events.AuthorizationUserUpdate, {name, user});
+			this._msg.trigger(EventAuthorizationUserUpdate, {name, user});
 		}
 	}
 
@@ -93,7 +93,7 @@ export class AuthorizationManager {
 		// }
 		this._cache = new DefaultCacheIMPL();
 		if (msg) {
-			msg.addEventListener(Events.AuthorizationUserUpdate, ({data})=>{
+			msg.addEventListener(EventAuthorizationUserUpdate, ({data})=>{
 				if (data.name) {
 					this._cache.set(data.name, data.user);
 				}

@@ -34,6 +34,7 @@ export class ErrnoList extends SysErrnoList {
 	ERR_ADDRESS_IS_EMPTY: ErrnoCode = [100280, 'ERR_ADDRESS_IS_EMPTY', 'address or from account is empty']
 	ERR_APPLICATION_FOUND: ErrnoCode = [100265, '找不到应用程序']
 	ERR_BAD_AUTH_USER_MODE: ErrnoCode = [100266, 'ERR_AUTH_USER_MODE_BAD']
+	// ----
 	ERR_QINIU_UPLOAD_ERR: ErrnoCode = [110000, 'ERR_QINIU_UPLOAD_ERR']
 	ERR_NO_QINIU_CONFIG: ErrnoCode = [110001, 'ERR_NO_QINIU_CONFIG']
 	ERR_REPEAT_LOAD_SQLITE: ErrnoCode = [110002, 'ERR_REPEAT_LOAD_SQLITE']
@@ -50,6 +51,11 @@ export class ErrnoList extends SysErrnoList {
 	ERR_ADDRESS_NOT_MATCH_PRIV_KEY: ErrnoCode = [110012, 'ERR_ADDRESS_NOT_MATCH_PRIV_KEY']
 	ERR_ATOMIC_LOCK_CLIENT_INITIALIZE: ErrnoCode = [110013, 'ERR_ATOMIC_LOCK_CLIENT_INITIALIZE']
 	ERR_ATOMIC_LOCK_CLIENT_NOT_INITIALIZE: ErrnoCode = [110014, 'ERR_ATOMIC_LOCK_CLIENT_NOT_INITIALIZE']
+	// Tasks
+	ERR_TASK_STEP_EXEC_TIMEOUIT: ErrnoCode = [110015, `任务执行超时`]
+	ERR_TASK_ALREADY_EXISTS: ErrnoCode = [110016, `任务已经存在`]
+	ERR_TASK_NOT_EXISTS: ErrnoCode = [110017, `任务不存在`]
+	ERR_TASK_BEEN_CLOSED: ErrnoCode = [110018, `任务已经关闭`]
 }
 
 export default new ErrnoList;

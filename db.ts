@@ -10,7 +10,7 @@ import cfg from './cfg';
 
 var _default: DatabaseTools = new sqlite.SQLiteTools(`${paths.var}/bclib.db`);
 
-export function initialize(db?: DatabaseTools) {
+export async function initialize(db?: DatabaseTools) {
 	if (db) {
 		exports.default = _default = db;
 	} else {
@@ -18,10 +18,11 @@ export function initialize(db?: DatabaseTools) {
 	}
 
 	if (cfg.fastStart) {
-		return db.load(``, [], [], 'bclib');
+		await db.load(``, [], [], 'bclib');
+		return;
 	}
 
-	return db.load(`
+	await db.load(`
 		CREATE TABLE if not exists callback_url (
 			id           INT PRIMARY KEY AUTO_INCREMENT,
 			url          varchar (255) not null,
@@ -83,6 +84,37 @@ export function initialize(db?: DatabaseTools) {
 		'create        index auth_user_mode  on auth_user(mode)',
 		'create unique index tx_async_queue_idx0 on tx_async_queue(tx_async_id)',
 	], 'bclib');
+
+	await db.load(`
+		create table if not exists tasks (
+			id           int primary        key auto_increment, -- 主键id
+			name         varchar (64)                 not null, -- 任务名称, MekeDAO#Name
+			args         json,                                  -- 执行参数数据
+			data         json,                                  -- 成功或失败的数据 {data, error}
+			step         int          default (0)     not null, -- 当前执行步骤
+			stepTime     bigint       default (0)     not null, -- 当前执行步骤的超时时间,可用于执行超时检查
+			user         varchar (64) default ('')    not null, -- 与用户的关联,完成后可以通知到客户端
+			state        int          default (0)     not null, -- 0进行中,1完成,2失败
+			time         bigint                       not null
+		);
+		create table if not exists events (
+			id                   int primary        key auto_increment, -- 主键id
+			host                 varchar (64)                 not null, -- dao host or self address
+			title                varchar (64)                 not null, --
+			description          varchar (4096)               not null,
+			created_member_id    varchar (72)    default ('') not null,  -- 创建人成员id
+			chain                int                          not null,
+			state                int             default (0)  not null, -- 0正常,1删除
+			time                 bigint                       not null,
+			modify               bigint                       not null
+		);
+		`, [], [
+		`create         index tasks_idx0    on    tasks          (name,state)`,
+		`create         index tasks_idx1    on    tasks          (name)`,
+		`create         index tasks_idx2    on    tasks          (state)`,
+		`create         index tasks_idx3    on    tasks          (user)`,
+		`create         index events_idx0    on   events         (chain,host,title)`,
+	], `bclib-task`);
 }
 
 export default _default;
