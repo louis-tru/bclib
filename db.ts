@@ -97,23 +97,11 @@ export async function initialize(db?: DatabaseTools) {
 			state        int          default (0)     not null, -- 0进行中,1完成,2失败
 			time         bigint                       not null
 		);
-		create table if not exists events (
-			id                   int primary        key auto_increment, -- 主键id
-			host                 varchar (64)                 not null, -- dao host or self address
-			title                varchar (64)                 not null, --
-			description          varchar (4096)               not null,
-			created_member_id    varchar (72)    default ('') not null,  -- 创建人成员id
-			chain                int                          not null,
-			state                int             default (0)  not null, -- 0正常,1删除
-			time                 bigint                       not null,
-			modify               bigint                       not null
-		);
 		`, [], [
 		`create         index tasks_idx0    on    tasks          (name,state)`,
 		`create         index tasks_idx1    on    tasks          (name)`,
 		`create         index tasks_idx2    on    tasks          (state)`,
 		`create         index tasks_idx3    on    tasks          (user)`,
-		`create         index events_idx0    on   events         (chain,host,title)`,
 	], `bclib-task`);
 }
 

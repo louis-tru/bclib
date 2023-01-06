@@ -61,7 +61,7 @@ export default class extends ViewController {
 
 	async res({ pathname }: { pathname: string }) {
 		var ext = path.extname(pathname);
-		var name = pathname.substr(0, pathname.length - ext.length);
+		var name = pathname.substring(0, pathname.length - ext.length);
 		pathname = paths.res + '/' + name;
 		if (await fs.exists(`${pathname}.mime`)) {
 			this.returnFile(pathname + ext, await fs.readFile(`${pathname}.mime`) + '');
