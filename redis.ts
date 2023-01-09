@@ -53,7 +53,11 @@ async function test() {
 	console.log(a, b, c);
 }
 
-export async function initialize() {
+export async function fulushAll() {
+	await redis.sendCommand(['FLUSHALL']);
+}
+
+export async function initialize(isClean?: boolean) {
 
 	redis.on('error', (err:any) =>console.warn('Redis', err.message));
 	redis.on('connect', () =>console.log('Redis connect'));
@@ -61,6 +65,8 @@ export async function initialize() {
 
 	await redis.connect();
 
+	if (isClean) {
+		await fulushAll();
+	}
 	// test();
-
 }
