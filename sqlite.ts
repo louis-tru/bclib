@@ -286,7 +286,7 @@ export class SQLiteTools implements DatabaseTools {
 		if (json) {
 			var r;
 			if (is_where_object) {
-				r = await this.m_db.get2(`select _json from ${table} where ${exp2.join(' and ')}`, values2);
+				r = await this.m_db.get2(`select _json from ${table} where ${exp2!.join(' and ')}`, values2!);
 			} else {
 				r = await this.m_db.get2(`select _json from ${table} where ${where}`);
 			}
@@ -300,8 +300,8 @@ export class SQLiteTools implements DatabaseTools {
 			}
 		}
 		if (is_where_object) {
-			var sql = `update ${table} set ${exp.join(',')} where ${exp2.join(' and ')}`;
-			await this._Exec(sql, Object.assign(values, values2));
+			var sql = `update ${table} set ${exp.join(',')} where ${exp2!.join(' and ')}`;
+			await this._Exec(sql, Object.assign(values, values2!));
 		} else {
 			var sql = `update ${table} set ${exp.join(',')} where ${where}`;
 			await this._Exec(sql, values);
