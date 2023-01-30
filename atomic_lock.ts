@@ -39,7 +39,7 @@ class LockServer extends ServerIMPL {
 			formHash: 'sha256',
 		});
 
-		service.set('lock', LockService);
+		service.set('atomic_lock', LockService);
 	}
 
 	private async lockDequeue(mutex: any): Promise<void> {
@@ -107,13 +107,13 @@ class LockServer extends ServerIMPL {
 }
 
 class LockService extends WSService {
-	initialize() {``
-		/* noop */
-	}
+	initialize() { /* noop */ }
 	lock({hash}: {hash: string}) {
+		//somes.assert(this.server instanceof LockServer, '#LockService#lock disable call');
 		return (this.server as LockServer).lock(this.conv, hash);
 	}
 	unlock({id}: {id: string}) {
+		//somes.assert(this.server instanceof LockServer, '#LockService#unlock disable call');
 		return (this.server as LockServer).unlock(id);
 	}
 }
@@ -130,7 +130,7 @@ export async function initializeClient(url = 'http://127.0.0.1:9801/') {
 	conv.onClose.on(()=>console.error('Atomic lock, Connection accidental disconnection'));
 	conv.keepAliveTime = 5e4; // 50s;
 	conv.autoReconnect = 50; // 50ms
-	_client = new WSClient('lock', conv);
+	_client = new WSClient('atomic_lock', conv);
 	await _client.call('initialize');
 }
 
