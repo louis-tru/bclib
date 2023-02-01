@@ -51,7 +51,7 @@ export class BcWeb3 extends Web3 implements IBcWeb3, WatchCat {
 
 	getBlockNumber() {
 		var fn = createCache(this._FetchBlockNumber, {
-			cacheTime: 1e4, timeout: 1e4, id: '__getBlockNumber_' + this.provider.rpc,
+			cacheTime: 2e3, timeout: 1e4, id: '__getBlockNumber_' + this.provider.rpc,
 		});
 		return fn();
 	}
