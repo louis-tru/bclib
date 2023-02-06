@@ -583,6 +583,7 @@ export class KeysManager {
 	}
 
 	async checkPermission(keychainName: string, addressOrAddressBtc?: string) {
+		console.log("this._useSystemPermission------",this._useSystemPermission);
 		if (this._useSystemPermission) {
 			var key: ISecretKey | undefined;
 			if (addressOrAddressBtc) {
@@ -598,6 +599,7 @@ export class KeysManager {
 			if (key)
 				return; // check ok
 		}
+		console.log("this._useSystemPermission1111111111111------",keychainName,addressOrAddressBtc);
 		await this.keychain.checkPermission(keychainName, addressOrAddressBtc);
 	}
 
