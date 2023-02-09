@@ -8,7 +8,6 @@
 import somes from 'somes';
 import paths from './paths';
 import {ServerIMPL} from 'somes/server';
-import service from 'somes/service';
 import {WSService} from 'somes/ws/service';
 import {WSConversation, WSClient} from 'somes/ws/cli';
 import {ConversationBasic} from 'somes/ws/_conv';
@@ -39,7 +38,7 @@ class LockServer extends ServerIMPL {
 			formHash: 'sha256',
 		});
 
-		service.set('atomic_lock', LockService);
+		this.setService('atomic_lock', LockService);
 	}
 
 	private async lockDequeue(mutex: any): Promise<void> {
