@@ -17,7 +17,7 @@ export const cfg = {
 	root: `${__dirname}/../../public`,
 	port: 8000,
 	host: '127.0.0.1',
-	autoIndex: !prod,
+	autoIndex: cfg_.autoIndex,
 	printLog: true,
 	defaults: ['index.html', 'index.htm', 'default.html'],
 	maxFileSize:        1024 * 1024 * 1024, // 1024MB
