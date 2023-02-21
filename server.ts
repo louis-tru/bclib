@@ -26,6 +26,8 @@ export const cfg = {
 	router: [] as any[],
 	timeout: 180 * 1e3, // 180s
 	formHash: 'sha256',
+	tryFiles: '',
+	trySuffixs: '',
 };
 
 Object.assign(cfg, cfg_.server);
