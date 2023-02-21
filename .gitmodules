@@ -1,21 +1,21 @@
 [submodule "somes"]
 	path = deps/somes
-	url = http://gitlab.stars-mine.com/hardware/somes.git
-	url = https://gitlab.com/louis-tru/somes.git
+	# url = http://gitlab.stars-mine.com/hardware/somes.git
+	url = https://github.com/louis-tru/somes.git
 
 [submodule "crypto-tx"]
 	path = deps/crypto-tx
 	# url = http://gitlab.stars-mine.com/hardware/crypto-tx.git
 	# url = https://github.com/louis-tru/crypto-tx.git
-	url = https://gitlab.com/louis-tru/crypto-tx.git
+	url = https://github.com/louis-tru/crypto-tx.git
 
 [submodule "web3-tx"]
 	path = deps/web3-tx
 	# url = http://gitlab.stars-mine.com/hardware/web3-tx.git
 	# url = https://github.com/louis-tru/web3z.git
-	url = https://gitlab.com/louis-tru/web3-tx.git
+	url = https://github.com/louis-tru/web3-tx.git
 
 [submodule "node-sqlite3"]
 	path = deps/node-sqlite3
 	# url = http://gitlab.stars-mine.com/yuyongpeng/node-sqlite3.git
-	url = https://gitlab.com/louis-tru/node-sqlite3.git
+	url = https://github.com/louis-tru/node-sqlite3.git
