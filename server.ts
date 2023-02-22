@@ -3,7 +3,6 @@
  * @date 2020-11-28
  */
 
-import {prod} from './utils';
 import * as fs from 'somes/fs';
 import paths from './paths';
 import * as path from 'path';
@@ -43,7 +42,7 @@ export class Server extends ServerIMPL {
 		super(Object.assign({}, config, cfg));
 
 		// register service test
-		if (!prod) {
+		if (cfg_.env == 'dev' || cfg_.env == 'rel') {
 			for (var e of cfg_.tests || []) {
 				var {name,dir} = path.parse(e);
 				this.setService(name, require(e).default(name, dir));
