@@ -6,7 +6,6 @@
 import utils from 'somes';
 import {Options,Params,Signer} from 'somes/request';
 import buffer from 'somes/buffer';
-import cfg from './cfg';
 import db from './db';
 import storage from './storage';
 import keys from './keys+';
@@ -16,7 +15,6 @@ import {MysqlTools} from 'somes/mysql';
 
 const crypto_tx = require('crypto-tx');
 
-export const prod = cfg.env == 'prod';
 export const ETH_RATIO = 18;
 
 /**
