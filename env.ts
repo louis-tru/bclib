@@ -13,7 +13,7 @@ export const workers = Number(process.env.__WORKERS) && process.env.__WORKER ? {
 
 export const disableWeb = !!process.env.DISABLE_WEB;
 
-export const env: 'prod' | 'dev' = cfg.env as any;
+export const env: 'prod' | 'dev' | 'rel' = cfg.env as any;
 
 export const tx_dequeue = cfg.web3_tx_dequeue || !!process.env.WEB3_TX_DEQUEUE;
 

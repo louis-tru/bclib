@@ -55,7 +55,7 @@ export async function initialize(db?: DatabaseTools) {
 		create table if not exists auth_user(
 			id         int PRIMARY KEY AUTO_INCREMENT,
 			name       varchar (64)         not null,
-			pkey       text   not null,
+			pkey       text                 not null,
 			key2       varchar (128),
 			keyType    varchar (32) default ('') not null,
 			mode       int default (0)  not null,

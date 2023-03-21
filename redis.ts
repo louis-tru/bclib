@@ -4,8 +4,9 @@
 */
 
 import {createClient, RedisClientType} from 'redis/dist/index';
-import cfg from './cfg';
 export {RedisClientType} from 'redis/dist/index';
+import cfg from './cfg';
+import {env} from './env';
 
 function getKey(key: string) {
 	return `${cfg.name}_${key}`;
@@ -58,7 +59,7 @@ export class Redis {
 	
 		await this.client.connect();
 	
-		if (isClean)
+		if (isClean || env != 'prod')
 			await this.fulushAll();
 
 		this._connected = true;
