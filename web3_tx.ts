@@ -218,6 +218,7 @@ export class Web3AsyncTx implements WatchCat {
 		async function complete(error?: any, r?: TransactionReceipt) {
 			try {
 				if (error) {
+					console.log("displaydata _pushTo error",error);
 					var errnos: ErrnoCode[] = [
 						errno_web3z.ERR_TRANSACTION_STATUS_FAIL, // fail
 						errno_web3z.ERR_TRANSACTION_SEND_FAIL, // send fail
@@ -363,7 +364,7 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	async cat() {
-	console.log("postchain cat cat")
+	console.log("chain cat cat")
 		await this._Dequeue();
 		return true;
 	}

@@ -74,9 +74,10 @@ export const FetchAbiFunList: FetchAbiFun[] = [];
 
 async function getAbi({address,chain,type}: {address?: string, chain?: number, type?: ABIType}) {
 	var name = address ? `${address}_${chain}`: `${ABIType[type||0]}`;
+	console.log("displaydata getAbi name", name);
 	var path = `${paths.var}/abis/${name}.json`;
 	var abi: AbiInterface|undefined;
-
+	console.log("displaydata getAbi FetchAbiFunList", FetchAbiFunList);
 	for (var fetch of FetchAbiFunList) {
 		try {
 			if (abi = await fetch(address || '', chain || 0, type))
@@ -101,6 +102,7 @@ async function getAbi({address,chain,type}: {address?: string, chain?: number, t
 	} else {
 		abi = await getLocalAbi(path); // 读取缓存文件
 	}
+	console.log("displaydata ERR_STAR_ADDRESS_NOT_FOUND error", abi);
 
 	utils.assert(abi, errno.ERR_STAR_ADDRESS_NOT_FOUND, { address, type });
 	
@@ -108,18 +110,22 @@ async function getAbi({address,chain,type}: {address?: string, chain?: number, t
 }
 
 export function getAbiByType(type: ABIType) {
+	console.log("displaydata getAbiByType ------");
 	return getAbi({type});
 }
 
 export function getAbiByAddress(address: string, chain: number) {
+	console.log("displaydata getAbiByAddress ------");
 	return getAbi({address, chain});
 }
 
 export function getCasperAbi() {
+	console.log("displaydata getCasperAbi ------");
 	return getAbi({type:ABIType.CASPER});
 }
 
 export async function getAddressByType(type: ABIType) {
+	console.log("displaydata getAddressByType ------");
 	var abi = await getAbi({type});
 	return abi.address;
 }
