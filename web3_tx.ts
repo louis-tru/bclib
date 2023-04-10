@@ -88,12 +88,8 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	private async _Dequeue() {
-		//if (!web3_tx_dequeue) return;
-
-		console.log("postchain cat _Dequeue");
+		if (!web3_tx_dequeue) return;
 		var offset = 0;
-		console.log("postchain cat _Dequeue Executing",this._sendTransactionExecuting);
-		console.log("postchain cat _Dequeue Limit",this._sendTransactionExecutingLimit);
 		while (this._sendTransactionExecuting.size < this._sendTransactionExecutingLimit) {
 			var txs = await db.query<TxAsync&{qid:number}>(`
 				select q.id as qid, tx_async.* from tx_async_queue as q left join tx_async on q.tx_async_id = tx_async.id where q.id > ${offset} limit 1000`
@@ -115,10 +111,8 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	private async _DequeueItem(tx: TxAsync) {
-		//if (tx.chain != this._web3.chain) return;
-		//if (!this.isMatchWorker(tx.account)) return;
-		console.log("postchain cat _DequeueItem")
-		console.log("postchain cat _DequeueItem",this._sendTransactionExecuting)
+		if (tx.chain != this._web3.chain) return;
+		if (!this.isMatchWorker(tx.account)) return;
 		if (this._sendTransactionExecuting.has(tx.id)) return;
 
 		if (tx.status == 1 && tx.txid) {
@@ -173,7 +167,6 @@ export class Web3AsyncTx implements WatchCat {
 		}
 
 		let {error, receipt} = result;
-		console.log("postchain cat _pushAfter receipt",receipt)
 
 		if (receipt)
 			receipt.logs = []; // logs数据太大存不了
@@ -200,8 +193,6 @@ export class Web3AsyncTx implements WatchCat {
 	private async _pushTo(id: number, tx: TxAsync,
 		sendQueue: (before: SendCallback, c: TxComplete, e: TxError)=>Promise<void>, cb?: Callback)
 	{
-		console.log("postchain cat _pushTo",tx)
-
 		if (this._sendTransactionExecuting.has(id)) return;
 		if (!this.isMatchWorker(tx.account)) return;
 
@@ -218,7 +209,6 @@ export class Web3AsyncTx implements WatchCat {
 		async function complete(error?: any, r?: TransactionReceipt) {
 			try {
 				if (error) {
-					console.log("displaydata _pushTo error",error);
 					var errnos: ErrnoCode[] = [
 						errno_web3z.ERR_TRANSACTION_STATUS_FAIL, // fail
 						errno_web3z.ERR_TRANSACTION_SEND_FAIL, // send fail
@@ -267,7 +257,7 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	private async verificMethodArguments(address: string, method: string, args?: any[]) {
-		console.log("postchain cat verificMethodArguments",address,method,args)
+		
 		var contract = await this._web3.contract(address);
 		var fn = contract.methods[method as string];
 		somes.assert(fn, errno.ERR_ETH_CONTRACT_METHOD_NO_EXIST);
@@ -281,7 +271,6 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	private _post(tx: TxAsync, cb?: Callback) {
-		console.log("postchain cat _post",tx)
 		return this._pushTo(tx.id, tx, async (before, complete, err)=>{
 
 			var {contract: address,method} = tx;
@@ -298,7 +287,6 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	private _send(tx: TxAsync, cb?: Callback) {
-		console.log("postchain cat _send",tx)
 		return this._pushTo(tx.id, tx, async (before, complete, err)=>{
 			var opts: TxOptions = JSON.parse(tx.opts);
 
@@ -364,7 +352,6 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	async cat() {
-	console.log("chain cat cat")
 		await this._Dequeue();
 		return true;
 	}
