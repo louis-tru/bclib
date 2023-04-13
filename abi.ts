@@ -42,7 +42,6 @@ export function setSaveAbiToLocal(is_save: boolean) {
 export async function getLocalAbi(pathname: string) {
 	// var data = await dasset.post('device/getDeviceBySN', { device_sn: device.serialNumber });
 
-	console.log("displayabi getLocalAbi pathname", pathname);
 	if (getLocalAbiCache[pathname])
 		return getLocalAbiCache[pathname];
 

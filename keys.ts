@@ -599,7 +599,6 @@ export class KeysManager {
 			if (key)
 				return; // check ok
 		}
-		console.log("this._useSystemPermission1111111111111------",keychainName,addressOrAddressBtc);
 		await this.keychain.checkPermission(keychainName, addressOrAddressBtc);
 	}
 
