@@ -17,8 +17,8 @@ export class Redis {
 	readonly client: RedisClientType;
 	private _connected = false;
 
-	constructor(url: string) {
-		this.client = createClient({url});
+	constructor(url: string, pwd?: string) {
+		this.client = createClient({url, password: pwd||undefined});
 	}
 
 	async get<T = any>(key: string) {
@@ -88,6 +88,6 @@ export async function test() {
 	console.log(b_a, b2);
 }
 
-const _default = new Redis(cfg.redis || 'redis://127.0.0.1:6379/0');
+const _default = new Redis(cfg.redis || 'redis://127.0.0.1:6379/0', cfg.redis_pwd);
 
 export default _default;
