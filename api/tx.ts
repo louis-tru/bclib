@@ -67,7 +67,6 @@ export default class extends APIController {
 
 	async post({chain,address, method, args,callback, noTryCall, ...opts}: Args) {
 		await keys.impl.checkPermission(this.userName, opts.from);
-		console.log("tx post web3",web3);
 		return await web3[chain].tx.post(address, method, args, opts, callback, noTryCall);
 	}
 
