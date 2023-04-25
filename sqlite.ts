@@ -320,34 +320,55 @@ export class SQLiteTools implements DatabaseTools {
 		return 0; // TODO ...
 	}
 
-	async select<T = Dict>(table: string, where: Where = '', opts: SelectOptions = {}): Promise<T[]> {
-		var struct = this.check(table);
-		var sql, ls;
-		var limit_str = '';
+	private async _select<T = Dict>(table: string, where: Where = '', opts: SelectOptions = {}, total: boolean): Promise<T[]> {
+		let struct = this.check(table);
+		let sql, ls;
+		let limit_str = '';
 		if (opts.limit) {
 			limit_str = Array.isArray(opts.limit) ? ' limit ' + opts.limit.join(','): ' limit ' + opts.limit;
 		}
-		var group = opts.group ? `group by ${opts.group}`: '';
-		var order = opts.order ? `order by ${opts.order}`: '';
+		let out = total ? 'count(*) as __count': '*';
+		let group = opts.group ? `group by ${opts.group}`: '';
+		let order = opts.order ? `order by ${opts.order}`: '';
 		if (where) {
 			if (typeof where == 'object') {
 				var { exp, values } = get_sql_params(struct, where);
 				if (exp.length) {
-					sql = `select * from ${table} where ${exp.join(' and ')} ${group} ${order} ${limit_str}`;
+					sql = `select ${out} from ${table} where ${exp.join(' and ')} ${group} `;
 				} else {
-					sql = `select * from ${table} ${group} ${order} ${limit_str}`;
+					sql = `select ${out} from ${table} ${group} `;
 				}
-				// console.log(sql, values)
+				if (!total)
+					sql += `${order} `;
+				sql += limit_str;
 				ls = await this._Query(sql, values);
 			} else {
-				sql = `select * from ${table} where ${where} ${group} ${order} ${limit_str}`
+				sql = `select ${out} from ${table} where ${where} ${group} `
+				if (!total)
+					sql += `${order} `;
+				sql += limit_str;
 				ls = await this._Query(sql);
 			}
 		} else {
-			sql = `select * from ${table} ${group} ${order} ${limit_str}`;
+			sql = `select ${out} from ${table} ${group} `;
+			if (!total)
+				sql += `${order} `;
+			sql += limit_str;
 			ls = await this._Query(sql);
 		}
 		return selectAfter(struct, ls) as T[];
+	}
+
+	select<T = Dict>(table: string, where: Where = '', opts: SelectOptions = {}): Promise<T[]> {
+		return this._select<T>(table, where, opts, false);
+	}
+
+	async selectCount(table: string, where: Where = '', opts: SelectOptions = {}): Promise<number> {
+		let d = await this._select(table, where, opts, true);
+		if (d.length) {
+			return Number(d[0].__count) || 0;
+		}
+		return 0;
 	}
 
 	async selectOne<T = Dict>(table: string, where: Where = '', opts: SelectOptions = {}): Promise<T|null> {
