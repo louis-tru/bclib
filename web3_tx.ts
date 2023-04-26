@@ -213,6 +213,7 @@ export class Web3AsyncTx implements WatchCat {
 						errno_web3z.ERR_TRANSACTION_SEND_FAIL, // send fail
 						errno_web3z.ERR_TRANSACTION_INVALID, // 交易失效
 						errno_web3z.ERR_EXECUTION_REVERTED,  // exec require fail
+						errno_web3z.ERR_EXECUTION_Returned_Values_Invalid, // exec returns values invalid
 						errno_web3z.ERR_SOLIDITY_EXEC_ERROR, // 合约执行错误
 						errno_web3z.ERR_INSUFFICIENT_FUNDS_FOR_TX, // insufficient funds for transaction
 						errno_web3z.ERR_GAS_REQUIRED_LIMIT, // gas limit
