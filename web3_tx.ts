@@ -209,14 +209,14 @@ export class Web3AsyncTx implements WatchCat {
 			try {
 				if (error) {
 					var errnos: ErrnoCode[] = [
+						errno_web3z.ERR_EXECUTION_REVERTED,  // exec require fail
+						errno_web3z.ERR_EXECUTION_REVERTED_Values_Invalid, // exec returns values invalid
+						errno_web3z.ERR_EXECUTION_CALL_FAIL, // 合约执行错误
+						errno_web3z.ERR_TRANSACTION_INSUFFICIENT_FUNDS, // insufficient funds for transaction
+						errno_web3z.ERR_TRANSACTION_GAS_LIMIT, // gas limit
 						errno_web3z.ERR_TRANSACTION_STATUS_FAIL, // fail
 						errno_web3z.ERR_TRANSACTION_SEND_FAIL, // send fail
 						errno_web3z.ERR_TRANSACTION_INVALID, // 交易失效
-						errno_web3z.ERR_EXECUTION_REVERTED,  // exec require fail
-						errno_web3z.ERR_EXECUTION_Returned_Values_Invalid, // exec returns values invalid
-						errno_web3z.ERR_SOLIDITY_EXEC_ERROR, // 合约执行错误
-						errno_web3z.ERR_INSUFFICIENT_FUNDS_FOR_TX, // insufficient funds for transaction
-						errno_web3z.ERR_GAS_REQUIRED_LIMIT, // gas limit
 						errno.ERR_ETH_TRANSACTION_DISCARD, // 丢弃交易
 						errno.ERR_STAR_ADDRESS_NOT_FOUND, // 协议地址未定义
 						errno.ERR_GET_ABI_NOT_FOUND, // abi不存在
