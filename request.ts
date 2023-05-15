@@ -5,7 +5,7 @@
 
 import * as rng from 'somes/rng';
 import * as crypto from 'crypto';
-import req, {Params,Options, PromiseResult, parseJSON as _parseJSON, Result} from 'somes/request';
+import req, {Request,Params,Options, PromiseResult, parseJSON as _parseJSON, Result} from 'somes/request';
 import errno from './errno';
 import buffer, {IBuffer} from 'somes/buffer';
 import keys from './keys+';
@@ -15,7 +15,7 @@ import cfg from './cfg';
 const crypto_tx = require('crypto-tx');
 
 const internet_test = [
-	'http://files.dphotos.com.cn/test.txt', 
+	'https://dao.smartholder.jp/test.txt',
 	'http://www.apple.com/',
 ];
 
@@ -118,7 +118,7 @@ var CHECK = new CheckNetwork();
 /**
  * @class BcRequest
  */
-export class BcRequest extends req.Request {
+export class BcRequest extends Request {
 	protected user: string;// = 'bclib';
 	private _chack = CHECK;
 	protected shareKey = 'a4dd53f2fefde37c07ac4824cf7086439633e1a357daacc3aaa16418275a9e40';
