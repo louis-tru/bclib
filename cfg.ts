@@ -44,10 +44,10 @@ export default cfg;
 
 Object.assign(cfg, somes.config);
 
+exports.default = Object.assign(somes.config, cfg);
+
 if (cfg.extend_cfg) {
 	try {
-		Object.assign(cfg, require(cfg.extend_cfg));
+		Object.assign(somes.config, require(cfg.extend_cfg));
 	} catch(err) {}
 }
-
-exports.default = Object.assign(somes.config, cfg);
