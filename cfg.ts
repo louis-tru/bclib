@@ -37,7 +37,7 @@ const cfg = {
 	fastStart: false,
 	redis: 'redis://127.0.0.1:6379/0', // redis cfg
 	atomicLock: 'http://127.0.0.1:9801', // atomic lock service
-	extend_cfg: '', // extend config path
+	extendConfigPath: '', // extend config path
 };
 
 export default cfg;
@@ -45,9 +45,3 @@ export default cfg;
 Object.assign(cfg, somes.config);
 
 exports.default = Object.assign(somes.config, cfg);
-
-if (cfg.extend_cfg) {
-	try {
-		Object.assign(somes.config, require(cfg.extend_cfg));
-	} catch(err) {}
-}
