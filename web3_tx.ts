@@ -257,9 +257,10 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	private async verificMethodArguments(address: string, method: string, args?: any[]) {
-		
+		console.log("web3tx verificMethodArguments address, method, args--------", address, method, args);
 		var contract = await this._web3.contract(address);
 		var fn = contract.methods[method as string];
+		console.log("web3tx verificMethodArguments  fn--------", fn);
 		somes.assert(fn, errno.ERR_ETH_CONTRACT_METHOD_NO_EXIST);
 		try {
 			var fnSend = fn(...(args||[]));
@@ -310,13 +311,17 @@ export class Web3AsyncTx implements WatchCat {
 
 	async get(address: string, method: string, args?: any[], opts?: Options) {
 		var fn = await this.verificMethodArguments(address, method, args);
+		console.log("web3tx fn--------", fn);
+		console.log("web3tx get--------", await fn.call(opts));
 		return await fn.call(opts);
 	}
 
 	async post(address: string, method: string, args?: any[], opts?: Options, cb?: Callback, noTryCall?: boolean) {
+		console.log("web3tx post--------", address,method,args,opts,noTryCall);
 		if (noTryCall) {
 			await this.verificMethodArguments(address, method, args);
 		} else {
+			console.log("web3tx post try call--------");
 			await this.get(address, method, args, Object.assign({}, opts)); // try call
 		}
 		var id = await db.transaction(async db=>{
