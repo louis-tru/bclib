@@ -23,7 +23,7 @@ export class Storage implements IStorage {
 
 		this._db = db || new SQLiteTools(`${paths.var}/storage.db`);
 
-		if (this._db.has('storage')) {
+		if (!this._db.has('storage')) {
 			await this._db.load(`
 				CREATE TABLE if not exists storage (
 					kkey     VARCHAR (128) PRIMARY KEY NOT NULL, -- string key
