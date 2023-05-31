@@ -22,13 +22,16 @@ export class Storage implements IStorage {
 		somes.assert(!this._db);
 
 		this._db = db || new SQLiteTools(`${paths.var}/storage.db`);
-		await this._db.load(`
-			CREATE TABLE if not exists storage (
-				kkey     VARCHAR (128) PRIMARY KEY NOT NULL, -- string key
-				value    TEXT    NOT NULL
-			);
-		`, [], [
-		], 'bclib/storage');
+
+		if (this._db.has('storage')) {
+			await this._db.load(`
+				CREATE TABLE if not exists storage (
+					kkey     VARCHAR (128) PRIMARY KEY NOT NULL, -- string key
+					value    TEXT    NOT NULL
+				);
+			`, [], [
+			], 'bclib/storage');
+		}
 	}
 
 	async get<T = any>(kkey: string, defaultValue?: T) {
