@@ -263,7 +263,7 @@ export class SQLiteTools implements DatabaseTools {
 		return [] as Result[];
 	}
 
-	has(table: string): boolean { return table in this.dbStruct }
+	has(table: string): boolean { return this.dbStruct && table in this.dbStruct }
 
 	async insert(table: string, row: Dict): Promise<number> {
 		return await utils.scopeLock(this.m_db, async ()=>{
