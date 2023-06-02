@@ -39,16 +39,20 @@ cfg.router.push({
 
 export class Server extends ServerIMPL {
 	constructor(config?: Options) {
-		super(Object.assign({}, config, cfg));
+		let test_service = [] as any[];
 
 		// register service test
 		if (cfg_.env == 'dev' || cfg_.env == 'rel') {
 			for (var e of cfg_.tests || []) {
 				var {name,dir} = path.parse(e);
-				this.setService(name, require(e).default(name, dir));
+				test_service.push([name,require(e).default(name, dir)]);
 				cfg.router.push({ match: `/${name}/{test_name}`, service: name, action: 'index' });
 			}
-			// service.set('test-ws', require('./test/test-ws').default);
+		}
+		super(Object.assign({}, config, cfg));
+
+		for (let [name,m] of test_service) {
+			this.setService(name, m);
 		}
 
 		this.removeService('descriptors'); // delete descriptors service
