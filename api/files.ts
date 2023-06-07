@@ -59,6 +59,8 @@ const sessions = new Http2Sessions();
 
 export default class extends ViewController {
 
+	static public = false;
+
 	async res({ pathname }: { pathname: string }) {
 		var ext = path.extname(pathname);
 		var name = pathname.substring(0, pathname.length - ext.length);
@@ -102,7 +104,15 @@ export default class extends ViewController {
 		this.returnFile(save, mime);
 	}
 
-	security({ pathname, noCrypt, sslVersion, http2 }: { pathname: string, noCrypt?: boolean, sslVersion?: tls.SecureVersion, http2?: boolean }) {
+	security(opts: {
+		pathname: string, noCrypt?: boolean, sslVersion?: tls.SecureVersion, http2?: boolean
+	}) {
+		return this.http({...opts, crypto: !opts.noCrypt});
+	}
+
+	http({ pathname, crypto, sslVersion, http2 }: {
+		pathname: string, crypto?: boolean, sslVersion?: tls.SecureVersion, http2?: boolean
+	}) {
 		if (http2) {
 			return this.http2({pathname, sslVersion});
 		}
@@ -147,11 +157,11 @@ export default class extends ViewController {
 
 		var req = 
 			lib.request(opts, (msg) => {
-				if (noCrypt) {
+				if (crypto) {
+					msg.pipe(new SecurityEncryption(msg, res));
+				} else {
 					res.writeHead(msg.statusCode as number, msg.headers);
 					msg.pipe(res);
-				} else {
-					msg.pipe(new SecurityEncryption(msg, res));
 				}
 			})
 			.on('abort', ()=>res.destroy())
