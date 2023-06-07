@@ -104,16 +104,10 @@ export default class extends ViewController {
 		this.returnFile(save, mime);
 	}
 
-	security(opts: {
-		pathname: string, noCrypt?: boolean, sslVersion?: tls.SecureVersion, http2?: boolean
-	}) {
-		return this.http({...opts, crypto: !opts.noCrypt});
-	}
-
 	/**
 	 * @dev http proxy
 	 * */
-	http({ pathname, crypto, sslVersion, http2 }: {
+	security({ pathname, crypto, sslVersion, http2 }: {
 		pathname: string, crypto?: boolean, sslVersion?: tls.SecureVersion, http2?: boolean
 	}) {
 		if (http2) {
