@@ -110,6 +110,9 @@ export default class extends ViewController {
 		return this.http({...opts, crypto: !opts.noCrypt});
 	}
 
+	/**
+	 * @dev http proxy
+	 * */
 	http({ pathname, crypto, sslVersion, http2 }: {
 		pathname: string, crypto?: boolean, sslVersion?: tls.SecureVersion, http2?: boolean
 	}) {
