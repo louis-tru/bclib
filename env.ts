@@ -18,3 +18,5 @@ export const env: 'prod' | 'dev' | 'rel' = cfg.env as any;
 export const tx_dequeue = cfg.web3_tx_dequeue || !!process.env.WEB3_TX_DEQUEUE;
 
 export const type = process.env.PROC_TYPE || cfg.type;
+
+export const atomicServer = cfg.atomicServer || !disableWeb;

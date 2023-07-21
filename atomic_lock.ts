@@ -13,7 +13,7 @@ import {WSConversation, WSClient} from 'somes/ws/cli';
 import {ConversationBasic} from 'somes/ws/_conv';
 import errno from './errno';
 import {List} from 'somes/event';
-import {workers} from './env';
+import {workers,atomicServer} from './env';
 import path from 'somes/path';
 import cfg from './cfg';
 import uuid from 'somes/hash/uuid';
@@ -150,7 +150,7 @@ export async function scopeLock<R>(mutex: any, cb: ()=>Promise<R>|R): Promise<R>
 
 export async function initialize() {
 	let url = new path.URL(cfg.atomicLock || 'http://127.0.0.1:9801/');
-	if (!disableWeb && (!workers || workers.id == 0)) { //only main web server enable atomic local service
+	if (atomicServer && (!workers || workers.id == 0)) { //only main web server enable atomic local service
 		await startServer(Number(url.port || 9801), url.hostname); // init server
 	}
 	await initializeClient(url.href); // init client
