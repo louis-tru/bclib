@@ -15,8 +15,8 @@ import {WatchCat} from 'bclib/watch';
 import {get as httpGet} from './request';
 
 async function polygon_gas(scale: number, fast?: boolean) {
-	// https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=YourApiKeyToken
-	let url = 'https://gpoly.blockscan.com/gasapi.ashx?apikey=key&method=gasoracle';
+	let url = 'https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=YourApiKeyToken';
+	// let url = 'https://gpoly.blockscan.com/gasapi.ashx?apikey=key&method=gasoracle';
 	let {data} = await httpGet(url);
 	// {
 	// 	"LastBlock": "42009802",
