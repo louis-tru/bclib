@@ -12,6 +12,25 @@ import {Signature} from 'crypto-tx/sign';
 import {Web3, Contract} from 'web3-tx';
 import {getAbiByAddress} from './abi';
 import {WatchCat} from 'bclib/watch';
+// const req = require('somes/request').default;
+import req from './request';
+
+async function polygon_gas(scale: number, fast?: boolean) {
+	// https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=YourApiKeyToken
+	let url = 'https://gpoly.blockscan.com/gasapi.ashx?apikey=key&method=gasoracle';
+	let {data} = await req.get(url);
+	// {
+	// 	"LastBlock": "42009802",
+	// 	"SafeGasPrice": "503.4",
+	// 	"ProposeGasPrice": "536.3",
+	// 	"FastGasPrice": "540.3",
+	// 	"suggestBaseFee": "502.349930113",
+	// 	"gasUsedRatio": "0.7663592,0.789767766666667,0.839163843493171,0.732857252881441,0.654532866188378",
+	// 	"UsdPrice": "1.007"
+	// }
+	let {ProposeGasPrice,FastGasPrice} = JSON.parse(data + '').result;
+	return parseInt(fast?FastGasPrice:ProposeGasPrice) * 1000000000 * (scale?Number(scale)||1:1);
+}
 
 export class BcWeb3 extends Web3 implements IBcWeb3, WatchCat {
 	TRANSACTION_CHECK_TIME = 5e3;
@@ -54,6 +73,14 @@ export class BcWeb3 extends Web3 implements IBcWeb3, WatchCat {
 			cacheTime: 2e3, timeout: 1e4, id: `block_${this.chain}_${this.provider.rpc.substring(0,100)}`,
 		});
 		return fn();
+	}
+
+	async gasPrice() {
+		if (this.chain == 137) { // polygon
+			return await polygon_gas(1,false);
+		} else {
+			return await super.gasPrice();
+		}
 	}
 
 	async cat() {
