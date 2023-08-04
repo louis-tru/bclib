@@ -86,17 +86,21 @@ export class Web3AsyncTx implements WatchCat {
 		return this._worker == Math.abs(somes.hashCode(from.toLowerCase())) % this._workers;
 	}
 
-	private async dequeueAll() {
-		if (!tx_dequeue) return;
-
-		var offset = 0;
+	async cat() {
+		if (!tx_dequeue) return true;
+		let offset = 0, count = 0;
 		while (this._sendTransactionExecuting.size < this._sendTransactionExecutingLimit) {
-			var txs = await db.query<TxAsync&{qid:number}>(`
-				select q.id as qid, tx_async.* from tx_async_queue as q left join tx_async on q.tx_async_id = tx_async.id where q.id > ${offset} limit 1000`
+			let txs = await db.query<TxAsync&{qid:number}>(`
+				select q.id as qid, tx_async.* from tx_async_queue as q 
+					left join tx_async on q.tx_async_id = tx_async.id where q.id > ${offset} limit 1000`
 			);
-			if (txs.length == 0) break; // none
+			if (txs.length == 0) {
+				if (count)
+					await somes.sleep(10 * count); // sleep 10x
+				break;
+			}
 
-			for (var tx of txs) {
+			for (let tx of txs) {
 				try {
 					if (tx.id)
 						await this.dequeueItem(tx);
@@ -106,8 +110,11 @@ export class Web3AsyncTx implements WatchCat {
 					console.warn('#web3_tx.Web3Tx.dequeueAll', err);
 				}
 				offset = tx.id;
+				count++;
 			}
 		}
+
+		return true;
 	}
 
 	private async dequeueItem(tx: TxAsync) {
@@ -160,7 +167,6 @@ export class Web3AsyncTx implements WatchCat {
 		if (r.status != 1) {
 			return;
 		}
-
 		let {error, receipt} = result;
 
 		if (receipt)
@@ -332,11 +338,6 @@ export class Web3AsyncTx implements WatchCat {
 			return id;
 		});
 		return String(id);
-	}
-
-	async cat() {
-		await this.dequeueAll();
-		return true;
 	}
 
 }

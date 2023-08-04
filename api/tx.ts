@@ -17,6 +17,7 @@ interface Args {
 	args?: any[];
 	value?: string;
 	retry?: number;
+	retryDelay?: number;
 	timeout?: number; // timeout
 	blockRange?: number;
 	nonceTimeout?: number;
