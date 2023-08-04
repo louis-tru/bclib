@@ -3,7 +3,7 @@
  * @date 2020-11-28
  */
 
-import utils from './utils';
+import utils from 'somes';
 import * as crypto from 'crypto';
 import { ViewController } from 'somes/ctr';
 import {RuleResult} from 'somes/router';

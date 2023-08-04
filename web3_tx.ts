@@ -10,12 +10,12 @@ import { TransactionReceipt,
 import errno_web3z from 'web3-tx/errno';
 import { MemoryTransactionQueue } from 'web3-tx/queue';
 import errno from './errno';
-import {callbackTask} from './utils';
+import {callbackTask} from './cb';
 import {workers} from './env';
 import db from './db';
 import {WatchCat} from './watch';
 import {tx_dequeue} from './env';
-import local_storage from './storage';
+import storage from './storage';
 
 export interface IBcWeb3 extends IWeb3 {
 	readonly tx: Web3AsyncTx;
@@ -34,6 +34,7 @@ export interface Options {
 	from: string;
 	value?: string;
 	retry?: number; // queue retry
+	retryDelay?: number;
 	timeout?: number;
 	blockRange?: number;
 	nonceTimeout?: number;
@@ -71,7 +72,6 @@ export class Web3AsyncTx implements WatchCat {
 	private _worker = workers ? workers.worker: 0;
 	private _sendTransactionExecuting = new Set<number>();
 	private _sendTransactionExecutingLimit = 1e5; // 10000
-	//private _offset_id = 0;
 
 	readonly queue: MemoryTransactionQueue;
 
@@ -82,11 +82,11 @@ export class Web3AsyncTx implements WatchCat {
 		this.queue = new MemoryTransactionQueue(web3);
 	}
 
-	private isMatchWorker(from: string) {
+	private matchWorker(from: string) {
 		return this._worker == Math.abs(somes.hashCode(from.toLowerCase())) % this._workers;
 	}
 
-	private async _Dequeue() {
+	private async dequeueAll() {
 		if (!tx_dequeue) return;
 
 		var offset = 0;
@@ -99,20 +99,20 @@ export class Web3AsyncTx implements WatchCat {
 			for (var tx of txs) {
 				try {
 					if (tx.id)
-						await this._DequeueItem(tx);
+						await this.dequeueItem(tx);
 					else
 						await db.delete('tx_async_queue', { id: tx.qid });
 				} catch(err) {
-					console.warn('web3_tx#Web3Tx#_Dequeue', err);
+					console.warn('#web3_tx.Web3Tx.dequeueAll', err);
 				}
 				offset = tx.id;
 			}
 		}
 	}
 
-	private async _DequeueItem(tx: TxAsync) {
+	private async dequeueItem(tx: TxAsync) {
 		if (tx.chain != this._web3.chain) return;
-		if (!this.isMatchWorker(tx.account)) return;
+		if (!this.matchWorker(tx.account)) return;
 		if (this._sendTransactionExecuting.has(tx.id)) return;
 
 		if (tx.status == 1 && tx.txid) {
@@ -122,7 +122,7 @@ export class Web3AsyncTx implements WatchCat {
 				if (!receipt.status) {
 					result.error = Error.new(errno_web3z.ERR_TRANSACTION_STATUS_FAIL);
 				}
-				await this._pushAfter(tx.id, result, tx.cb);
+				await this.completeTx(tx.id, result, tx.cb);
 
 			} else {
 				if (tx.nonce) { // 如果记录过写入时的`nonce`，当`nonce`小于当前`nonce`视交易被替换
@@ -133,7 +133,7 @@ export class Web3AsyncTx implements WatchCat {
 						if (tx.noneConfirm) {
 							if (blockNumber > tx.noneConfirm + 32) {
 								result.error = Error.new(errno_web3z.ERR_TRANSACTION_INVALID); // 失效
-								await this._pushAfter(tx.id, result, tx.cb);
+								await this.completeTx(tx.id, result, tx.cb);
 							}
 						} else { // 先写入确认判定失效的先决条件,在开始判定前需要等待一个区块
 							tx.noneConfirm = blockNumber;
@@ -146,20 +146,16 @@ export class Web3AsyncTx implements WatchCat {
 				if (Date.now() > tx.active + 1e8) {
 					// 100000（30小时）后丢弃此交易，超过30小时都没有人处理这比交易，再等更多时间也没有意义
 					result.error = Error.new(errno.ERR_ETH_TRANSACTION_DISCARD);
-					await this._pushAfter(tx.id, result, tx.cb);
+					await this.completeTx(tx.id, result, tx.cb);
 				}
 			}
 		}
 		else if (tx.status <= 1) {
-			if (tx.contract) {
-				await this._post(tx);
-			} else {
-				await this._send(tx);
-			}
+			this.pushToMemoryQueue(tx.id, tx, tx.cb);
 		}
 	}
 
-	private async _pushAfter(id: number, result: PostResult, cb?: Callback) {
+	private async completeTx(id: number, result: PostResult, cb?: Callback) {
 		var [r] = await db.select<TxAsync>('tx_async', {id});
 		if (r.status != 1) {
 			return;
@@ -189,23 +185,21 @@ export class Web3AsyncTx implements WatchCat {
 		await db.delete('tx_async_queue', {tx_async_id: id}); // delete queue
 	}
 
-	private async _pushTo(id: number, tx: TxAsync,
-		sendQueue: (before: SendCallback, c: TxComplete, e: TxError)=>Promise<void>, cb?: Callback)
+	private async pushToMemoryQueue(id: number, tx: TxAsync, cb?: Callback)
 	{
 		if (this._sendTransactionExecuting.has(id)) return;
-		if (!this.isMatchWorker(tx.account)) return;
+		if (!this.matchWorker(tx.account)) return;
 
 		if (tx.status > 1) {
 			await db.delete('tx_async_queue', { tx_async_id: id });
 			return;
 		}
-
 		this._sendTransactionExecuting.add(id);
 
-		var self = this;
-		var result: PostResult = { id: String(id), tx };
+		let self = this;
+		let result: PostResult = { id: String(id), tx };
 
-		async function complete(error?: any, r?: TransactionReceipt) {
+		let complete = async(error?: any, r?: TransactionReceipt)=>{
 			try {
 				if (error) {
 					var errnos: ErrnoCode[] = [
@@ -226,37 +220,53 @@ export class Web3AsyncTx implements WatchCat {
 					if ( errnos.find(([e])=>error.errno==e) ) {
 						Object.assign(result, { receipt: error.receipt, error });
 					} else {
-						console.warn('Web3AsyncTx#_pushTo', error);
+						console.warn('#Web3AsyncTx.pushToMemoryQueue.complete', error);
 						return; // continue watch
 					}
 				} else {
 					result.receipt = r;
 				}
-
-				await self._pushAfter(id, result, cb);
+				await self.completeTx(id, result, cb);
 
 			} finally {
 				self._sendTransactionExecuting.delete(id);
 			}
-		}
-	
+		};
+
+		let beforePop: SendCallback = async (txid, opts)=>{
+			var nonce = opts.nonce || 0;
+			try {
+				await db.update('tx_async', { status: 1, txid, nonce, active: Date.now() }, { id }); // 已经发送到链上，把`txid`记录下来
+			} catch(err: any) {
+				await storage.set(`tx_async_${id}`, {txid, nonce}); // record to local
+				throw err;
+			}
+		};
+
 		try {
 			await db.update('tx_async', { status: 1 }, { id });
-			await sendQueue(async (txid, opts)=>{
-				var nonce = opts.nonce || 0;
-				try {
-					await db.update('tx_async', { status: 1, txid, nonce, active: Date.now() }, { id }); // 已经发送到链上，把`txid`记录下来
-				} catch(err: any) {
-					await local_storage.set(`tx_async_${id}`, {txid, nonce}); // record to local
-					throw err;
-				}
-			}, (r)=>complete(undefined, r), complete);
+
+			if (tx.contract) { // contract call
+				let {contract: address,method} = tx;
+				let opts: Options = JSON.parse(tx.opts);
+				let args: any[] = JSON.parse(tx.args as string);
+				let fn = await this.checkMethodArgs(address as string, method as string, args);
+				let r = await fn.call(opts); // try call
+				this.queue.push(e=>
+					fn.post({ ...opts, ...e }, beforePop)
+				, {...opts, id}).then(e=>complete(undefined, e)).catch(complete);
+			} else { // send tx
+				let opts: TxOptions = JSON.parse(tx.opts);
+				this.queue.push(e=>
+					this._web3.sendSignTransaction({ ...opts, ...e }, beforePop)
+				, {...opts, id}).then(e=>complete(undefined, e)).catch(complete);
+			}
 		} catch(err: any) {
 			complete(err);
 		}
 	}
 
-	private async verificMethodArguments(address: string, method: string, args?: any[]) {
+	private async checkMethodArgs(address: string, method: string, args?: any[]) {
 		var contract = await this._web3.contract(address);
 		var fn = contract.methods[method as string];
 		somes.assert(fn, errno.ERR_ETH_CONTRACT_METHOD_NO_EXIST);
@@ -267,32 +277,6 @@ export class Web3AsyncTx implements WatchCat {
 			err.errno = errno.ERR_ETH_CONTRACT_METHOD_ARGS_ERR[0];
 			throw err;
 		}
-	}
-
-	private _post(tx: TxAsync, cb?: Callback) {
-		return this._pushTo(tx.id, tx, async (before, complete, err)=>{
-
-			var {contract: address,method} = tx;
-			var args: any[] = JSON.parse(tx.args as string);
-			var opts: Options = JSON.parse(tx.opts);
-
-			var fn = await this.verificMethodArguments(address as string, method as string, args);
-			var r = await fn.call(opts); // try call
-
-			this.queue.push(e=>
-				fn.post({ ...opts, ...e }, before)
-			, opts).then(complete).catch(err);
-		}, cb || tx.cb);
-	}
-
-	private _send(tx: TxAsync, cb?: Callback) {
-		return this._pushTo(tx.id, tx, async (before, complete, err)=>{
-			var opts: TxOptions = JSON.parse(tx.opts);
-
-			this.queue.push(e=>
-				this._web3.sendSignTransaction({ ...opts, ...e }, before)
-			, opts).then(complete).catch(err);
-		}, cb || tx.cb);
 	}
 
 	// ------------------ public ------------------
@@ -307,16 +291,16 @@ export class Web3AsyncTx implements WatchCat {
 		return { ...data, id: String(tx.id), tx };
 	}
 
-	async get(address: string, method: string, args?: any[], opts?: Options) {
-		var fn = await this.verificMethodArguments(address, method, args);
+	async call(address: string, method: string, args?: any[], opts?: Options) {
+		var fn = await this.checkMethodArgs(address, method, args);
 		return await fn.call(opts);
 	}
 
 	async post(address: string, method: string, args?: any[], opts?: Options, cb?: Callback, noTryCall?: boolean) {
 		if (noTryCall) {
-			await this.verificMethodArguments(address, method, args);
+			await this.checkMethodArgs(address, method, args);
 		} else {
-			await this.get(address, method, args, Object.assign({}, opts)); // try call
+			await this.call(address, method, args, Object.assign({}, opts)); // try call
 		}
 		var id = await db.transaction(async db=>{
 			var id = await db.insert('tx_async', {
@@ -335,7 +319,7 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	// send tx
-	async send(opts: TxOptions, cb?: Callback) {
+	async sendSignTransaction(opts: TxOptions, cb?: Callback) {
 		var id = await db.transaction(async db=>{
 			var id = await db.insert('tx_async', {
 				account: opts.from,
@@ -351,7 +335,7 @@ export class Web3AsyncTx implements WatchCat {
 	}
 
 	async cat() {
-		await this._Dequeue();
+		await this.dequeueAll();
 		return true;
 	}
 

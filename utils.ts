@@ -4,16 +4,9 @@
  */
 
 import utils from 'somes';
-import {Options,Params,Signer} from 'somes/request';
-import buffer from 'somes/buffer';
-import db from './db';
+import {Options,Params} from 'somes/request';
 import storage from './storage';
-import keys from './keys+';
-import {BcRequest, post} from './request';
-import {WatchCat} from './watch';
-import {MysqlTools} from 'somes/mysql';
-
-const crypto_tx = require('crypto-tx');
+import {BcRequest} from './request';
 
 export const ETH_RATIO = 18;
 
@@ -164,70 +157,3 @@ export async function callApi(
 	}
 	return data;
 }
-
-class SignerIMPL implements Signer {
-	async sign(path: string, data: string) {
-		var st = String(Date.now());
-		var key = 'a4dd53f2fefde37c07ac4824cf7086439633e1a357daacc3aaa16418275a9e48';
-		var hash = crypto_tx.keccak(path + data + st + key).data;
-		var signature = await keys.impl.sign(buffer.from(hash), keys.impl.defauleAddress);
-		var sign = buffer.concat([signature.signature, [signature.recovery]]).toString('base64');
-		return { st, sign };
-	}
-}
-
-class CallbackTask implements WatchCat {
-	cattime = 1;
-	signer = new SignerIMPL();
-
-	private async lockDataState(table: string, id: number, lockTimeout = 10 * 60 * 1e3/*default 10m*/) {
-		var active = Date.now() + utils.random(0, 1e3);
-		var [r] = await db.exec(
-			`update ${table} set state=1,active=${active}
-					where id=${id} and (state=0 or (state=1 and active<${active-lockTimeout}))
-		`);
-		if (db instanceof MysqlTools) {
-			if (!r || !r.affectedRows)
-				return false;
-		}
-		var it = await db.selectOne(table, { id, state: 1, active });
-		return !!it;
-	}
-
-	private async _exec(data: any, url: string, id: number, retry: number) {
-		try {
-			var timeout = Math.min(3600, Math.pow(1.5, retry)) * 1e3; // max 3600s
-			if (!await this.lockDataState('callback_url', id, timeout)) return; // Multi worker lock
-
-			var r = await post(url, { params: data, urlencoded: false, signer: this.signer });
-			if (r.statusCode == 200) {
-				await db.delete('callback_url', {id}); return;
-			}
-		} catch(err: any) {
-			console.warn('CallbackTask#_exec', err);
-		}
-		await db.update('callback_url', { retry: retry+1, state: retry < 144 ? 1: 3/*丢弃*/ }, { id });
-	}
-
-	async add(data: any, url: string) {
-		try {
-			utils.assert(url.match(/^https?:\/\/.+/i), 'callbackURI uri invalid');
-			var id = await db.insert('callback_url', { url, data: JSON.stringify(data) }) as number;
-			await this._exec(data, url, id, 0);
-		} catch(err) {
-			console.warn('CallbackTask#callbackURI', err);
-		}
-	}
-
-	async cat() {
-		var items = await db.query(`select * from callback_url where state=0 or state=1`);
-		for (var item of items) {
-			await this._exec(JSON.parse(item.data), item.url, item.id, item.retry);
-		}
-		return true;
-	}
-}
-
-export const callbackTask = new CallbackTask();
-
-export default utils;
