@@ -12,13 +12,12 @@ import {Signature} from 'crypto-tx/sign';
 import {Web3, Contract} from 'web3-tx';
 import {getAbiByAddress} from './abi';
 import {WatchCat} from 'bclib/watch';
-// const req = require('somes/request').default;
-import req from './request';
+import {get as httpGet} from './request';
 
 async function polygon_gas(scale: number, fast?: boolean) {
 	// https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=YourApiKeyToken
 	let url = 'https://gpoly.blockscan.com/gasapi.ashx?apikey=key&method=gasoracle';
-	let {data} = await req.get(url);
+	let {data} = await httpGet(url);
 	// {
 	// 	"LastBlock": "42009802",
 	// 	"SafeGasPrice": "503.4",
