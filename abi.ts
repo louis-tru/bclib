@@ -6,7 +6,7 @@
 import * as fs from 'somes/fs2';
 import * as path from 'path';
 import paths from './paths';
-import utils from './utils';
+import somes from 'somes';
 import {AbiItem} from 'web3-utils';
 import errno from './errno';
 
@@ -102,7 +102,7 @@ async function getAbi({address,chain,type}: {address?: string, chain?: number, t
 		abi = await getLocalAbi(path); // 读取缓存文件
 	}
 
-	utils.assert(abi, errno.ERR_STAR_ADDRESS_NOT_FOUND, { address, type });
+	somes.assert(abi, errno.ERR_STAR_ADDRESS_NOT_FOUND, { address, type });
 	
 	return abi as AbiInterface;
 }

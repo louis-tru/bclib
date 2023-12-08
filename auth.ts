@@ -3,7 +3,7 @@
  * @date 2020-07-18
  */
 
-import utils from './utils';
+import utils from 'somes';
 import errno from './errno';
 import action from './action';
 import * as apps from './apps';

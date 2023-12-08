@@ -3,7 +3,7 @@
  * @date 2020-11-28
  */
 
-import utils from './utils';
+import utils from 'somes';
 import * as crypto from 'crypto';
 import { ViewController } from 'somes/ctr';
 import {RuleResult} from 'somes/router';
@@ -178,6 +178,16 @@ export default class APIController extends ViewController implements API {
 	userNotErr() { return this._au.userNotErr() }
 
 	onAuth(_: RuleResult) {
-		return this._au.auth(_.service + '/' + _.action, this.form);
+		if ((this as any)[`__fullaccess_${_.action}`])
+			return Promise.resolve(true);
+		else
+			return this._au.auth(_.service + '/' + _.action, this.form);
 	}
+}
+
+/**
+ * typescript decorator
+*/
+export function fullaccess(target: any, name: string) {
+	target[`__fullaccess_${name}`] = 1;
 }
