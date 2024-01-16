@@ -74,7 +74,7 @@ export interface Collection {
 
 function get_sql_params(
 	struct: DBStruct, 
-	row: Dict, 
+	row: Dict,
 	json: boolean= false, 
 	prefix: string = ''
 ) 
@@ -265,6 +265,26 @@ export class SQLiteTools implements DatabaseTools {
 
 	has(table: string): boolean { return this.dbStruct && table in this.dbStruct }
 
+	insertSql(table: string, row: Dict): string {
+		utils.assert(0, 'SQLiteTools.insertSql unrealized');
+		return '';
+	}
+
+	updateSql(table: string, row: Dict, where: Where = '') {
+		utils.assert(0, 'SQLiteTools.updateSql unrealized');
+		return '';
+	}
+
+	deleteSql(table: string, where: Where = '') {
+		utils.assert(0, 'SQLiteTools.deleteSql unrealized');
+		return '';
+	}
+
+	selectSql(table: string, where: Where = '', opts: SelectOptions = {}) {
+		utils.assert(0, 'SQLiteTools.selectSql unrealized');
+		return '';
+	}
+
 	async insert(table: string, row: Dict): Promise<number> {
 		return await utils.scopeLock(this.m_db, async ()=>{
 			var struct = this.check(table);
@@ -320,14 +340,14 @@ export class SQLiteTools implements DatabaseTools {
 		return 0; // TODO ...
 	}
 
-	private async _select<T = Dict>(table: string, where: Where = '', opts: SelectOptions = {}, total: boolean): Promise<T[]> {
+	async select<T = Dict>(table: string, where: Where = '', opts: SelectOptions = {}): Promise<T[]> {
 		let struct = this.check(table);
 		let sql, ls;
 		let limit_str = '';
 		if (opts.limit) {
 			limit_str = Array.isArray(opts.limit) ? ' limit ' + opts.limit.join(','): ' limit ' + opts.limit;
 		}
-		let out = total ? 'count(*) as __count': opts.out || '*';
+		let out = opts.count ? 'count(*) as __count': opts.out || '*';
 		let group = opts.group ? `group by ${opts.group}`: '';
 		let order = opts.order ? `order by ${opts.order}`: '';
 		if (where) {
@@ -338,20 +358,20 @@ export class SQLiteTools implements DatabaseTools {
 				} else {
 					sql = `select ${out} from ${table} ${group} `;
 				}
-				if (!total)
+				if (!opts.count)
 					sql += `${order} `;
 				sql += limit_str;
 				ls = await this._Query(sql, values);
 			} else {
 				sql = `select ${out} from ${table} where ${where} ${group} `
-				if (!total)
+				if (!opts.count)
 					sql += `${order} `;
 				sql += limit_str;
 				ls = await this._Query(sql);
 			}
 		} else {
 			sql = `select ${out} from ${table} ${group} `;
-			if (!total)
+			if (!opts.count)
 				sql += `${order} `;
 			sql += limit_str;
 			ls = await this._Query(sql);
@@ -359,12 +379,8 @@ export class SQLiteTools implements DatabaseTools {
 		return selectAfter(struct, ls) as T[];
 	}
 
-	select<T = Dict>(table: string, where: Where = '', opts: SelectOptions = {}): Promise<T[]> {
-		return this._select<T>(table, where, opts, false);
-	}
-
 	async selectCount(table: string, where: Where = '', opts: SelectOptions = {}): Promise<number> {
-		let d = await this._select(table, where, opts, true);
+		let d = await this.select(table, where, {...opts, count: true});
 		if (d.length) {
 			return Number(d[0].__count) || 0;
 		}

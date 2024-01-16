@@ -47,7 +47,12 @@ export class Redis {
 	}
 	
 	async fulushAll() {
+		// clear all dbs
 		await this.client.sendCommand(['FLUSHALL']);
+	}
+
+	async fulushDB() {
+		await this.client.sendCommand(['FLUSHDB']);
 	}
 
 	async initialize(isClean?: boolean) {
@@ -60,7 +65,7 @@ export class Redis {
 		await this.client.connect();
 	
 		if (isClean || env != 'prod')
-			await this.fulushAll();
+			await this.fulushDB();
 
 		this._connected = true;
 	}
