@@ -325,13 +325,13 @@ export class Web3AsyncTx implements WatchCat {
 		return String(id);
 	}
 
-	async deploy(bytecode: string, abi: AbiItem[], args?: any[], opts?: Options, cb?: Callback) {
+	async deploy(bytecode: string, abi: AbiItem, args?: any[], opts?: Options, cb?: Callback) {
 		// {
 		// 	"inputs": [],
 		// 	"stateMutability": "nonpayable",
 		// 	"type": "constructor"
 		// },
-		var c = new Contract(this._web3, abi);
+		var c = new Contract(this._web3, [abi]);
 		let m = c.deploy({ data: bytecode, arguments: args });
 		try {
 			await m.call(opts);

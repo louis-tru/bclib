@@ -66,7 +66,7 @@ export default class extends APIController {
 	}
 
 	async deploy({chain,bytecode,abi,args,callback,...opts}: {
-		chain: number, bytecode: string, abi: AbiItem[], args?: any[], callback?: string } & Options) 
+		chain: number, bytecode: string, abi: AbiItem, args?: any[], callback?: string } & Options) 
 	{
 		await keys.impl.checkPermission(this.userName, opts.from);
 		return await web3[chain].tx.deploy(bytecode, abi, args, opts, callback);
