@@ -16,6 +16,7 @@ import db from './db';
 import {WatchCat} from './watch';
 import {tx_dequeue} from './env';
 import storage from './storage';
+import {AbiItem} from 'web3-utils';
 
 export interface IBcWeb3 extends IWeb3 {
 	readonly tx: Web3AsyncTx;
@@ -322,6 +323,25 @@ export class Web3AsyncTx implements WatchCat {
 			return id;
 		});
 		return String(id);
+	}
+
+	async deploy(bytecode: string, abi: AbiItem[], args?: any[], opts?: Options, cb?: Callback) {
+		// {
+		// 	"inputs": [],
+		// 	"stateMutability": "nonpayable",
+		// 	"type": "constructor"
+		// },
+		var c = new Contract(this._web3, abi);
+		let m = c.deploy({ data: bytecode, arguments: args });
+		try {
+			await m.call(opts);
+		} catch(err: any) {
+			err.errno = errno.ERR_ETH_CONTRACT_METHOD_ARGS_ERR[0];
+			throw err;
+		}
+		let data = m.encodeABI();
+		let id = await this.sendSignTransaction({...opts as any, data }, cb);
+		return id;
 	}
 
 	// send tx

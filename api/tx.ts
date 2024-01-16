@@ -5,22 +5,16 @@
 
 import APIController from '../api';
 import web3 from '../web3+';
-import {TxOptions} from '../web3_tx';
+import {TxOptions,Options} from '../web3_tx';
 import buffer from 'somes/buffer';
 import keys from '../keys+';
+import {AbiItem} from 'web3-utils';
 
-interface Args {
+interface Args extends TxOptions {
 	chain: number;
 	address: string;
-	from: string;
 	method: string;
 	args?: any[];
-	value?: string;
-	retry?: number;
-	retryDelay?: number;
-	timeout?: number; // timeout
-	blockRange?: number;
-	nonceTimeout?: number;
 	callback?: string;
 	noTryCall?: boolean;
 }
@@ -66,9 +60,14 @@ export default class extends APIController {
 
 	// async tx
 
-	async post({chain,address,method,args,callback, noTryCall, ...opts}: Args) {
-		await keys.impl.checkPermission(this.userName, opts.from);
+	async post({chain,address,method,args,callback,noTryCall,...opts}: Args) {
+		await keys.impl.checkPermission(this.userName,opts.from);
 		return await web3[chain].tx.post(address, method, args, opts, callback, noTryCall);
+	}
+
+	async deploy({chain,bytecode,abi,args,callback,...opts}: {chain: number, bytecode: string, abi: AbiItem[], args?: any[], callback?: string} & Options) {
+		await keys.impl.checkPermission(this.userName, opts.from);
+		return await web3[chain].tx.deploy(bytecode, abi, args, opts, callback);
 	}
 
 	async sendSignTransaction({chain,tx,callback}: {chain: number, tx: TxOptions, callback?: string}) {
@@ -82,7 +81,7 @@ export default class extends APIController {
 		await keys.impl.checkPermission(this.userName, opts.from);
 		var c = await web3[chain].contract(address);
 		var fn = c.methods[method as string](...(args||[]));
-		await fn.call(opts); // try call
+		await fn.call(opts as any); // try call
 		return await fn.post(opts);
 	}
 
