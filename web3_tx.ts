@@ -334,7 +334,7 @@ export class Web3AsyncTx implements WatchCat {
 		var c = new Contract(this._web3, [abi]);
 		let m = c.deploy({ data: bytecode, arguments: args });
 		try {
-			await m.call(opts);
+			await m.estimateGas();
 		} catch(err: any) {
 			err.errno = errno.ERR_ETH_CONTRACT_METHOD_ARGS_ERR[0];
 			throw err;
