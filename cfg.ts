@@ -33,7 +33,8 @@ const cfg = {
 	internetTest: [] as string[] | undefined,
 	filesSecurityVi: '0xc84a565d48ec73b79b984e4508196d66',
 	filesSecurityKey: '0xedc86f52e40fb6f031dd429e24c42a1901ee522654cb23a3b51e98aabe7d2d3b',
-	qiniu: undefined as { scope: string, zone: string, accessKey: string, secretKey: string } | undefined,
+	qiniu: undefined as {prefix: string, all_prefix: string[], accessKey: string, secretKey: string, scope: string, zone: string } | undefined,
+	s3: undefined as { prefix: string, all_prefix: string[], accessKeyId: string, secretAccessKey: string, bucket: string } | undefined,
 	fastStart: false,
 	redis: 'redis://127.0.0.1:6379/0', // redis cfg
 	atomicLock: 'http://127.0.0.1:9801', // atomic lock service

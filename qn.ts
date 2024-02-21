@@ -8,9 +8,9 @@ import cfg from './cfg';
 import * as path from 'path';
 import errno from './errno';
 import somes from 'somes';
-import * as fs from 'fs';
+// import * as fs from 'fs';
 
-export function config() {
+function config() {
 	var config = new qiniu.conf.Config() as qiniu.conf.ConfigOptions;
 	// 空间对应的机房
 	var spaces: Dict = {
@@ -31,7 +31,7 @@ export function config() {
 	return config;
 }
 
-export function uploadToken() {
+function uploadToken() {
 	somes.assert(cfg.qiniu, errno.ERR_NO_QINIU_CONFIG);
 	if (!cfg.qiniu) 
 		throw 'err';
@@ -58,14 +58,14 @@ export async function exists(key: string) {
 		var stat = await state(key);
 	} catch(err: any) {
 		if (err.errno == errno.ERR_QINIU_STATE_FILE_404[0]) {
-			return null;
+			return false;
 		}
 		throw err;
 	}
-	return stat;
+	return !!stat;
 }
 
-export function searchPrefix(prefix: string, limit?: number) {
+export function searchPrefix(prefix: string, limit: number = 1) {
 	var {mac, scope} = uploadToken();
 	var bucket = new qiniu.rs.BucketManager(mac, config());
 
@@ -104,7 +104,7 @@ export function state(key: string) {
 	});
 }
 
-export default function upload(src: string, dest?: string) {
+export default function upload(src: string, dest?: string, mime?: string) {
 	var resumeUploader = new qiniu.resume_up.ResumeUploader(config());
 
 	// var formUploader = new qiniu.form_up.FormUploader(config);
@@ -113,6 +113,7 @@ export default function upload(src: string, dest?: string) {
 
 	// putExtra.version = 'v2';
 	// putExtra.partSize = 6 * 1024 * 1024;
+	putExtra.mimeType = mime;
 
 	return new Promise<string>(function (resolve, reject) {
 		resumeUploader.putFile(uploadToken().token, key, src, putExtra, function(respErr, respBody, respInfo) {
